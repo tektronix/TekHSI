@@ -1,0 +1,395 @@
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.9.0"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "raise NotImplementedError"
+]
+fail_under = 80  # TODO: set to 100 after reaching 100% coverage
+show_missing = true
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+cover_pylib = false
+omit = [
+  ".tox/**/_*.py"
+]
+source = ["tekhsi"]
+
+[tool.docformatter]
+close-quotes-on-newline = true
+in-place = true
+recursive = true
+wrap-descriptions = 100
+wrap-summaries = 0
+
+[tool.poetry]  # TODO: fill in this section with more information
+authors = ["Tektronix <opensource@tektronix.com>"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+  "Topic :: Scientific/Engineering",
+  "Topic :: System :: Hardware :: Hardware Drivers"
+]
+description = "Transfer waveforms from Tektronix Oscilloscope to a device using High Speed Serial Interface."
+documentation = "https://TekHSI.readthedocs.io/stable/"
+homepage = "https://pypi.org/project/TekHSI/"
+keywords = [
+  "Tektronix",
+  "Test & Measurement"
+]
+license = "Apache License 2.0"
+name = "TekHSI"
+readme = "README.md"
+repository = "https://github.com/tektronix/TekHSI"
+version = "0.0.1"
+
+[tool.poetry.dependencies]
+annotated-types = "^0.7.0"
+bidict = "^0.23.1"
+grpcio = "^1.51.3"
+grpcio-tools = "^1.51.3"
+nodeenv = "^1.9.1"
+# TODO: Add llvmlite (0.42.0) after resolving dependency in tm_data_types
+numba = [
+  {python = ">=3.9,<4.0", version = "^0.60.0"},
+  {python = "3.8", version = "^0.58.0"}
+]
+numpy = [
+  {python = "^3.9", version = "^1.26"},
+  {python = "^3.8, <3.12", version = "^1.24"}
+]
+pandas = ">=1.5.3,<3.0.0"
+protobuf = "^4.22.1"
+pydantic = "^2.7.2"
+pydantic_core = "^2.18.3"
+python = "^3.8"
+python-dateutil = "^2.8.2"
+scipy = [
+  {python = "^3.9", version = "^1.12"},
+  {python = "^3.8, <3.12", version = "^1.10"}
+]
+six = "^1.16.0"
+tm_data_types = "^0.1.0"
+typing_extensions = "^4.12.0"
+
+[tool.poetry.group.dev.dependencies]
+docutils = "^0.20"  # TODO: remove this when the minimum Python version is >=3.9
+docutils-stubs = "^0.0.22"
+matplotlib = [
+  {python = ">=3.9", version = "^3.8"},
+  {python = "3.8", version = "^3.7"}
+]
+memory-profiler = "^0.61.0"
+nodeenv = "^1.9.1"
+pip = "^24.0"
+poetry = "^1.8.0"
+poetry-audit-plugin = "^0.4.0"
+poetry-plugin-export = "^1.7.1"
+poetry-pre-commit-plugin = "^0.1.2"
+pre-commit = [
+  {python = ">=3.9", version = "^3.7"},
+  {python = "3.8", version = "^3.5"}
+]
+pylint = "3.2.6"
+pyright = "1.1.376"
+pyroma = "^4.2"
+tox = "^4.0"
+tox-gh-actions = "^3.1.0"
+twine = "^5.0.0"
+types-python-dateutil = "^2.9"
+types-pyyaml = "^6.0"
+types-requests = "^2.31"
+wheel = "^0.44"
+
+[tool.poetry.group.docs.dependencies]
+black = "^24.4.2"
+codespell = "^2.2.6"
+mkdocs = "^1.6.0"
+mkdocs-ezglossary-plugin = "^1.6.10"
+mkdocs-gen-files = "^0.5.0"
+mkdocs-include-markdown-plugin = "^6.0.5"
+mkdocs-literate-nav = "^0.6.1"
+mkdocs-macros-plugin = "^1.0.5"
+mkdocs-mermaid2-plugin = "^1.1.1"
+mkdocs-section-index = "^0.3.9"
+mkdocs-spellcheck = "^1.1.0"
+mkdocstrings = "^0.25.0"
+mkdocstrings-python = "^1.10.2"
+nodeenv = "^1.9.1"
+pygments = "^2.17.2"
+pymdown-extensions = "^10.8.1"
+symspellpy = "^6.7.7"
+tomli = "^2.0.1"
+
+[tool.poetry.group.tests.dependencies]
+coverage = "^7.5.0"
+linkchecker = "^10.0.0"
+pytest = "^8.2.0"
+pytest-cov = "^5.0.0"
+pytest-depends = "^1.0.1"
+pytest-env = "^1.1.3"
+pytest-github-report = "^0.0.1"
+pytest-html = "^4.1.1"
+pytest-order = "^1.2.1"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/tektronix/TekHSI/issues"
+"Changelog" = "https://github.com/tektronix/TekHSI/blob/main/CHANGELOG.md"
+
+[tool.pylint.basic]
+good-names = ["_"]
+
+[tool.pylint.main]
+fail-under = 10.0
+ignore-patterns = [
+  "^\\.#",
+  "^\\..*_cache",
+  "^\\.docs.*",
+  "^\\.env.*",
+  "^\\.idea",
+  "^\\.results.*",
+  "^\\.tox",
+  "^\\.venv.*",
+  "^\\.vscode",
+  "^\\tests*",
+  "^_tek_highspeed_server_pb2.pyi",
+  "^_tek_highspeed_server_pb2\\.py",
+  "^_tek_highspeed_server_pb2_grpc\\.py",
+  "^temp_.*\\..*"
+]
+jobs = 0
+load-plugins = """
+pylint.extensions.check_elif,
+pylint.extensions.code_style,
+pylint.extensions.comparison_placement,
+pylint.extensions.consider_refactoring_into_while_condition,
+pylint.extensions.dict_init_mutate,
+pylint.extensions.docparams,
+pylint.extensions.docstyle,
+pylint.extensions.dunder,
+pylint.extensions.eq_without_hash,
+pylint.extensions.for_any_all,
+pylint.extensions.no_self_use,
+pylint.extensions.overlapping_exceptions,
+pylint.extensions.private_import,
+pylint.extensions.set_membership,
+pylint.extensions.typing,
+pylint.extensions.while_used
+"""
+py-version = "3.8"
+recursive = true
+
+[tool.pylint."messages control"]
+enable = ["all"]
+disable = [
+  "broad-exception-caught",  # caught by ruff
+  "consider-using-with",  # ignored for inital commits   # TODO: remove this ignore
+  "duplicate-code",
+  "fixme",  # caught by ruff
+  "global-statement",  # caught by ruff
+  "invalid-name",  # caught by ruff
+  "line-too-long",  # caught by ruff
+  "locally-disabled",  # allowed
+  "missing-class-docstring",  # caught by ruff
+  "missing-module-docstring",  # caught by ruff
+  "no-member",  # caught by pyright
+  "protected-access",  # caught by ruff
+  "raise-missing-from",  # caught by ruff
+  "redefined-builtin",  # caught by ruff
+  "suppressed-message",  # allowed
+  "too-many-arguments",  # caught by ruff
+  "too-many-branches",  # caught by ruff
+  "too-many-lines",  # not necessary to check for
+  "too-many-statements",  # caught by ruff
+  "too-many-statements",  # caught by ruff
+  "unused-argument",  # caught by ruff
+  "unused-import",  # caught by ruff
+  "use-implicit-booleaness-not-comparison-to-string",  # caught by ruff
+  "while-used",  # using while loops in example scripts
+  "wrong-import-order"  # caught by ruff
+]
+
+[tool.pyright]
+ignore = [
+  "**/output_*/**",
+  "site/**",
+  "temp_*.py"
+]
+pythonPlatform = "All"
+pythonVersion = "3.8"
+reportCallInDefaultInitializer = "error"
+reportImplicitOverride = "none"  # this check is not needed
+# TODO: turn on the check for implicit string concatenation
+reportImplicitStringConcatenation = "none"  # this is allowed by this project's formatting standard
+reportImportCycles = "none"  # other analysis tools catch these more effectively
+reportMissingSuperCall = "none"  # this can be ignored since this would break unit tests if handled incorrectly
+reportPropertyTypeMismatch = "none"  # the auto-generated properties can have mismatches
+reportShadowedImports = "error"
+reportUninitializedInstanceVariable = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportUnusedCallResult = "none"  # this can be ignored since this would break unit tests if handled incorrectly
+strict = ["**"]
+stubPath = "src"
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+addopts = "--order-scope=module --cov-config=pyproject.toml"
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
+filterwarnings = [
+  "ignore:'xdrlib' is deprecated:DeprecationWarning",
+  "ignore::DeprecationWarning:pkg_resources",
+  "ignore:GPIB library not found:UserWarning",
+  "ignore:pkg_resources is deprecated:DeprecationWarning"
+]
+junit_family = "xunit2"
+junit_logging = "all"
+markers = [
+  'docs',
+  'order',
+  'slow'
+]
+xfail_strict = true
+
+[tool.pytest_env]
+pytest_report_title = {skip_if_set = true, value = "Test Results"}
+
+[tool.ruff]
+line-length = 100
+namespace-packages = ["examples/**", "scripts/**", "tests/**"]
+src = ["docs", "examples", "scripts", "src", "tests"]
+target-version = "py38"  # always generate Python 3.8 compatible code
+
+[tool.ruff.lint]  # TODO: Update this section
+allowed-confusables = ["¸", "×"]
+fixable = ["ALL"]
+flake8-pytest-style = {mark-parentheses = false}
+flake8-quotes = {docstring-quotes = "double"}
+ignore = [
+  "ANN101",  # Missing type annotation for self in method
+  "ANN102",  # Missing type annotation for cls in method
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs
+  "COM812",  # Trailing comma missing
+  "EM102",  # Exception must not use an f-string literal, assign to variable first
+  "FA100",  # Missing `from __future__ import annotations`, but uses ...
+  "FBT",  # flake8-boolean-trap
+  "FIX002",  # Line contains TO DO
+  "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
+  "PTH109",  # `os.getcwd()` should be replaced by `Path.cwd()`
+  "PTH123",  # `open()` should be replaced by `Path.open()`
+  "PTH207",  # Replace `iglob` with `Path.glob` or `Path.rglob`
+  "PYI021",  # Docstrings should not be included in stubs
+  "T20",  # flake8-print
+  "TD002",  # Missing author in TO DO
+  "TD003",  # Missing issue link on the line following this TO DO
+  "TRY301",  # Abstract raise to an inner function
+  "UP006",  # Use {to} instead of {from} for type annotation
+  "UP007",  # Use `X | Y` for type annotations
+  "UP024",  # Replace aliased errors with `OSError`
+  "UP037"  # Remove quotes from type annotation
+]
+
+[tool.semantic_release]
+version_toml = [
+  "pyproject.toml:tool.poetry.version"
+]
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = []
+template_dir = "python_semantic_release_templates"
+
+[tool.semantic_release.changelog.environment]
+extensions = []
+
+[tool.semantic_release.commit_parser_options]
+# These settings allow python-semantic-release to be used without triggering on any commits
+allowed_tags = []
+minor_tags = []
+patch_tags = []
+
+[tool.tomlsort]
+all = true
+in_place = true
+spaces_before_inline_comment = 2
+overrides."tool.poetry.*".inline_arrays = false
+overrides."tool.pylint.*".table_keys = false
+
+# Tox configuration
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+requires = tox>4
+isolated_build = True
+envlist = py38,py39,py310,py311,py312,tests,docs,doctests
+skip_missing_interpreters = True
+labels =
+  basic = py38,py39,py310,py311,py312,tests
+  documentation = docs,doctests
+
+[gh-actions]
+python =
+    3.8: py38
+    3.9: py39
+    3.10: py310
+    3.11: py311
+    3.12: py312
+
+[testenv]
+package = wheel
+install_command = python -I -m pip install --upgrade --upgrade-strategy=eager {opts} {packages}
+deps =
+    poetry
+setenv =
+    DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
+    # Skip pre-commit checks that are not needed (yamlfix should be removed from this list once Python 3.8 support is dropped)
+    SKIP = file-contents-sorter,yamlfix
+commands_pre =
+    poetry install --no-root --without=main
+commands =
+    !tests: poetry build --output=dist_{envname}
+    !tests: twine check --strict dist_{envname}/*
+    !tests: pre-commit run --all-files
+    !tests: pytest -vv --doctest-modules --doctest-report=ndiff --showlocals --junitxml={tox_root}/.results_{envname}/results_doctests.xml --self-contained-html --html={tox_root}/.results_{envname}/results_doctests.html src
+    pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
+
+[testenv:tests]
+basepython = python
+deps =
+    -rtests/requirements.txt
+passenv =
+    pytest_report_title
+setenv =
+    pytest_github_report = true
+    pytest_use_blanks = true
+    GITHUB_STEP_SUMMARY = {tox_root}/.results_{envname}/github_report.md
+commands_pre =
+
+[testenv:docs]
+basepython = {env:DOC_PYTHON_VERSION}
+deps =
+  -rdocs/requirements.txt
+commands_pre =
+  nodeenv --python-virtualenv --clean-src
+commands =
+  python -c "import shutil; shutil.rmtree('.results_{envname}', ignore_errors=True)"
+  mkdocs --verbose build --site-dir .results_{envname}
+
+[testenv:doctests]
+basepython = {env:DOC_PYTHON_VERSION}
+deps =
+  -rdocs/requirements.txt
+  -rtests/requirements.txt
+commands_pre =
+  nodeenv --python-virtualenv --clean-src
+commands =
+  pytest -v -k "test_docs" --showlocals --junitxml={tox_root}/.results_{envname}/results.xml --self-contained-html --html={tox_root}/.results_{envname}/results.html
+"""

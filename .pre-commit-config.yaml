@@ -1,0 +1,157 @@
+---
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+ci:
+  autofix_prs: false
+  autoupdate_schedule: quarterly
+  skip:
+    - check-poetry
+    - pylint
+#    - pyright
+#    - pyright-verifytypes
+    - pyroma
+    - poetry-audit
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 2c9f875913ee60ca25ce70243dc24d5b6415598c  # frozen: v4.6.0
+    hooks:
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-json
+      - id: check-xml
+      - id: file-contents-sorter
+        files: ^(docs/known_words.txt)$
+        args: [--unique, --ignore-case]
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=150000, --enforce-all]
+      - id: forbid-submodules
+      - id: pretty-format-json
+        args: [--autofix, --indent=4]
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: a30f0d816e5062a67d87c8de753cfe499672b959  # frozen: v1.5.5
+    hooks:
+      - id: remove-tabs
+      - id: forbid-tabs
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 5c70e3d884fdbe99af42f2714a444e39f321498d  # frozen: 0.29.2
+    hooks:
+      - id: check-readthedocs
+      - id: check-dependabot
+      - id: check-github-actions
+      - id: check-github-workflows
+        args: [--verbose]
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: c01fb5723b54075325cd9b5e5665a9ae84baf950  # frozen: v1.7.1.15
+    hooks:
+      - id: actionlint
+        additional_dependencies: [pyflakes, shellcheck-py]
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: d7e01aa9b0cfe3c1b732e66d523bbd0656221127  # frozen: v3.29.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 4c97c4a0d921007af6fefae92d8447cfbf63720b  # frozen: 1.18.0
+    hooks:
+      - id: blacken-docs
+        files: \.(rst|md|markdown|tex)$
+        additional_dependencies: [black==24.4.2]  # This may need to be updated/removed in the future once ruff supports formatting python code blocks in markdown
+        args: [--line-length=100]
+  - repo: https://github.com/lyz-code/yamlfix
+    rev: 8072181c0f2eab9f2dd8db2eb3b9556d7cd0bd74  # frozen: 1.17.0
+    hooks:
+      - id: yamlfix
+# TODO: get this working
+#  - repo: https://github.com/motet-a/jinjalint
+#    rev: "0.5"
+#    hooks:
+#      - id: jinjalint
+  - repo: https://github.com/thibaudcolas/curlylint
+    rev: 71adf4d34c290684fd9f94a4d21ac55bcfe640f0  # frozen: v0.13.1
+    hooks:
+      - id: curlylint
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 08fba30538869a440b5059de90af03e3502e35fb  # frozen: 0.7.17
+    hooks:
+      - id: mdformat
+        args: [--number, --end-of-line, keep, --ignore-missing-references]
+        additional_dependencies:
+          - setuptools  # This is required since Python 3.12 no longer installs setuptools by default in virtual environments
+          - mdformat-admon
+          - mdformat-beautysh
+          - mdformat-config
+          - mdformat-footnote
+          - mdformat-frontmatter
+          - mdformat-gfm
+          - mdformat-gfm-alerts
+          - mdformat-mkdocs
+          - mdformat-shfmt
+          - mdformat-simple-breaks
+          - mdformat-tables
+          - mdformat-toc
+          - mdformat-web
+          - mdformat-wikilink
+  - repo: https://gitlab.com/smop/pre-commit-hooks
+    rev: df034f88cf92b394e6f00a78fa97a2aa4e270e60  # frozen: v1.0.0
+    hooks:
+      - id: check-poetry
+  - repo: https://github.com/pappasam/toml-sort
+    rev: b9b6210da457c38122995e434b314f4c4a4a923e  # frozen: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        pass_filenames: true
+        args: [-sn]
+        exclude: ^tests/.*  # TODO: include
+#      - id: pyright  # TODO: enable
+#        name: pyright
+#        entry: pyright
+#        language: system
+#        types: [python]
+#        pass_filenames: false
+#      - id: pyright-verifytypes  # TODO: enable
+#        name: pyright-verifytypes
+#        entry: pyright
+#        language: system
+#        types: [python]
+#        pass_filenames: false
+#        args: [--verifytypes, TekHSI, --ignoreexternal]
+      - id: pyroma
+        name: pyroma
+        entry: pyroma
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        args: [., --min=10]
+      - id: poetry-audit
+        name: poetry-audit
+        entry: poetry
+        language: system
+        types: [toml]
+        pass_filenames: false
+        always_run: true
+        args: [audit, --json, --ignore-code=CVE-2019-8341]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 24d039e647a08707e6cb31e75e01844eeff925e7  # frozen: v0.6.2
+    hooks:
+#      - id: ruff  # TODO: enable
+#        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+  - repo: https://github.com/PyCQA/docformatter
+    rev: dfefe062799848234b4cd60b04aa633c0608025e  # frozen: v1.7.5
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]

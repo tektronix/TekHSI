@@ -1,0 +1,17 @@
+---
+name: Publish to TestPyPI
+on:
+  push:
+    branches: [main]
+concurrency:
+  group: pypi
+jobs:
+  package-testpypi:
+    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-package-testpypi.yml@v1.2.0
+    with:
+      package-name: TekHSI
+      repo-name: tektronix/TekHSI
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write

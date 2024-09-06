@@ -1,0 +1,12 @@
+---
+name: Publish API Breaking Change Check Results
+on:
+  workflow_run:
+    workflows: [Check Public API for Breaking Changes]
+    types: [completed]
+jobs:
+  publish-api-comparison:
+    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-publish-api-comparison.yml@v1.2.0
+    permissions:
+      checks: write
+      pull-requests: write
