@@ -45,7 +45,7 @@ keywords = [
   "Tektronix",
   "Test & Measurement"
 ]
-license = "Apache License 2.0"
+license = "Apache-2.0"
 name = "TekHSI"
 readme = "README.md"
 repository = "https://github.com/tektronix/TekHSI"
