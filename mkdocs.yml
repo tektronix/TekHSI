@@ -119,7 +119,7 @@ plugins:
             show_category_heading: false
             show_symbol_type_heading: true
             show_symbol_type_toc: false
-          import:
+          import:  # TODO: import tm_data_types objects here
             - url: https://docs.python.org/3/objects.inv
               domains: [std, py]
             - url: https://typing-extensions.readthedocs.io/en/stable/objects.inv
