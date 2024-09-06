@@ -7,4 +7,4 @@ jobs:
   check-api-for-breaking-changes:
     uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-check-api-for-breaking-changes.yml@v1.2.0
     with:
-      package-name: TekHSI
+      package-name: tekhsi  # griffe requires the package name in lowercase
