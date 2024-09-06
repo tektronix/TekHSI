@@ -996,7 +996,7 @@ def test_read_waveforms(tekhsi_client, headers, expected_datasize):
     assert len(waveforms) == len(headers)
 
 
-def test_data_arrival(derived_waveform_handler):
+def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler):
     """Test the data_arrival method of DerivedWaveformHandler.
 
     Args:

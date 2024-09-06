@@ -9,7 +9,7 @@ from atexit import register
 from enum import Enum
 from contextlib import contextmanager
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import grpc
 import numpy as np
@@ -149,11 +149,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Properties - Private and Public
     ################################################################################################
     @property
-    def available_symbols(self) -> list[str]:
+    def available_symbols(self) -> List[str]:
         """Returns the list of available symbols on the instrument.
 
         Returns:
-            list[str]: List of available symbols.
+            List[str]: List of available symbols.
         """
         return self._available_symbols()
 
@@ -185,11 +185,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._instrument = value
 
     @property
-    def source_names(self) -> list[str]:
+    def source_names(self) -> List[str]:
         """Returns the list of names of sources on the instrument.
 
         Returns:
-            list[str]: list of sources
+            List[str]: list of sources
         """
         return self.activesymbols
 
@@ -248,7 +248,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_horizontal_change(
-        prevheader: dict[str, WaveformHeader], currentheader: dict[str, WaveformHeader]
+        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
@@ -275,7 +275,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_vertical_change(
-        prevheader: dict[str, WaveformHeader], currentheader: dict[str, WaveformHeader]
+        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
@@ -299,11 +299,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 return True
         return False
 
-    def active_symbols(self, symbols: list[str]) -> None:
+    def active_symbols(self, symbols: List[str]) -> None:
         """Sets symbols to consider moving from instrument into data cache.
 
         Args:
-            symbols (list[str]): list of symbols to be moved
+            symbols (List[str]): list of symbols to be moved
         """
         self.activesymbols = symbols
 

@@ -2,11 +2,12 @@
 
 from tekhsi import TekHSIConnect, WaveformHeader
 from tm_data_types import AnalogWaveform, write_file
+from typing import Dict, List
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
 
-def custom_filter(prevheader: dict[WaveformHeader], currentheader: list[WaveformHeader]):
+def custom_filter(prevheader: Dict[WaveformHeader], currentheader: List[WaveformHeader]):
     """A custom criterion for deciding when to consider an acquisition for acceptance."""
     for key, cur in currentheader.items():
         if key not in prevheader:
