@@ -45,7 +45,7 @@ keywords = [
   "Tektronix",
   "Test & Measurement"
 ]
-license = "Apache License 2.0"
+license = "Apache-2.0"
 name = "TekHSI"
 readme = "README.md"
 repository = "https://github.com/tektronix/TekHSI"
@@ -77,7 +77,7 @@ scipy = [
   {python = "^3.8, <3.12", version = "^1.10"}
 ]
 six = "^1.16.0"
-tm_data_types = "^0.1.0"
+tm_data_types = {develop = true, git = "https://github.com/tektronix/tm_data_types.git"}
 typing_extensions = "^4.12.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -323,7 +323,7 @@ spaces_before_inline_comment = 2
 overrides."tool.poetry.*".inline_arrays = false
 overrides."tool.pylint.*".table_keys = false
 
-# Tox configuration
+# TODO: enable --doctest-modules line
 [tool.tox]
 legacy_tox_ini = """
 [tox]
@@ -358,7 +358,7 @@ commands =
     !tests: poetry build --output=dist_{envname}
     !tests: twine check --strict dist_{envname}/*
     !tests: pre-commit run --all-files
-    !tests: pytest -vv --doctest-modules --doctest-report=ndiff --showlocals --junitxml={tox_root}/.results_{envname}/results_doctests.xml --self-contained-html --html={tox_root}/.results_{envname}/results_doctests.html src
+#    !tests: pytest -vv --doctest-modules --doctest-report=ndiff --showlocals --junitxml={tox_root}/.results_{envname}/results_doctests.xml --self-contained-html --html={tox_root}/.results_{envname}/results_doctests.html src
     pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]

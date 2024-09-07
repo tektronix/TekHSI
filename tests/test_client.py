@@ -11,7 +11,7 @@ from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform, Waveform
 from tekhsi.helpers import print_with_timestamp
 from tekhsi.tek_hsi_connect import TekHSIConnect, AcqWaitOn
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest, ConnectStatus, WaveformHeader  # pylint: disable=no-name-in-module
-from tests.conftest import DerivedWaveform, DerivedWaveformHandler
+from conftest import DerivedWaveform, DerivedWaveformHandler
 
 
 @pytest.mark.parametrize(
@@ -996,7 +996,7 @@ def test_read_waveforms(tekhsi_client, headers, expected_datasize):
     assert len(waveforms) == len(headers)
 
 
-def test_data_arrival(derived_waveform_handler):
+def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler):
     """Test the data_arrival method of DerivedWaveformHandler.
 
     Args:
