@@ -649,7 +649,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 )
 
                 sample_index = 0
-                unused_data_size = header.sourcewidth
                 request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
                 response_iterator = self.native.GetWaveform(request)
                 dt = None
