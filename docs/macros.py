@@ -20,7 +20,9 @@ PAGE_REPLACEMENTS = {
     ),
     "index.md": ((" Scopes ", r" [Scopes](default:Scope) "),),
 }
-FILES_TO_REMOVE_BLACK_FORMATTER_DISABLE_COMMENT = {}
+FILES_TO_REMOVE_BLACK_FORMATTER_DISABLE_COMMENT = {
+    "basic_usage.md",
+}
 
 
 ####################################################################################################
