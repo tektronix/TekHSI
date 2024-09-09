@@ -7,7 +7,6 @@ import uuid
 
 from atexit import register
 from enum import Enum
-from contextlib import contextmanager
 
 from typing import List, Optional, Dict
 
@@ -214,7 +213,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Context Manager Methods
     ################################################################################################
-    @contextmanager
+    @contextlib.contextmanager
     def access_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1):
         """Grants access to data.
 
@@ -650,7 +649,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 )
 
                 sample_index = 0
-                data_size = header.sourcewidth
                 request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
                 response_iterator = self.native.GetWaveform(request)
                 dt = None

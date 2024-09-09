@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform, Waveform
+from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform
 
 from tekhsi.helpers import print_with_timestamp
 from tekhsi.tek_hsi_connect import TekHSIConnect, AcqWaitOn
