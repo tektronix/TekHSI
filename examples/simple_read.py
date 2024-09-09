@@ -40,7 +40,7 @@ plt.ylabel(f"{y_axis}")
 
 ax.set_ylim(min_val - extra, max_val + extra)
 ax.set_xlim(np.min(horizontal_data), np.max(horizontal_data))
-(line,) = ax.plot(horizontal_data, vertical_data)
+(_,) = ax.plot(horizontal_data, vertical_data)
 
 # Display the plot
 plt.show()
