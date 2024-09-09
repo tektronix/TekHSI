@@ -67,7 +67,7 @@ numpy = [
   {python = "^3.8, <3.12", version = "^1.24"}
 ]
 pandas = ">=1.5.3,<3.0.0"
-protobuf = "^4.22.1"
+protobuf = "^5.28.0"
 pydantic = "^2.7.2"
 pydantic_core = "^2.18.3"
 python = "^3.8"
@@ -98,8 +98,8 @@ pre-commit = [
   {python = ">=3.9", version = "^3.7"},
   {python = "3.8", version = "^3.5"}
 ]
-pylint = "3.2.6"
-pyright = "1.1.376"
+pylint = "3.2.7"
+pyright = "1.1.379"
 pyroma = "^4.2"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -121,7 +121,7 @@ mkdocs-macros-plugin = "^1.0.5"
 mkdocs-mermaid2-plugin = "^1.1.1"
 mkdocs-section-index = "^0.3.9"
 mkdocs-spellcheck = "^1.1.0"
-mkdocstrings = "^0.25.0"
+mkdocstrings = "^0.26.1"
 mkdocstrings-python = "^1.10.2"
 nodeenv = "^1.9.1"
 pygments = "^2.17.2"
