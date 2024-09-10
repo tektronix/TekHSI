@@ -525,7 +525,6 @@ def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expect
         ), f"Expected new value {expected_value}, got {connection.instrumentation_enabled}"
 
 
-#
 @pytest.mark.parametrize(
     "initial_symbols, expected_symbols",
     [
