@@ -45,7 +45,7 @@ class TestServerManager:
                 for conn in proc.connections(kind="inet"):
                     if conn.laddr.port == self.port:
                         return proc.pid
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
+            except (psutil.AccessDenied, psutil.NoSuchProcess):  # noqa: PERF203
                 continue
         return None
 
@@ -65,7 +65,7 @@ class TestServerManager:
             raise RuntimeError("Server script not found.")
 
             # Start the server
-        self.server_process = subprocess.Popen([sys.executable, server_script, "--verbose"])
+        self.server_process = subprocess.Popen([sys.executable, server_script, "--verbose"])  # noqa: S603
         # Wait a few seconds for the server to start
         time.sleep(5)
         return self

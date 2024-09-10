@@ -47,8 +47,9 @@ class WfmEncoding(Enum):
 
 
 class ServerWaveform:  # pylint: disable=too-many-instance-attributes
-    """This class simplifies the process of creating new data for the server. It is divided into to sets of inputs:
-    Signal Definition, and Signal Representation Properties.
+    """This class simplifies the process of creating new data for the server.
+
+    It is divided into to sets of inputs: Signal Definition, and Signal Representation Properties.
 
     Signal Definition:
         frequency : float
@@ -64,16 +65,17 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
     Signal Representation:
         type : WfmDataType
-            Defines the underlying waveform representation. Options are: WfmDataType.Int8, WfmDatType.Int16,
-            and WfmDataType.Float.
+            Defines the underlying waveform representation. Options are:
+            WfmDataType.Int8, WfmDatType.Int16, and WfmDataType.Float.
 
 
-    The resulting class instance will contain both a waveform in the native format, and an equivalent float array.
+    The resulting class instance will contain both a waveform in the native format, and an
+    equivalent float array.
     These are intended to target either NativeData or NormalizedData services.
     This simplifies the process of feeding the data to the streaming service.
     """
 
-    def __init__(
+    def __init__(  # noqa: C901,PLR0912,PLR0915
         self,
         frequency: float = 1000.0,
         wfm_data_type: WfmDataType = WfmDataType.Int8,
@@ -113,14 +115,11 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
         resolution = None
         offset = 0
         noise = 0.01
-        if self._type is WfmDataType.Int8:
-            yincr = self.amplitude / 230
-        if self._type is WfmDataType.Int16:
-            yincr = self.amplitude / 58000
-        if self._type is WfmDataType.Float:
-            yincr = 1
-        else:
-            yincr = 1
+        # FUTURE # if self._type is WfmDataType.Int8:
+        # FUTURE #     yincr = self.amplitude / 230
+        # FUTURE # if self._type is WfmDataType.Int16:
+        # FUTURE #     yincr = self.amplitude / 58000
+        yincr = 1 if self._type is WfmDataType.Float else 1
 
         self._yincr = yincr
 
@@ -219,7 +218,9 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         This is to make it visually clear that each waveform is unique.
         """
-        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))
+        return np.array(array) + np.random.Generator.normal(
+            loc=0.0, scale=noise_range / 4, size=len(array)
+        )
 
 
 class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
@@ -230,11 +231,12 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
     slower than the native server.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, context):  # noqa: ARG002
         """This message returns the stream of the data representing the requested channel/math.
+
         The data is returned as normalized data. This usually slower than using the raw service
-        because this moves significantly more data because floats are 4 bytes while raw data is normally
-        either 1 or 2 bytes.
+        because this moves significantly more data because floats are 4 bytes while raw data is
+        normally either 1 or 2 bytes.
 
         Parameters
         ----------
@@ -247,28 +249,26 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         if verbose:
             print(f"TekHSI_NormalizedDataServer.GetWaveform({request.sourcename})")
         try:
-            if connect_server.dataaccess_allowed:
-                if request.sourcename in connect_server.data:
-                    wfm = connect_server.data[request.sourcename]
-                    chunksize = request.chunksize
-                    for cur in range(0, len(wfm._vertical_data), chunksize):
-                        reply = tekhsi_pb2.NormalizedReply(
-                            headerordata=tekhsi_pb2.NormalizedReply.DataOrHeaderAccess(
-                                chunk=tekhsi_pb2.NormalizedReply.WaveformSampleChunk(
-                                    data=wfm._vertical_data[cur : cur + chunksize],
-                                ),
+            if connect_server.dataaccess_allowed and request.sourcename in connect_server.data:
+                wfm = connect_server.data[request.sourcename]
+                chunksize = request.chunksize
+                for cur in range(0, len(wfm._vertical_data), chunksize):
+                    reply = tekhsi_pb2.NormalizedReply(
+                        headerordata=tekhsi_pb2.NormalizedReply.DataOrHeaderAccess(
+                            chunk=tekhsi_pb2.NormalizedReply.WaveformSampleChunk(
+                                data=wfm._vertical_data[cur : cur + chunksize],
                             ),
-                        )
-                        yield reply
-                    reply = tekhsi_pb2.NormalizedReply()
-                    reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
+                        ),
+                    )
                     yield reply
-                    return
+                reply = tekhsi_pb2.NormalizedReply()
+                reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
+                yield reply
+                return
         except Exception as e:
             print(e)
-        return
 
-    def GetHeader(self, request, context):
+    def GetHeader(self, request, context):  # noqa: ARG002
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -287,32 +287,31 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         if verbose:
             print(f"TekHSI_NormalizedDataServer.GetHeader({request.sourcename})")
         try:
-            if connect_server.dataaccess_allowed:
-                if request.sourcename in connect_server.data:
-                    wfm = connect_server.data[request.sourcename]
-                    reply = tekhsi_pb2.NormalizedReply()
-                    reply.headerordata.header.dataid = acq_id
-                    reply.headerordata.header.hasdata = True
-                    reply.headerordata.header.horizontalspacing = wfm.xincr
-                    reply.headerordata.header.horizontalUnits = "S"
-                    reply.headerordata.header.horizontalzeroindex = wfm.trigger_index
-                    reply.headerordata.header.noofsamples = wfm.length
-                    reply.headerordata.header.sourcename = request.sourcename
-                    reply.headerordata.header.sourcewidth = 4
+            if connect_server.dataaccess_allowed and request.sourcename in connect_server.data:
+                wfm = connect_server.data[request.sourcename]
+                reply = tekhsi_pb2.NormalizedReply()
+                reply.headerordata.header.dataid = acq_id
+                reply.headerordata.header.hasdata = True
+                reply.headerordata.header.horizontalspacing = wfm.xincr
+                reply.headerordata.header.horizontalUnits = "S"
+                reply.headerordata.header.horizontalzeroindex = wfm.trigger_index
+                reply.headerordata.header.noofsamples = wfm.length
+                reply.headerordata.header.sourcename = request.sourcename
+                reply.headerordata.header.sourcewidth = 4
 
-                    if isinstance(data, AnalogWaveform):
-                        reply.headerordata.header.wfmtype = 3
-                    elif isinstance(data, IQWaveform):
-                        reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):
-                        reply.headerordata.header.wfmtype = 4
+                if isinstance(data, AnalogWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    reply.headerordata.header.wfmtype = 3
+                elif isinstance(data, IQWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    reply.headerordata.header.wfmtype = 6
+                elif isinstance(data, DigitalWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    reply.headerordata.header.wfmtype = 4
 
-                    reply.headerordata.header.pairtype = 1
-                    reply.headerordata.header.verticaloffset = 0
-                    reply.headerordata.header.verticalspacing = 1.0
-                    reply.headerordata.header.verticalunits = "V"
-                    reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
-                    return reply
+                reply.headerordata.header.pairtype = 1
+                reply.headerordata.header.verticaloffset = 0
+                reply.headerordata.header.verticalspacing = 1.0
+                reply.headerordata.header.verticalunits = "V"
+                reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
+                return reply
         except Exception as e:
             print(e)
         return tekhsi_pb2.NormalizedReply(
@@ -327,7 +326,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
     normalized version.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, context):  # noqa: ARG002
         """This message returns the stream of the data representing the requested channel/math.
         The data is returned as native data. How the data is represented is defined in the
         header.
@@ -349,28 +348,27 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         if verbose:
             print(f"TekHSI_NativeDataServer.GetWaveform({request.sourcename})")
         try:
-            if connect_server.dataaccess_allowed:
-                if request.sourcename in connect_server.data:
-                    wfm = connect_server.data[request.sourcename]
-                    chunksize = request.chunksize
-                    raw_bytes = wfm._raw_data.tobytes()
-                    for cur in range(0, len(raw_bytes), chunksize):
-                        reply = tekhsi_pb2.RawReply(
-                            headerordata=tekhsi_pb2.RawReply.DataOrHeaderAccess(
-                                chunk=tekhsi_pb2.RawReply.WaveformSampleByteChunk(
-                                    data=raw_bytes[cur : cur + chunksize],
-                                ),
+            if connect_server.dataaccess_allowed and request.sourcename in connect_server.data:
+                wfm = connect_server.data[request.sourcename]
+                chunksize = request.chunksize
+                raw_bytes = wfm._raw_data.tobytes()
+                for cur in range(0, len(raw_bytes), chunksize):
+                    reply = tekhsi_pb2.RawReply(
+                        headerordata=tekhsi_pb2.RawReply.DataOrHeaderAccess(
+                            chunk=tekhsi_pb2.RawReply.WaveformSampleByteChunk(
+                                data=raw_bytes[cur : cur + chunksize],
                             ),
-                        )
-                        yield reply
-                    reply = tekhsi_pb2.RawReply()
-                    reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
-                    return reply
+                        ),
+                    )
+                    yield reply
+                reply = tekhsi_pb2.RawReply()
+                reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
+                return reply
         except Exception as e:
             print(e)
         return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
 
-    def GetHeader(self, request, context):
+    def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -389,58 +387,57 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         if verbose:
             print(f"TekHSI_NativeDataServer.GetHeader({request.sourcename})")
         try:
-            if connect_server.dataaccess_allowed:
-                if request.sourcename in connect_server.data:
-                    wfm = connect_server.data[request.sourcename]
-                    reply = tekhsi_pb2.RawReply()
-                    reply.headerordata.header.dataid = acq_id
-                    reply.headerordata.header.hasdata = True
-                    reply.headerordata.header.horizontalspacing = wfm.xincr
-                    reply.headerordata.header.horizontalUnits = "S"
-                    reply.headerordata.header.horizontalzeroindex = wfm.trigger_index
-                    reply.headerordata.header.noofsamples = wfm.length
-                    reply.headerordata.header.sourcename = request.sourcename
+            if connect_server.dataaccess_allowed and request.sourcename in connect_server.data:
+                wfm = connect_server.data[request.sourcename]
+                reply = tekhsi_pb2.RawReply()
+                reply.headerordata.header.dataid = acq_id
+                reply.headerordata.header.hasdata = True
+                reply.headerordata.header.horizontalspacing = wfm.xincr
+                reply.headerordata.header.horizontalUnits = "S"
+                reply.headerordata.header.horizontalzeroindex = wfm.trigger_index
+                reply.headerordata.header.noofsamples = wfm.length
+                reply.headerordata.header.sourcename = request.sourcename
 
-                    if isinstance(data, AnalogWaveform):
-                        if wfm.type == WfmDataType.Int8:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 1
-                        elif wfm.type == WfmDataType.Int16:
-                            reply.headerordata.header.sourcewidth = 2
-                            reply.headerordata.header.wfmtype = 2
-                        elif wfm.type == WfmDataType.Float:
-                            reply.headerordata.header.sourcewidth = 4
-                            reply.headerordata.header.wfmtype = 3
-                        else:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 1
-                    elif isinstance(data, IQWaveform):
-                        if wfm.type == WfmDataType.Int8:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 6
-                        elif wfm.type == WfmDataType.Int16:
-                            reply.headerordata.header.sourcewidth = 2
-                            reply.headerordata.header.wfmtype = 7
-                        else:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):
-                        if wfm.type == WfmDataType.Int8:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 4
-                        elif wfm.type == WfmDataType.Int16:
-                            reply.headerordata.header.sourcewidth = 2
-                            reply.headerordata.header.wfmtype = 5
-                        else:
-                            reply.headerordata.header.sourcewidth = 1
-                            reply.headerordata.header.wfmtype = 4
+                if isinstance(data, AnalogWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    if wfm.type == WfmDataType.Int8:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 1
+                    elif wfm.type == WfmDataType.Int16:
+                        reply.headerordata.header.sourcewidth = 2
+                        reply.headerordata.header.wfmtype = 2
+                    elif wfm.type == WfmDataType.Float:
+                        reply.headerordata.header.sourcewidth = 4
+                        reply.headerordata.header.wfmtype = 3
+                    else:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 1
+                elif isinstance(data, IQWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    if wfm.type == WfmDataType.Int8:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 6
+                    elif wfm.type == WfmDataType.Int16:
+                        reply.headerordata.header.sourcewidth = 2
+                        reply.headerordata.header.wfmtype = 7
+                    else:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 6
+                elif isinstance(data, DigitalWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                    if wfm.type == WfmDataType.Int8:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 4
+                    elif wfm.type == WfmDataType.Int16:
+                        reply.headerordata.header.sourcewidth = 2
+                        reply.headerordata.header.wfmtype = 5
+                    else:
+                        reply.headerordata.header.sourcewidth = 1
+                        reply.headerordata.header.wfmtype = 4
 
-                    reply.headerordata.header.pairtype = 1
-                    reply.headerordata.header.verticaloffset = 0
-                    reply.headerordata.header.verticalspacing = wfm.yincr
-                    reply.headerordata.header.verticalunits = "V"
-                    reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
-                    return reply
+                reply.headerordata.header.pairtype = 1
+                reply.headerordata.header.verticaloffset = 0
+                reply.headerordata.header.verticalspacing = wfm.yincr
+                reply.headerordata.header.verticalunits = "V"
+                reply.status = tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SUCCESS")
+                return reply
         except Exception as e:
             print(e)
         return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
@@ -467,7 +464,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
     @property
     def dataaccess_allowed(self) -> bool:
-        """Returns True if the Connect state is between WaitForDataAccess, and FinishedWithDataAccess."""
+        """Return if the Connect state is between WaitForDataAccess and FinishedWithDataAccess."""
         return self._dataaccess_allowed
 
     def dataconnection_name(self, name) -> bool:
@@ -507,7 +504,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
-    def Disconnect(self, request, context):
+    def Disconnect(self, request, context):  # noqa: C901
         if verbose:
             print(f'Disconnect Request "{request.name}"')
         try:
@@ -702,7 +699,7 @@ def make_new_data():
         "ch1_iq": ServerWaveform(encoding=WfmEncoding.IQ, wfm_data_type=WfmDataType.Int16),
         "ch2": ServerWaveform(wfm_data_type=WfmDataType.Int16),
         "ch3": ServerWaveform(wfm_data_type=WfmDataType.Int16),
-        # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),
+        # FUTURE # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),  # noqa: E501
         "math1": ServerWaveform(wfm_data_type=WfmDataType.Float),
         "math2": ServerWaveform(wfm_data_type=WfmDataType.Float),
     }
@@ -748,7 +745,7 @@ def kill_server():
 
 
 if __name__ == "__main__":
-    for i, arg in enumerate(sys.argv[1:]):
+    for _, arg in enumerate(sys.argv[1:]):
         if arg.lower() == "--verbose":
             verbose = True
     verbose = True

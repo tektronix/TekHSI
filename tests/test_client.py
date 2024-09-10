@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform
 
 from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
 
@@ -40,6 +39,12 @@ def test_server_connection(
 
     Args:
         tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        capsys (CaptureFixture): Pytest fixture to capture system output.
+        instrument (bool): Whether the instrument is connected.
+        sum_count (int): The sum count.
+        sum_acq_time (float): The sum acquisition time.
+        sum_data_rate (float): The sum data rate.
+        expected_output (str): The expected output message.
     """
     # Set the required attributes
     tekhsi_client._instrument = instrument
@@ -67,25 +72,25 @@ def test_server_connection(
 
 
 @pytest.mark.parametrize(
-    ("prevheader", "currentheader", "expected"),
+    ("previous_header", "current_header", "expected"),
     [
         ({}, {}, True),  # Always returns True
     ],
 )
-def test_any_acq(prevheader, currentheader, expected):
+def test_any_acq(previous_header, current_header, expected):
     """Test the any_acq method of TekHSIConnect.
 
     Args:
-        prevheader (dict): The previous header data.
-        currentheader (dict): The current header data.
+        previous_header (dict): The previous header data.
+        current_header (dict): The current header data.
         expected (bool): The expected result of the any_acq method.
     """
-    result = TekHSIConnect.any_acq(prevheader, currentheader)
-    assert result == expected, f"Expected any_acq to return {expected}"
+    result = TekHSIConnect.any_acq(previous_header, current_header)
+    assert result == expected
 
 
 @pytest.mark.parametrize(
-    ("prevheader", "currentheader", "expected"),
+    ("previous_header", "current_header", "expected"),
     [
         # No changes
         (
@@ -162,20 +167,20 @@ def test_any_acq(prevheader, currentheader, expected):
         ),
     ],
 )
-def test_any_horizontal_change(prevheader, currentheader, expected):
+def test_any_horizontal_change(previous_header, current_header, expected):
     """Test the any_horizontal_change method of TekHSIConnect.
 
     Args:
-        prevheader (dict): The previous header data.
-        currentheader (dict): The current header data.
+        previous_header (dict): The previous header data.
+        current_header (dict): The current header data.
         expected (bool): The expected result of the any_horizontal_change method.
     """
-    result = TekHSIConnect.any_horizontal_change(prevheader, currentheader)
-    assert result == expected, f"Expected any_horizontal_change to return {expected}"
+    result = TekHSIConnect.any_horizontal_change(previous_header, current_header)
+    assert result == expected
 
 
 @pytest.mark.parametrize(
-    ("prevheader", "currentheader", "expected"),
+    ("previous_header", "current_header", "expected"),
     [
         # No changes
         (
@@ -230,16 +235,16 @@ def test_any_horizontal_change(prevheader, currentheader, expected):
         ),
     ],
 )
-def test_any_vertical_change(prevheader, currentheader, expected):
+def test_any_vertical_change(previous_header, current_header, expected):
     """Test the any_vertical_change method of TekHSIConnect.
 
     Args:
-        prevheader (dict): The previous header data.
-        currentheader (dict): The current header data.
+        previous_header (dict): The previous header data.
+        current_header (dict): The current header data.
         expected (bool): The expected result of the any_vertical_change method.
     """
-    result = TekHSIConnect.any_vertical_change(prevheader, currentheader)
-    assert result == expected, f"Expected any_vertical_change to return {expected}"
+    result = TekHSIConnect.any_vertical_change(previous_header, current_header)
+    assert result == expected
 
 
 @pytest.mark.parametrize(
@@ -297,7 +302,7 @@ def test_get_data(tekhsi_client, cache_enabled, data_cache, name, expected_resul
         result = connection.get_data(name)
 
         # Verify the result
-        assert result == expected_result, f"Expected {expected_result}, got {result}"
+        assert result == expected_result
 
 
 @pytest.mark.parametrize(
@@ -320,10 +325,9 @@ def test_get_data(tekhsi_client, cache_enabled, data_cache, name, expected_resul
     ],
 )
 @patch("tekhsi.tek_hsi_connect.print_with_timestamp")
-def test_done_with_data(
+def test_done_with_data(  # noqa: PLR0913
     mock_print_with_timestamp,
     tekhsi_client,
-    capsys,
     cache_enabled,
     wait_for_data_count,
     acqcount,
@@ -337,7 +341,6 @@ def test_done_with_data(
     Args:
         mock_print_with_timestamp (MagicMock): Mocked print_with_timestamp function.
         tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        capsys (CaptureFixture): Pytest fixture to capture system output.
         cache_enabled (bool): Whether the data cache is enabled.
         wait_for_data_count (int): The initial wait_for_data_count value.
         acqcount (int): The initial acquisition count.
@@ -367,9 +370,7 @@ def test_done_with_data(
         if expected_output:
             mock_print_with_timestamp.assert_called_once_with(expected_output)
             captured = mock_print_with_timestamp.return_value
-            assert (
-                expected_output in captured
-            ), f"Expected output '{expected_output}', got '{captured}'"
+            assert expected_output in captured
         elif verbose:
             mock_print_with_timestamp.assert_not_called()
 
@@ -394,8 +395,8 @@ def test_done_with_data_lock(tekhsi_client):
         with pytest.raises(RuntimeError, match="Lock not acquired"):
             connection.done_with_data()
 
-            # Restore the original method
-            connection.done_with_data()
+        # Restore the original method
+        connection.done_with_data()
 
 
 @pytest.mark.parametrize(
@@ -441,7 +442,7 @@ def test_done_with_data_lock(tekhsi_client):
         (False, AcqWaitOn.NewData, -1, {}, 0, 0, 0, 0, 0, None),  # Caching disabled
     ],
 )
-def test_wait_for_data(
+def test_wait_for_data(  # noqa: PLR0913
     tekhsi_client,
     cache_enabled,
     wait_on,
@@ -489,12 +490,8 @@ def test_wait_for_data(
             connection.wait_for_data(wait_on, after)
 
         # Verify the internal state
-        assert (
-            connection._wait_for_data_count == expected_wait_for_data_count
-        ), f"Expected wait_for_data_count {expected_wait_for_data_count}, got {connection._wait_for_data_count}"
-        assert (
-            connection._lastacqseen == expected_lastacqseen
-        ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
+        assert connection._wait_for_data_count == expected_wait_for_data_count
+        assert connection._lastacqseen == expected_lastacqseen
 
 
 @pytest.mark.parametrize(
@@ -515,9 +512,7 @@ def test_available_symbols(tekhsi_client, expected_symbols):
         symbols = connection.available_symbols
 
         # Check that the symbols match the expected values from the test server
-        assert sorted(symbols) == sorted(
-            expected_symbols,
-        ), f"Expected symbols {expected_symbols}, got {symbols}"
+        assert sorted(symbols) == sorted(expected_symbols)
 
 
 @pytest.mark.parametrize(
@@ -536,24 +531,21 @@ def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expect
         tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
         initial_value (bool): The initial value of the instrumentation_enabled property.
         new_value (bool): The new value to set for the instrumentation_enabled property.
-        expected_value (bool): The expected value of the instrumentation_enabled property after setting the new value.
+        expected_value (bool): The expected value of the instrumentation_enabled property after
+            setting the new value.
     """
     with tekhsi_client as connection:
         # Set the initial value
         connection.instrumentation_enabled = initial_value
 
         # Verify the initial value
-        assert (
-            connection.instrumentation_enabled == initial_value
-        ), f"Expected initial value {initial_value}, got {connection.instrumentation_enabled}"
+        assert connection.instrumentation_enabled == initial_value
 
         # Change the value
         connection.instrumentation_enabled = new_value
 
         # Verify the new value
-        assert (
-            connection.instrumentation_enabled == expected_value
-        ), f"Expected new value {expected_value}, got {connection.instrumentation_enabled}"
+        assert connection.instrumentation_enabled == expected_value
 
 
 @pytest.mark.parametrize(
@@ -581,9 +573,7 @@ def test_source_names(tekhsi_client, initial_symbols, expected_symbols):
         source_names = connection.source_names
 
         # Verify the source names match the expected values
-        assert (
-            source_names == expected_symbols
-        ), f"Expected source names {expected_symbols}, got {source_names}"
+        assert source_names == expected_symbols
 
 
 @pytest.mark.parametrize(
@@ -623,7 +613,7 @@ def test_is_header_value(header, expected):
         (True, AcqWaitOn.Time, 0, {"data": "value"}, 0, 1, 0, 1, 0),
     ],
 )
-def test_wait_for_data_acq_time(
+def test_wait_for_data_acq_time(  # noqa: PLR0913
     tekhsi_client,
     cache_enabled,
     wait_on,
@@ -661,12 +651,8 @@ def test_wait_for_data_acq_time(
         connection.wait_for_data(wait_on, after)
 
         # Verify the internal state
-        assert (
-            connection._wait_for_data_count == expected_wait_for_data_count
-        ), f"Expected wait_for_data_count {expected_wait_for_data_count}, got {connection._wait_for_data_count}"
-        assert (
-            connection._lastacqseen == expected_lastacqseen
-        ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
+        assert connection._wait_for_data_count == expected_wait_for_data_count
+        assert connection._lastacqseen == expected_lastacqseen
 
 
 @pytest.mark.parametrize(
@@ -713,12 +699,8 @@ def test_wait_for_data_any_acq(
         connection.wait_for_data(wait_on)
 
         # Verify the internal state
-        assert (
-            connection._wait_for_data_count == expected_wait_for_data_count
-        ), f"Expected wait_for_data_count {expected_wait_for_data_count}, got {connection._wait_for_data_count}"
-        assert (
-            connection._lastacqseen == expected_lastacqseen
-        ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
+        assert connection._wait_for_data_count == expected_wait_for_data_count
+        assert connection._lastacqseen == expected_lastacqseen
 
 
 @pytest.mark.parametrize(
@@ -735,7 +717,7 @@ def test_wait_for_data_any_acq(
         (True, AcqWaitOn.NewData, {"data": "value"}, 5, 0, 1, 0),
     ],
 )
-def test_wait_for_data_new_and_next_acq(
+def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     tekhsi_client,
     cache_enabled,
     wait_on,
@@ -768,13 +750,8 @@ def test_wait_for_data_new_and_next_acq(
         connection.wait_for_data(wait_on)
 
         # Verify the internal state
-        assert (
-            connection._wait_for_data_count == expected_wait_for_data_count
-        ), f"Expected wait_for_data_count {expected_wait_for_data_count}, got {connection._wait_for_data_count}"
-        assert (
-            connection._lastacqseen == expected_lastacqseen
-        ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
-
+        assert connection._wait_for_data_count == expected_wait_for_data_count
+        assert connection._lastacqseen == expected_lastacqseen
         assert connection._wait_for_data_holds_lock, "_wait_next_acq was not called"
 
 
@@ -818,9 +795,14 @@ def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler):
     """Test the data_arrival method of DerivedWaveformHandler.
 
     Args:
-        derived_waveform_handler (DerivedWaveformHandler): An instance of the DerivedWaveformHandler to be tested.
+        derived_waveform_handler (DerivedWaveformHandler): An instance of the DerivedWaveformHandler
+            to be tested.
     """
-    waveforms = [DerivedWaveform(), DerivedWaveform()]  # pylint: disable=abstract-class-instantiated
+    # pylint: disable=abstract-class-instantiated
+    waveforms = [
+        DerivedWaveform(),
+        DerivedWaveform(),
+    ]
 
     # Capture the output
     captured_output = StringIO()
@@ -851,7 +833,7 @@ def test_acq_id(headers, expected):
         expected (int): The expected acquisition ID.
     """
     result = TekHSIConnect._acq_id(headers)
-    assert result == expected, f"Expected {expected}, got {result}"
+    assert result == expected
 
 
 @pytest.mark.parametrize(
@@ -889,7 +871,7 @@ def test_read_waveform_analog(
         tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
         header (WaveformHeader): The header information for the waveform.
         response_data (bytes): The response data for the waveform.
-        expected_waveform_type (type): The expected type of the waveform (e.g., AnalogWaveform, IQWaveform).
+        expected_waveform_type (type): The expected type of the waveform.
         expected_length (int): The expected length of the waveform data.
     """
     client = tekhsi_client
@@ -923,7 +905,7 @@ def test_read_waveform_analog(
     ],
 )
 @patch("builtins.print")
-def test_instrumentation(
+def test_instrumentation(  # noqa: PLR0913
     mock_print,
     tekhsi_client,
     instrument,
@@ -939,6 +921,7 @@ def test_instrumentation(
 
     Args:
         mock_print (MagicMock): Mocked print function.
+        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
         instrument (bool): Whether the instrument is enabled.
         connected (bool): Whether the client is connected.
         is_exiting (bool): Whether the client is in the process of exiting.
@@ -1010,7 +993,7 @@ def test_read_waveform_digital(tekhsi_client, header, response_data, expected_le
     assert len(waveform.y_axis_byte_values) == expected_length
 
 
-class DummyConnection:
+class DummyConnection:  # pylint: disable=too-few-public-methods
     def __init__(self, holding_scope_open):
         """Initialize the DummyConnection.
 
@@ -1030,8 +1013,8 @@ class DummyConnection:
         self.close_called = True
 
 
-@pytest.fixture()
-def setup_tekhsi_connections():
+@pytest.fixture(name="setup_tekhsi_connections")
+def fixture_setup_tekhsi_connections():
     """Fixture to set up dummy connections for TekHSIConnect."""
     TekHSIConnect._connections = {
         "conn1": DummyConnection(holding_scope_open=True),
@@ -1039,7 +1022,7 @@ def setup_tekhsi_connections():
     }
 
 
-def test_terminate(setup_tekhsi_connections):
+def test_terminate(setup_tekhsi_connections):  # noqa: ARG001
     """Test the _terminate method of TekHSIConnect.
 
     Args:
@@ -1067,9 +1050,7 @@ def test_active_symbols(tekhsi_client):
     tekhsi_client.active_symbols(symbols)
 
     # Verify that the activesymbols attribute is updated correctly
-    assert (
-        tekhsi_client.activesymbols == symbols
-    ), f"Expected {symbols}, got {tekhsi_client.activesymbols}"
+    assert tekhsi_client.activesymbols == symbols
 
 
 def test_callback_invocation(tekhsi_client):
@@ -1089,7 +1070,7 @@ def test_callback_invocation(tekhsi_client):
 
 
 @pytest.mark.parametrize(
-    "header, expected_sample_rate",
+    ("header", "expected_sample_rate"),
     [
         (
             WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),
@@ -1102,6 +1083,13 @@ def test_callback_invocation(tekhsi_client):
     ],
 )
 def test_read_waveform_iq(tekhsi_client, header, expected_sample_rate):
+    """Test reading an IQ waveform.
+
+    Args:
+        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        header (WaveformHeader): The header information for the waveform.
+        expected_sample_rate (float): The expected IQ sample rate.
+    """
     waveform = tekhsi_client._read_waveform(header)
     assert isinstance(waveform, IQWaveform)
     assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)

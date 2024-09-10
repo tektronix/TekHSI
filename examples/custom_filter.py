@@ -9,12 +9,12 @@ from tekhsi import TekHSIConnect, WaveformHeader
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
 
-def custom_filter(prevheader: Dict[WaveformHeader], currentheader: List[WaveformHeader]):
+def custom_filter(previous_header: Dict[WaveformHeader], current_header: List[WaveformHeader]):
     """A custom criterion for deciding when to consider an acquisition for acceptance."""
-    for key, cur in currentheader.items():
-        if key not in prevheader:
+    for key, cur in current_header.items():
+        if key not in previous_header:
             return True
-        prev = prevheader[key]
+        prev = previous_header[key]
         if prev is not None and (
             prev.verticalspacing != cur.verticalspacing
             or prev.horizontalspacing != cur.horizontalspacing
