@@ -9,18 +9,16 @@ will still work, but they might not provide later services. This allows us to mo
 forward while remaining backwards compatible.
 """
 
-import math
 import sys
-import time
-
-from concurrent import futures
-from enum import Enum
-from threading import Lock, Thread
-
 import grpc
+import time
+import math
+from threading import Lock, Thread
 import numpy as np
+from enum import Enum
+from concurrent import futures
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
+from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform
 
 import tekhsi._tek_highspeed_server_pb2 as tekhsi_pb2
 import tekhsi._tek_highspeed_server_pb2_grpc as tekhsi_pb2_grpc
@@ -222,9 +220,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         This is to make it visually clear that each waveform is unique.
         """
-        return np.array(array) + np.random.Generator.normal(
-            loc=0.0, scale=noise_range / 4, size=len(array)
-        )
+        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))
 
 
 class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
@@ -394,7 +390,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns:
+        Returns
         -------
         NativeReply
             The return reply contains the status + the requested header information.
@@ -543,20 +539,21 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 return tekhsi_pb2.ConnectReply(
                     status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
                 )
-            self._connections.clear()
-            if self._new_data:
-                self.FinishedWithDataAccess(request, context)
-            # force a cleanup
-            self._new_data = False
-            self._dataaccess_allowed = False
-            if mutex.locked():
-                mutex.release()
-            context.set_code(grpc.StatusCode.OK)
-            if verbose:
-                print(f'Disconnect Success - but used a bad name {request.name}"')
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-            )
+            else:
+                self._connections.clear()
+                if self._new_data:
+                    self.FinishedWithDataAccess(request, context)
+                # force a cleanup
+                self._new_data = False
+                self._dataaccess_allowed = False
+                if mutex.locked():
+                    mutex.release()
+                context.set_code(grpc.StatusCode.OK)
+                if verbose:
+                    print(f'Disconnect Success - but used a bad name {request.name}"')
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
         except Exception as e:
             if self._new_data:
                 self.FinishedWithDataAccess(request, context)
@@ -669,11 +666,12 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 return tekhsi_pb2.ConnectReply(
                     status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
                 )
-            if verbose:
-                print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-            )
+            else:
+                if verbose:
+                    print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
 
         except Exception as e:
             if verbose:
