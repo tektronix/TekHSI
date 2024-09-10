@@ -124,10 +124,9 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         if length > 0:
             resolution = (period * repeats) / length
-        elif resolution is None or resolution <= 0.0:
-            resolution = period / 100
-            length = int(period * repeats / resolution)
         else:
+            if resolution is None or resolution <= 0.0:
+                resolution = period / 100
             length = int(period * repeats / resolution)
 
         self._xincr = resolution
@@ -621,10 +620,14 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if not self._connections:
                 if verbose:
                     print("WaitForDataAccess Success - requested with no connections active")
-                return
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
 
             if not self._connections.get(request.name) and len(request.name) > 0:
-                return
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
 
             while not self._new_data:
                 time.sleep(0.001)
