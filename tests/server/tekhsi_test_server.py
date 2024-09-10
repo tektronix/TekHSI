@@ -142,7 +142,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
                 ]
             )
         elif encoding == WfmEncoding.Square:
-            ampl2 = amplitude / 2
+            ampl2 = amplitude / 2.0
             self._vertical_data = np.array(
                 [
                     ampl2 if (math.cos(increment * index) / 2.0) >= 0 else -ampl2
