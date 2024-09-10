@@ -527,6 +527,7 @@ def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expect
         ), f"Expected new value {expected_value}, got {connection.instrumentation_enabled}"
 
 
+#
 @pytest.mark.parametrize(
     "initial_symbols, expected_symbols",
     [
@@ -722,242 +723,6 @@ def test_wait_for_data_new_and_next_acq(
         ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
 
         assert connection._wait_for_data_holds_lock, "_wait_next_acq was not called"
-
-
-@pytest.mark.parametrize(
-    "header, expected_waveform_type, expected_length",
-    [
-        (
-            WaveformHeader(
-                sourcename="ch1",
-                wfmtype=1,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch2",
-                wfmtype=2,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=2,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch3",
-                wfmtype=3,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=4,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math1",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Hanning",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math2",
-                wfmtype=6,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=2,
-                noofsamples=4,
-                iq_windowType="Hamming",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch4",
-                wfmtype=4,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-            ),
-            DigitalWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math3",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Rectangle",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math4",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Kaiserbessel",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math5",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Unsupported",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math6",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Blackharris",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math7",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Flattop2",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-    ],
-)
-def test_read_waveform(tekhsi_client, header, expected_waveform_type, expected_length):
-    """Test the _read_waveform method of TekHSIConnect.
-
-    Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        header (WaveformHeader): The header information for the waveform.
-        expected_waveform_type (type): The expected type of the waveform (e.g., AnalogWaveform, IQWaveform, DigitalWaveform).
-        expected_length (int): The expected length of the waveform data.
-    """
-    waveform = tekhsi_client._read_waveform(header)
-    assert isinstance(waveform, expected_waveform_type)
-    assert (
-        len(waveform.y_axis_values) == expected_length
-        if expected_waveform_type == AnalogWaveform
-        else len(waveform.interleaved_iq_axis_values) == expected_length
-        if expected_waveform_type == IQWaveform
-        else len(waveform.y_axis_byte_values) == expected_length
-    )
 
 
 @pytest.mark.parametrize(
@@ -1317,3 +1082,134 @@ def test_callback_invocation(tekhsi_client):
     waveforms = ["waveform1", "waveform2"]
 
     tekhsi_client._callback(waveforms)
+
+
+@pytest.mark.parametrize(
+    "header, expected_waveform_type, expected_length",
+    [
+        (
+            WaveformHeader(
+                sourcename="ch1",
+                wfmtype=1,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=1,
+                noofsamples=4,
+            ),
+            AnalogWaveform,
+            4,
+        ),
+        (
+            WaveformHeader(
+                sourcename="ch2",
+                wfmtype=2,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=2,
+                noofsamples=4,
+            ),
+            AnalogWaveform,
+            4,
+        ),
+        (
+            WaveformHeader(
+                sourcename="ch3",
+                wfmtype=3,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=4,
+                noofsamples=4,
+            ),
+            AnalogWaveform,
+            4,
+        ),
+        (
+            WaveformHeader(
+                sourcename="math1",
+                wfmtype=7,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=1,
+                noofsamples=4,
+                iq_windowType="Hanning",
+                iq_fftLength=1024,
+                iq_rbw=10,
+                iq_span=100,
+                iq_centerFrequency=50,
+            ),
+            IQWaveform,
+            4,
+        ),
+        (
+            WaveformHeader(
+                sourcename="math2",
+                wfmtype=6,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=2,
+                noofsamples=4,
+                iq_windowType="Hamming",
+                iq_fftLength=1024,
+                iq_rbw=10,
+                iq_span=100,
+                iq_centerFrequency=50,
+            ),
+            IQWaveform,
+            4,
+        ),
+        (
+            WaveformHeader(
+                sourcename="ch4",
+                wfmtype=4,
+                verticalspacing=1.0,
+                verticaloffset=0.0,
+                verticalunits="V",
+                horizontalspacing=1.0,
+                horizontalUnits="s",
+                horizontalzeroindex=0,
+                sourcewidth=1,
+                noofsamples=4,
+            ),
+            DigitalWaveform,
+            4,
+        ),
+    ],
+)
+def test_read_waveform(tekhsi_client, header, expected_waveform_type, expected_length):
+    """Test the _read_waveform method of TekHSIConnect.
+
+    Args:
+        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        header (WaveformHeader): The header information for the waveform.
+        expected_waveform_type (type): The expected type of the waveform (e.g., AnalogWaveform, IQWaveform, DigitalWaveform).
+        expected_length (int): The expected length of the waveform data.
+    """
+    waveform = tekhsi_client._read_waveform(header)
+    assert isinstance(waveform, expected_waveform_type)
+    assert (
+        len(waveform.y_axis_values) == expected_length
+        if expected_waveform_type == AnalogWaveform
+        else len(waveform.interleaved_iq_axis_values) == expected_length
+        if expected_waveform_type == IQWaveform
+        else len(waveform.y_axis_byte_values) == expected_length
+    )
