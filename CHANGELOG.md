@@ -18,10 +18,8 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
----
-
-## v0.1.0
-
 ### Added
 
 - First release of `TekHSI`!
+
+---

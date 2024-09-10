@@ -114,7 +114,6 @@ repos:
         types: [python]
         pass_filenames: true
         args: [-sn]
-        exclude: ^tests/.*  # TODO: include
 #      - id: pyright  # TODO: enable
 #        name: pyright
 #        entry: pyright
@@ -147,8 +146,8 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 24d039e647a08707e6cb31e75e01844eeff925e7  # frozen: v0.6.2
     hooks:
-#      - id: ruff  # TODO: enable
-#        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/PyCQA/docformatter
     rev: dfefe062799848234b4cd60b04aa633c0608025e  # frozen: v1.7.5

@@ -276,7 +276,7 @@ src = ["docs", "examples", "scripts", "src", "tests"]
 target-version = "py38"  # always generate Python 3.8 compatible code
 
 [tool.ruff.lint]
-allowed-confusables = ["¸", "×"]
+allowed-confusables = []
 fixable = ["ALL"]
 flake8-pytest-style = {mark-parentheses = false}
 flake8-quotes = {docstring-quotes = "double"}

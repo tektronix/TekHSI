@@ -7,7 +7,7 @@ concurrency:
   group: pypi
 jobs:
   package-testpypi:
-    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-package-testpypi.yml@v1.2.0
+    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-package-testpypi.yml@v1.3.0
     with:
       package-name: TekHSI
       repo-name: tektronix/TekHSI
@@ -15,3 +15,5 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+    secrets:
+      test-pypi-api-token: ${{ secrets.TEST_PYPI_API_TOKEN }}
