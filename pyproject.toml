@@ -256,7 +256,9 @@ useLibraryCodeForTypes = true
 [tool.pytest.ini_options]
 addopts = "--order-scope=module --cov-config=pyproject.toml"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
-filterwarnings = []
+filterwarnings = [
+  "ignore:Type google._upb._message.:DeprecationWarning"
+]
 junit_family = "xunit2"
 junit_logging = "all"
 markers = [
@@ -338,7 +340,9 @@ order-by-type = false
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
-  "N80"
+  "N80",
+  "PLW0602",
+  "SIM"
 ]
 
 [tool.semantic_release]
