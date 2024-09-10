@@ -1054,6 +1054,5 @@ def test_callback_invocation(tekhsi_client):
 )
 def test_read_waveform_iq(tekhsi_client, header, expected_sample_rate):
     waveform = tekhsi_client._read_waveform(header)
-
     assert isinstance(waveform, IQWaveform)
     assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)    
