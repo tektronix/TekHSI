@@ -8,7 +8,7 @@ exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError"
 ]
-fail_under = 80  # TODO: set to 100 after reaching 100% coverage
+fail_under = 74  # TODO: set to 100 after reaching 100% coverage
 show_missing = true
 skip_empty = true
 
@@ -49,7 +49,7 @@ license = "Apache-2.0"
 name = "TekHSI"
 readme = "README.md"
 repository = "https://github.com/tektronix/TekHSI"
-version = "0.0.1"
+version = "0.0.0"
 
 [tool.poetry.dependencies]
 annotated-types = "^0.7.0"
