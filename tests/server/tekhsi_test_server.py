@@ -299,11 +299,11 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                 reply.headerordata.header.sourcename = request.sourcename
                 reply.headerordata.header.sourcewidth = 4
 
-                if isinstance(data, AnalogWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                if isinstance(data, AnalogWaveform):  # noqa: F821
                     reply.headerordata.header.wfmtype = 3
-                elif isinstance(data, IQWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                elif isinstance(data, IQWaveform):  # noqa: F821
                     reply.headerordata.header.wfmtype = 6
-                elif isinstance(data, DigitalWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                elif isinstance(data, DigitalWaveform):  # noqa: F821
                     reply.headerordata.header.wfmtype = 4
 
                 reply.headerordata.header.pairtype = 1
@@ -398,7 +398,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                 reply.headerordata.header.noofsamples = wfm.length
                 reply.headerordata.header.sourcename = request.sourcename
 
-                if isinstance(data, AnalogWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                if isinstance(data, AnalogWaveform):  # noqa: F821
                     if wfm.type == WfmDataType.Int8:
                         reply.headerordata.header.sourcewidth = 1
                         reply.headerordata.header.wfmtype = 1
@@ -411,7 +411,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     else:
                         reply.headerordata.header.sourcewidth = 1
                         reply.headerordata.header.wfmtype = 1
-                elif isinstance(data, IQWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                elif isinstance(data, IQWaveform):  # noqa: F821
                     if wfm.type == WfmDataType.Int8:
                         reply.headerordata.header.sourcewidth = 1
                         reply.headerordata.header.wfmtype = 6
@@ -421,7 +421,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     else:
                         reply.headerordata.header.sourcewidth = 1
                         reply.headerordata.header.wfmtype = 6
-                elif isinstance(data, DigitalWaveform):  # pylint: disable=undefined-variable  # noqa: F821
+                elif isinstance(data, DigitalWaveform):  # noqa: F821
                     if wfm.type == WfmDataType.Int8:
                         reply.headerordata.header.sourcewidth = 1
                         reply.headerordata.header.wfmtype = 4
