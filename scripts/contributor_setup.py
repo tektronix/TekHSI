@@ -48,7 +48,7 @@ def main() -> None:
     starting_dir = Path.cwd()
     try:
         if RUNNING_IN_VIRTUALENV:
-            raise IndexError
+            raise IndexError  # noqa: TRY301
         # This requires contributors to use newer versions of Python even
         # though the package supports older versions.
         if sys.version_info < (3, 9):
@@ -80,7 +80,7 @@ def main() -> None:
                     f"{virtual_env_dir}/{'bin' if RUNNING_ON_LINUX else 'Scripts'}/**/python*",
                     recursive=True,
                 ),
-            )
+            ),
         )
         python_executable = files[0]
         commands_to_send = (
@@ -88,7 +88,7 @@ def main() -> None:
             f"{python_executable} -m poetry install",
             f"{python_executable} -m nodeenv --python-virtualenv --clean-src",
             f"{python_executable} -m pre_commit install --install-hooks",
-            # f"{python_executable} -m tox -e tests",
+            # f"{python_executable} -m tox -e tests",  # noqa: ERA001
         )
         for command in commands_to_send:
             _run_cmd_in_subprocess(command)

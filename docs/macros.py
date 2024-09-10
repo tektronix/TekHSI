@@ -162,7 +162,8 @@ def define_env(env: MacrosPlugin) -> None:
     """
     # Read in the current package version number to use in templates and files
     with open(
-        pathlib.Path(f"{pathlib.Path(__file__).parents[1]}") / "pyproject.toml", "rb"
+        pathlib.Path(f"{pathlib.Path(__file__).parents[1]}") / "pyproject.toml",
+        "rb",
     ) as file_handle:
         pyproject_data = tomli.load(file_handle)
         package_version = "v" + pyproject_data["tool"]["poetry"]["version"]

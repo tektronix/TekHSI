@@ -6,24 +6,28 @@ import time
 import uuid
 
 from atexit import register
+from contextlib import contextmanager
 from enum import Enum
-
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
 import grpc
 import numpy as np
 
 from tm_data_types import (
     AnalogWaveform,
+    DigitalWaveform,
     IQWaveform,
     IQWaveformMetaInfo,
     Waveform,
-    DigitalWaveform,
 )
-from tekhsi.helpers.functions import print_with_timestamp
 
-from tekhsi._tek_highspeed_server_pb2 import ConnectRequest, WaveformHeader, WaveformRequest  # pylint: disable=no-name-in-module
+from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
+    ConnectRequest,
+    WaveformHeader,
+    WaveformRequest,
+)
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
+from tekhsi.helpers.functions import print_with_timestamp
 
 
 class AcqWaitOn(Enum):
@@ -128,7 +132,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             exc_val: The exception value.
             exc_tb: The traceback object.
         """
-
         # Required for "with" command to work with this class
 
         self._is_exiting = True
@@ -141,7 +144,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         if self._instrument and self._sum_count > 0:
             print_with_timestamp(
                 f"Average Update Rate:{(1 / (self._sum_acq_time / self._sum_count)):.2f}, "
-                f"Data Rate:{(self._sum_data_rate / self._sum_count):.2f}Mbs"
+                f"Data Rate:{(self._sum_data_rate / self._sum_count):.2f}Mbs",
             )
 
     ################################################################################################
@@ -247,7 +250,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_horizontal_change(
-        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
+        prevheader: Dict[str, WaveformHeader],
+        currentheader: Dict[str, WaveformHeader],
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
@@ -274,7 +278,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_vertical_change(
-        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
+        prevheader: Dict[str, WaveformHeader],
+        currentheader: Dict[str, WaveformHeader],
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
@@ -308,7 +313,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def close(self):
         """Close and clean up gRPC connection."""
-
         if not self._connected:
             return
 
@@ -400,7 +404,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._lock_getdata.acquire()
         try:
             retval = self._datacache.get(
-                name.lower(), None
+                name.lower(),
+                None,
             )  # Return None if cached data is not found
         finally:
             self._lock_getdata.release()
@@ -509,7 +514,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._sum_count += 1
             print(
                 f"UpdateRate:{(1 / acqtime):.2f},"
-                f"Data Rate:{((datasize * 8 / 1e6) / transfertime):.2f}Mbs,Data Width:{datawidth}"
+                f"Data Rate:{((datasize * 8 / 1e6) / transfertime):.2f}Mbs,Data Width:{datawidth}",
             )
 
     @staticmethod
@@ -531,7 +536,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def _finished_with_data_access(self) -> None:
         """Releases access to instrument data - this is required
-        to allow the instrument to continue acquiring"""
+        to allow the instrument to continue acquiring
+        """
         if not self._in_wait_for_data:
             return
 
@@ -890,7 +896,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     @register
     def _terminate():
         """Cleans up mess on termination if possible - this is required
-        to keep the scope from hanging"""
+        to keep the scope from hanging
+        """
         for key in TekHSIConnect._connections:  # pylint:disable=consider-using-dict-items
             with contextlib.suppress(Exception):
                 if TekHSIConnect._connections[key]._holding_scope_open:

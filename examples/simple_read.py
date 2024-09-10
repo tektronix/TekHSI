@@ -1,8 +1,9 @@
 """An example script for demonstrating reading waveform files and plotting the data."""
 
-from tm_data_types import read_file, AnalogWaveform, IQWaveform, DigitalWaveform
 import matplotlib.pyplot as plt
 import numpy as np
+
+from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, read_file
 
 # Read the waveform file
 file = read_file("sample_waveforms/test_sine.wfm")

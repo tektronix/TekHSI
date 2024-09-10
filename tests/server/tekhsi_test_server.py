@@ -8,16 +8,18 @@ will still work, but they might not provide later services. This allows us to mo
 forward while remaining backwards compatible.
 """
 
-import sys
-import grpc
-import time
 import math
-from threading import Lock, Thread
-import numpy as np
-from enum import Enum
-from concurrent import futures
+import sys
+import time
 
-from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform
+from concurrent import futures
+from enum import Enum
+from threading import Lock, Thread
+
+import grpc
+import numpy as np
+
+from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
 
 import tekhsi._tek_highspeed_server_pb2 as tekhsi_pb2
 import tekhsi._tek_highspeed_server_pb2_grpc as tekhsi_pb2_grpc
@@ -140,7 +142,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
                 [
                     (math.cos(increment * index) / 2.0) * amplitude - offset
                     for index in range(length)
-                ]
+                ],
             )
         elif encoding == WfmEncoding.Square:
             ampl2 = amplitude / 2
@@ -148,7 +150,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
                 [
                     ampl2 if (math.cos(increment * index) / 2.0) >= 0 else -ampl2
                     for index in range(length)
-                ]
+                ],
             )
         elif encoding == WfmEncoding.PRBS7:
             pass
@@ -242,8 +244,6 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
         """
-        global connect_server
-        global verbose
         if verbose:
             print(f"TekHSI_NormalizedDataServer.GetWaveform({request.sourcename})")
         try:
@@ -255,9 +255,9 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                         reply = tekhsi_pb2.NormalizedReply(
                             headerordata=tekhsi_pb2.NormalizedReply.DataOrHeaderAccess(
                                 chunk=tekhsi_pb2.NormalizedReply.WaveformSampleChunk(
-                                    data=wfm._vertical_data[cur : cur + chunksize]
-                                )
-                            )
+                                    data=wfm._vertical_data[cur : cur + chunksize],
+                                ),
+                            ),
                         )
                         yield reply
                     reply = tekhsi_pb2.NormalizedReply()
@@ -279,14 +279,11 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NormalizedReply
             The return reply contains the status + the requested header information.
         """
-        global connect_server
-        global verbose
-        global acq_id
         if verbose:
             print(f"TekHSI_NormalizedDataServer.GetHeader({request.sourcename})")
         try:
@@ -319,7 +316,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         except Exception as e:
             print(e)
         return tekhsi_pb2.NormalizedReply(
-            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE")
+            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"),
         )
 
 
@@ -343,14 +340,12 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status. The yield reply, returns
             each data chunk.
         """
-        global connect_server
-        global verbose
         if verbose:
             print(f"TekHSI_NativeDataServer.GetWaveform({request.sourcename})")
         try:
@@ -363,9 +358,9 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         reply = tekhsi_pb2.RawReply(
                             headerordata=tekhsi_pb2.RawReply.DataOrHeaderAccess(
                                 chunk=tekhsi_pb2.RawReply.WaveformSampleByteChunk(
-                                    data=raw_bytes[cur : cur + chunksize]
-                                )
-                            )
+                                    data=raw_bytes[cur : cur + chunksize],
+                                ),
+                            ),
                         )
                         yield reply
                     reply = tekhsi_pb2.RawReply()
@@ -386,14 +381,11 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status + the requested header information.
         """
-        global connect_server
-        global verbose
-        global acq_id
         if verbose:
             print(f"TekHSI_NativeDataServer.GetHeader({request.sourcename})")
         try:
@@ -496,7 +488,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if self._connections.get(request.name):
                 context.set_code(grpc.StatusCode.ALREADY_EXISTS)
                 return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_INUSE_FAILURE")
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_INUSE_FAILURE"),
                 )
             self._connections[request.name] = True
             context.set_code(grpc.StatusCode.OK)
@@ -506,13 +498,13 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if verbose:
                 print(f'connection successful - "{request.name}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
             )
         except Exception as e:
             if verbose:
                 print(f'** Exception:{e}: Connect - "{request.name}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
     def Disconnect(self, request, context):
@@ -533,23 +525,22 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                     print(f'Disconnect Success "{request.name}"')
                 context.set_code(grpc.StatusCode.OK)
                 return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
                 )
-            else:
-                self._connections.clear()
-                if self._new_data:
-                    self.FinishedWithDataAccess(request, context)
-                # force a cleanup
-                self._new_data = False
-                self._dataaccess_allowed = False
-                if mutex.locked():
-                    mutex.release()
-                context.set_code(grpc.StatusCode.OK)
-                if verbose:
-                    print(f'Disconnect Success - but used a bad name {request.name}"')
-                return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-                )
+            self._connections.clear()
+            if self._new_data:
+                self.FinishedWithDataAccess(request, context)
+            # force a cleanup
+            self._new_data = False
+            self._dataaccess_allowed = False
+            if mutex.locked():
+                mutex.release()
+            context.set_code(grpc.StatusCode.OK)
+            if verbose:
+                print(f'Disconnect Success - but used a bad name {request.name}"')
+            return tekhsi_pb2.ConnectReply(
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
+            )
         except Exception as e:
             if self._new_data:
                 self.FinishedWithDataAccess(request, context)
@@ -562,7 +553,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if verbose:
                 print(f'** Exception: Disconnect - "{request.name} - {e}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
     def RequestNewSequence(self, request, context):
@@ -573,7 +564,6 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 else:
                     print(f'RequestNewSequence Failed - No Connection "{request.name}"')
 
-            global connect_server
             mutex.acquire()
             if verbose:
                 print("mutex-acquired: RequestNewSequence")
@@ -584,7 +574,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 print("mutex-released: RequestNewSequence")
             context.set_code(grpc.StatusCode.OK)
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
             )
         except Exception as e:
             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
@@ -592,7 +582,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 print(e)
                 print(f'** Exception as: RequestNewSequence - "{request.name}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
     def RequestAvailableNames(self, request, context):
@@ -613,7 +603,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 print(f'** Exception: RequestNewSequence - "{request.name}"')
             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
             return tekhsi_pb2.AvailableNamesReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
     def WaitForDataAccess(self, request, context):
@@ -621,10 +611,10 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if not self._connections:
                 if verbose:
                     print("WaitForDataAccess Success - requested with no connections active")
-                return
+                return None
 
             if not self._connections.get(request.name) and len(request.name) > 0:
-                return
+                return None
 
             while not self._new_data:
                 time.sleep(0.001)
@@ -635,14 +625,14 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             self._dataaccess_allowed = True
             context.set_code(grpc.StatusCode.OK)
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
             )
         except Exception as e:
             if verbose:
                 print(e)
                 print(f'** Exception: WaitForDataAccess - "{request.name}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
     def FinishedWithDataAccess(self, request, context):
@@ -660,21 +650,20 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                         print(f'FinishedWithDataAccess Bad Connection Name "{request.name}"')
                 context.set_code(grpc.StatusCode.OK)
                 return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
                 )
-            else:
-                if verbose:
-                    print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
-                return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-                )
+            if verbose:
+                print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
+            return tekhsi_pb2.ConnectReply(
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
+            )
 
         except Exception as e:
             if verbose:
                 print(e)
                 print(f'** Exception: FinishedWithDataAccess - "{request.name}"')
             return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED"),
             )
 
 
@@ -686,7 +675,6 @@ def periodic_data_creation():
     If you want to change the named sets of data returned you should modify 'make_new_data()'
     """
     while True:
-        global connect_server
         global acq_id
         try:
             mutex.acquire()
@@ -704,7 +692,7 @@ def make_new_data():
     symbol names and associated data. This is called on initialization of the TekHSI_Connect service
     and periodically to create new data. The symbols defined here well be seen by the client.
 
-    Returns
+    Returns:
     -------
     dict
         Returns a name/value dictionary defining a set of symbols and their associated waveforms.

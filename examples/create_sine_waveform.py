@@ -1,8 +1,10 @@
 """An example script for creating a sine waveform and saving it to a file."""
 
-from tm_data_types import write_file, AnalogWaveform
-import numpy as np
 import math
+
+import numpy as np
+
+from tm_data_types import AnalogWaveform, write_file
 
 length = 1000  # Record length of the waveform
 frequency = 40.0e-10  # Frequency of the sinewave
@@ -30,7 +32,4 @@ waveform.y_axis_values = x_points
 # waveform.y_axis_values = np.sin(2 * np.pi
 # * x_points) * amplitude / 2.0
 
-try:
-    write_file("sample_waveforms/test_sine.wfm", waveform)
-except Exception as e:
-    print(e)
+write_file("sample_waveforms/test_sine.wfm", waveform)

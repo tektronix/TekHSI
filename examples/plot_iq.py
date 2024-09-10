@@ -1,9 +1,11 @@
 """An example script for connecting to a Tek instrument, retrieving IQ waveform data, and plotting it."""
 
-from tekhsi import TekHSIConnect, AcqWaitOn
-from tm_data_types import IQWaveform
 import matplotlib.pyplot as plt
 import numpy as np
+
+from tm_data_types import IQWaveform
+
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 source = "ch1_iq"
 address = "192.168.0.1"  # Replace with the IP address of your instrument

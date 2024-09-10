@@ -1,8 +1,10 @@
-"""An example script to connect to a scope, apply a custom filter to waveform data, and save to files."""
+"""A script to connect to a scope, apply a custom filter to waveform data, and save to files."""
+
+from typing import Dict, List
+
+from tm_data_types import AnalogWaveform, write_file
 
 from tekhsi import TekHSIConnect, WaveformHeader
-from tm_data_types import AnalogWaveform, write_file
-from typing import Dict, List
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
