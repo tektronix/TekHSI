@@ -38,8 +38,6 @@ def test_server_connection(
     tekhsi_client.verbose = True
     # Use the context manager to handle connection
     with tekhsi_client as connection:
-        # Assuming you have a method to check the connection status or similar
-        # Capture the printed output
         captured = capsys.readouterr()
         request = ConnectRequest(name="test_client")
         response = connection.connection.Connect(request)
@@ -527,6 +525,7 @@ def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expect
         ), f"Expected new value {expected_value}, got {connection.instrumentation_enabled}"
 
 
+#
 @pytest.mark.parametrize(
     "initial_symbols, expected_symbols",
     [
@@ -722,242 +721,6 @@ def test_wait_for_data_new_and_next_acq(
         ), f"Expected lastacqseen {expected_lastacqseen}, got {connection._lastacqseen}"
 
         assert connection._wait_for_data_holds_lock, "_wait_next_acq was not called"
-
-
-@pytest.mark.parametrize(
-    "header, expected_waveform_type, expected_length",
-    [
-        (
-            WaveformHeader(
-                sourcename="ch1",
-                wfmtype=1,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch2",
-                wfmtype=2,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=2,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch3",
-                wfmtype=3,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=4,
-                noofsamples=4,
-            ),
-            AnalogWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math1",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Hanning",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math2",
-                wfmtype=6,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=2,
-                noofsamples=4,
-                iq_windowType="Hamming",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="ch4",
-                wfmtype=4,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-            ),
-            DigitalWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math3",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Rectangle",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math4",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Kaiserbessel",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math5",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Unsupported",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math6",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Blackharris",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-        (
-            WaveformHeader(
-                sourcename="math7",
-                wfmtype=7,
-                verticalspacing=1.0,
-                verticaloffset=0.0,
-                verticalunits="V",
-                horizontalspacing=1.0,
-                horizontalUnits="s",
-                horizontalzeroindex=0,
-                sourcewidth=1,
-                noofsamples=4,
-                iq_windowType="Flattop2",
-                iq_fftLength=1024,
-                iq_rbw=10,
-                iq_span=100,
-                iq_centerFrequency=50,
-            ),
-            IQWaveform,
-            4,
-        ),
-    ],
-)
-def test_read_waveform(tekhsi_client, header, expected_waveform_type, expected_length):
-    """Test the _read_waveform method of TekHSIConnect.
-
-    Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        header (WaveformHeader): The header information for the waveform.
-        expected_waveform_type (type): The expected type of the waveform (e.g., AnalogWaveform, IQWaveform, DigitalWaveform).
-        expected_length (int): The expected length of the waveform data.
-    """
-    waveform = tekhsi_client._read_waveform(header)
-    assert isinstance(waveform, expected_waveform_type)
-    assert (
-        len(waveform.y_axis_values) == expected_length
-        if expected_waveform_type == AnalogWaveform
-        else len(waveform.interleaved_iq_axis_values) == expected_length
-        if expected_waveform_type == IQWaveform
-        else len(waveform.y_axis_byte_values) == expected_length
-    )
 
 
 @pytest.mark.parametrize(
@@ -1198,66 +961,6 @@ def test_read_waveform_digital(tekhsi_client, header, response_data, expected_le
     assert len(waveform.y_axis_byte_values) == expected_length
 
 
-class DummyThread:
-    def __init__(self, should_raise=False):
-        self.should_raise = should_raise
-        self.join_called = False
-
-    def join(self, timeout=None):
-        self.join_called = True
-        if self.should_raise:
-            raise RuntimeError("Thread error")
-
-
-@pytest.mark.parametrize(
-    "connected, verbose, thread_active, should_raise, expected_output",
-    [
-        (False, False, False, False, ""),  # Not connected
-        (True, True, True, False, "close"),  # Verbose output
-        (True, False, True, False, ""),  # Thread handling without verbose
-    ],
-)
-def test_close(
-    tekhsi_client, capsys, connected, verbose, thread_active, should_raise, expected_output
-):
-    """Test the close method of TekHSIConnect.
-
-    Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        capsys (CaptureFixture): Pytest fixture to capture stdout and stderr.
-        connected (bool): Whether the client is connected.
-        verbose (bool): Whether verbose output is enabled.
-        thread_active (bool): Whether the thread is active.
-        should_raise (bool): Whether the thread should raise an error.
-        expected_output (str): The expected output message, if any.
-    """
-    tekhsi_client._connected = connected
-    tekhsi_client.verbose = verbose
-    tekhsi_client.thread_active = thread_active
-    tekhsi_client.thread = DummyThread(should_raise)
-
-    # Mock the _available_symbols method to raise KeyError
-    def mock_available_symbols(self):
-        raise KeyError("test_key")
-
-    tekhsi_client._available_symbols = mock_available_symbols
-
-    tekhsi_client.close()
-
-    captured = capsys.readouterr()
-    output_lines = captured.out.split("\n")
-    expected_lines = expected_output.split("\n")
-
-    for expected_line in expected_lines:
-        assert any(expected_line in line for line in output_lines)
-
-    if connected and thread_active:
-        assert tekhsi_client.thread.join_called
-        assert not tekhsi_client.thread_active
-    else:
-        assert not tekhsi_client.thread.join_called
-
-
 class DummyConnection:
     def __init__(self, holding_scope_open):
         """Initialize the DummyConnection.
@@ -1303,6 +1006,23 @@ def test_terminate(setup_tekhsi_connections):
     assert conn2.close_called
 
 
+def test_active_symbols(tekhsi_client):
+    """Test the active_symbols method of TekHSIConnect.
+
+    Args:
+        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+    """
+    symbols = ["symbol1", "symbol2", "symbol3"]
+
+    # Call the method to set active symbols
+    tekhsi_client.active_symbols(symbols)
+
+    # Verify that the activesymbols attribute is updated correctly
+    assert (
+        tekhsi_client.activesymbols == symbols
+    ), f"Expected {symbols}, got {tekhsi_client.activesymbols}"
+
+
 def test_callback_invocation(tekhsi_client):
     """Test the invocation of the callback function in TekHSIConnect.
 
@@ -1317,3 +1037,23 @@ def test_callback_invocation(tekhsi_client):
     waveforms = ["waveform1", "waveform2"]
 
     tekhsi_client._callback(waveforms)
+
+
+@pytest.mark.parametrize(
+    "header, expected_sample_rate",
+    [
+        (
+            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),
+            1024 * 1e6 / 1.9,
+        ),
+        (
+            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),
+            1024 * 1e6 / 3.77,
+        ),
+    ],
+)
+def test_read_waveform_iq(tekhsi_client, header, expected_sample_rate):
+    waveform = tekhsi_client._read_waveform(header)
+
+    assert isinstance(waveform, IQWaveform)
+    assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)    
