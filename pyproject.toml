@@ -38,7 +38,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers"
 ]
-description = "Transfer waveforms from Tektronix Oscilloscope to a device using High Speed Serial Interface."
+description = "Transfer waveforms from Tektronix Oscilloscope to a device using High Speed Interface."
 documentation = "https://TekHSI.readthedocs.io/stable/"
 homepage = "https://pypi.org/project/TekHSI/"
 keywords = [
