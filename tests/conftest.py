@@ -5,6 +5,7 @@ import time
 
 from abc import ABC
 from io import StringIO
+from pathlib import Path
 from typing import List
 
 import grpc
@@ -15,6 +16,8 @@ from tm_data_types import Waveform
 
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
+
+PROJECT_ROOT_DIR = Path(__file__).parent.parent
 
 
 class DerivedWaveform(Waveform, ABC):
