@@ -14,4 +14,4 @@ jobs:
     with:
       node-version: 20  # The node version needs to stay in sync with .readthedocs.yml
       python-version: '3.11'  # This needs to stay in sync with .readthedocs.yml and the tox config in pyproject.toml
-      tox-env-array: '["docs"]'  # TODO: add "doctests" environment
+      tox-env-array: '["docs", "doctests"]'

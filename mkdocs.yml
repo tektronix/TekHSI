@@ -119,7 +119,7 @@ plugins:
             show_category_heading: false
             show_symbol_type_heading: true
             show_symbol_type_toc: false
-          import:  # TODO: import tm_data_types objects here
+          import:
             - url: https://docs.python.org/3/objects.inv
               domains: [std, py]
             - url: https://typing-extensions.readthedocs.io/en/stable/objects.inv
@@ -129,6 +129,8 @@ plugins:
             - url: https://packaging.pypa.io/en/stable/objects.inv
               domains: [std, py]
             - url: https://docs.python-requests.org/en/stable/objects.inv
+              domains: [std, py]
+            - url: https://tm-data-types.readthedocs.io/stable/objects.inv
               domains: [std, py]
   - spellcheck:
       known_words: known_words.txt

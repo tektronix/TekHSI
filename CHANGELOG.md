@@ -18,6 +18,10 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+### Changed
+
+- Updated all documentation links to use the proper URLs and fixed Readme badges.
+
 ---
 
 ## v0.1.0 (2024-09-11)
@@ -35,5 +39,3 @@ Things to be included in the next release go here.
 ### Added
 
 - First release of `TekHSI`!
-
----
