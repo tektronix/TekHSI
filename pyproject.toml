@@ -53,6 +53,7 @@ repository = "https://github.com/tektronix/TekHSI"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
+grpcio = "^1.51.3"
 numpy = [
   {python = "^3.9", version = "^1.26"},
   {python = "^3.8, <3.12", version = "^1.24"}
@@ -114,7 +115,6 @@ tomli = "^2.0.1"
 
 [tool.poetry.group.tests.dependencies]
 coverage = "^7.5.0"
-grpcio = "^1.51.3"
 linkchecker = "^10.0.0"
 psutil = "^6.0.0"
 pytest = "^8.2.0"
