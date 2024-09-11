@@ -517,7 +517,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
     def Disconnect(self, request, context):
         if verbose:
-            print(f'Disconnect Request "{request.name}"')
+            print(f'Disconnect Request"{request.name}"')
         try:
             if self._connections.get(request.name):
                 del self._connections[request.name]
