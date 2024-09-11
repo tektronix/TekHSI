@@ -6,11 +6,12 @@ __pycache__
 *.pyi
 !_tek_highspeed_server_pb2.pyi
 
-# Sphinx documentation
+# Documentation
 .docs*/
 docs/_build/
 docs/autoapi/
 docs/_autoapi/
+docs/reference/
 _readthedocs/
 *site*/
 
