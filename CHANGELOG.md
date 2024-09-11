@@ -18,6 +18,14 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+---
+
+## v0.1.1 (2024-09-11)
+
+### Merged Pull Requests
+
+- Update documentation and add missing dependencies ([#19](https://github.com/tektronix/TekHSI/pull/19))
+
 ### Fixed
 
 - Added missing dependencies to `pyproject.toml`.
