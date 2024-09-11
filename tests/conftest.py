@@ -1,18 +1,20 @@
-from abc import ABC
-
-import grpc
 import os
-import psutil
-import pytest
 import subprocess
 import sys
 import time
+
+from abc import ABC
 from io import StringIO
 from typing import List
 
+import grpc
+import psutil
+import pytest
+
+from tm_data_types import Waveform
+
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
-from tm_data_types import Waveform
 
 
 class DerivedWaveform(Waveform, ABC):
@@ -43,7 +45,7 @@ class TestServerManager:
                 for conn in proc.connections(kind="inet"):
                     if conn.laddr.port == self.port:
                         return proc.pid
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
+            except (psutil.AccessDenied, psutil.NoSuchProcess):  # noqa: PERF203
                 continue
         return None
 
@@ -63,7 +65,7 @@ class TestServerManager:
             raise RuntimeError("Server script not found.")
 
             # Start the server
-        self.server_process = subprocess.Popen([sys.executable, server_script, "--verbose"])
+        self.server_process = subprocess.Popen([sys.executable, server_script, "--verbose"])  # noqa: S603
         # Wait a few seconds for the server to start
         time.sleep(5)
         return self
@@ -75,7 +77,7 @@ class TestServerManager:
             self.server_process.wait()
 
 
-@pytest.fixture
+@pytest.fixture()
 def capture_stdout():
     """Fixture to capture the standard output."""
     old_stdout = sys.stdout
@@ -84,7 +86,7 @@ def capture_stdout():
     sys.stdout = old_stdout
 
 
-@pytest.fixture
+@pytest.fixture()
 def derived_waveform_handler():
     """Fixture to create an instance of DerivedWaveformHandler.
 
@@ -94,7 +96,7 @@ def derived_waveform_handler():
     return DerivedWaveformHandler()
 
 
-@pytest.fixture
+@pytest.fixture()
 def expected_header():
     """Fixture to provide a sample waveform header.
 
@@ -118,7 +120,7 @@ def expected_header():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def grpc_channel():  # pylint: disable=useless-suppression
     """Create a gRPC channel to the test server."""
     channel = grpc.insecure_channel("localhost:5000")
@@ -126,7 +128,7 @@ def grpc_channel():  # pylint: disable=useless-suppression
     channel.close()
 
 
-@pytest.fixture
+@pytest.fixture()
 def grpc_stub(grpc_channel):  # pylint: disable=redefined-outer-name
     """Create a gRPC stub for the Connect service."""
     return ConnectStub(grpc_channel)
@@ -139,7 +141,7 @@ def start_test_server():
         yield
 
 
-@pytest.fixture
+@pytest.fixture()
 def tekhsi_client():
     """Create a TekHSIConnect client."""
     return TekHSIConnect("localhost:5000")

@@ -1,3 +1,4 @@
+# pylint: disable=global-variable-not-assigned
 """This file provides a simple TekHSI streaming server implementation for testing.
 
 The primary usage for this is to allow unit testing to occur on GitHub. An alternative usage is as
@@ -8,16 +9,18 @@ will still work, but they might not provide later services. This allows us to mo
 forward while remaining backwards compatible.
 """
 
-import sys
-import grpc
-import time
 import math
-from threading import Lock, Thread
-import numpy as np
-from enum import Enum
-from concurrent import futures
+import sys
+import time
 
-from tm_data_types import AnalogWaveform, IQWaveform, DigitalWaveform
+from concurrent import futures
+from enum import Enum
+from threading import Lock, Thread
+
+import grpc
+import numpy as np
+
+from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
 
 import tekhsi._tek_highspeed_server_pb2 as tekhsi_pb2
 import tekhsi._tek_highspeed_server_pb2_grpc as tekhsi_pb2_grpc
@@ -45,8 +48,9 @@ class WfmEncoding(Enum):
 
 
 class ServerWaveform:  # pylint: disable=too-many-instance-attributes
-    """This class simplifies the process of creating new data for the server. It is divided into to sets of inputs:
-    Signal Definition, and Signal Representation Properties.
+    """This class simplifies the process of creating new data for the server.
+
+    It is divided into to sets of inputs: Signal Definition, and Signal Representation Properties.
 
     Signal Definition:
         frequency : float
@@ -62,16 +66,17 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
     Signal Representation:
         type : WfmDataType
-            Defines the underlying waveform representation. Options are: WfmDataType.Int8, WfmDatType.Int16,
-            and WfmDataType.Float.
+            Defines the underlying waveform representation. Options are:
+            WfmDataType.Int8, WfmDatType.Int16, and WfmDataType.Float.
 
 
-    The resulting class instance will contain both a waveform in the native format, and an equivalent float array.
+    The resulting class instance will contain both a waveform in the native format, and an
+    equivalent float array.
     These are intended to target either NativeData or NormalizedData services.
     This simplifies the process of feeding the data to the streaming service.
     """
 
-    def __init__(
+    def __init__(  # noqa: C901,PLR0912,PLR0915
         self,
         frequency: float = 1000.0,
         wfm_data_type: WfmDataType = WfmDataType.Int8,
@@ -140,7 +145,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
                 [
                     (math.cos(increment * index) / 2.0) * amplitude - offset
                     for index in range(length)
-                ]
+                ],
             )
         elif encoding == WfmEncoding.Square:
             ampl2 = amplitude / 2
@@ -148,7 +153,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
                 [
                     ampl2 if (math.cos(increment * index) / 2.0) >= 0 else -ampl2
                     for index in range(length)
-                ]
+                ],
             )
         elif encoding == WfmEncoding.PRBS7:
             pass
@@ -217,7 +222,7 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         This is to make it visually clear that each waveform is unique.
         """
-        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))
+        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))  # noqa: NPY002
 
 
 class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
@@ -228,11 +233,12 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
     slower than the native server.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, context):  # noqa: ARG002
         """This message returns the stream of the data representing the requested channel/math.
+
         The data is returned as normalized data. This usually slower than using the raw service
-        because this moves significantly more data because floats are 4 bytes while raw data is normally
-        either 1 or 2 bytes.
+        because this moves significantly more data because floats are 4 bytes while raw data is
+        normally either 1 or 2 bytes.
 
         Parameters
         ----------
@@ -268,7 +274,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
             print(e)
         return
 
-    def GetHeader(self, request, context):
+    def GetHeader(self, request, context):  # noqa: ARG002
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -303,11 +309,11 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                     reply.headerordata.header.sourcename = request.sourcename
                     reply.headerordata.header.sourcewidth = 4
 
-                    if isinstance(data, AnalogWaveform):
+                    if isinstance(data, AnalogWaveform):  # noqa: F821
                         reply.headerordata.header.wfmtype = 3
-                    elif isinstance(data, IQWaveform):
+                    elif isinstance(data, IQWaveform):  # noqa: F821
                         reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):
+                    elif isinstance(data, DigitalWaveform):  # noqa: F821
                         reply.headerordata.header.wfmtype = 4
 
                     reply.headerordata.header.pairtype = 1
@@ -330,7 +336,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
     normalized version.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, context):  # noqa: ARG002
         """This message returns the stream of the data representing the requested channel/math.
         The data is returned as native data. How the data is represented is defined in the
         header.
@@ -375,7 +381,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
             print(e)
         return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
 
-    def GetHeader(self, request, context):
+    def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -409,7 +415,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     reply.headerordata.header.noofsamples = wfm.length
                     reply.headerordata.header.sourcename = request.sourcename
 
-                    if isinstance(data, AnalogWaveform):
+                    if isinstance(data, AnalogWaveform):  # noqa: F821
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
@@ -422,7 +428,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
-                    elif isinstance(data, IQWaveform):
+                    elif isinstance(data, IQWaveform):  # noqa: F821
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
@@ -432,7 +438,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):
+                    elif isinstance(data, DigitalWaveform):  # noqa: F821
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 4
@@ -475,7 +481,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
     @property
     def dataaccess_allowed(self) -> bool:
-        """Returns True if the Connect state is between WaitForDataAccess, and FinishedWithDataAccess."""
+        """Return if the Connect state is between WaitForDataAccess and FinishedWithDataAccess."""
         return self._dataaccess_allowed
 
     def dataconnection_name(self, name) -> bool:
@@ -515,7 +521,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
             )
 
-    def Disconnect(self, request, context):
+    def Disconnect(self, request, context):  # noqa: C901
         if verbose:
             print(f'Disconnect Request "{request.name}"')
         try:
@@ -533,23 +539,22 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                     print(f'Disconnect Success "{request.name}"')
                 context.set_code(grpc.StatusCode.OK)
                 return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS"),
                 )
-            else:
-                self._connections.clear()
-                if self._new_data:
-                    self.FinishedWithDataAccess(request, context)
-                # force a cleanup
-                self._new_data = False
-                self._dataaccess_allowed = False
-                if mutex.locked():
-                    mutex.release()
-                context.set_code(grpc.StatusCode.OK)
-                if verbose:
-                    print(f'Disconnect Success - but used a bad name {request.name}"')
-                return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-                )
+            self._connections.clear()
+            if self._new_data:
+                self.FinishedWithDataAccess(request, context)
+            # force a cleanup
+            self._new_data = False
+            self._dataaccess_allowed = False
+            if mutex.locked():
+                mutex.release()
+            context.set_code(grpc.StatusCode.OK)
+            if verbose:
+                print(f'Disconnect Success - but used a bad name {request.name}"')
+            return tekhsi_pb2.ConnectReply(
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+            )
         except Exception as e:
             if self._new_data:
                 self.FinishedWithDataAccess(request, context)
@@ -621,10 +626,10 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
             if not self._connections:
                 if verbose:
                     print("WaitForDataAccess Success - requested with no connections active")
-                return
+                return None
 
             if not self._connections.get(request.name) and len(request.name) > 0:
-                return
+                return None
 
             while not self._new_data:
                 time.sleep(0.001)
@@ -662,12 +667,11 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 return tekhsi_pb2.ConnectReply(
                     status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
                 )
-            else:
-                if verbose:
-                    print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
-                return tekhsi_pb2.ConnectReply(
-                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
-                )
+            if verbose:
+                print(f'FinishedWithDataAccess Failed "{request.name} - No WaitForDataPending"')
+            return tekhsi_pb2.ConnectReply(
+                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+            )
 
         except Exception as e:
             if verbose:
@@ -714,7 +718,7 @@ def make_new_data():
         "ch1_iq": ServerWaveform(encoding=WfmEncoding.IQ, wfm_data_type=WfmDataType.Int16),
         "ch2": ServerWaveform(wfm_data_type=WfmDataType.Int16),
         "ch3": ServerWaveform(wfm_data_type=WfmDataType.Int16),
-        # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),
+        # FUTURE # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),  # noqa: E501
         "math1": ServerWaveform(wfm_data_type=WfmDataType.Float),
         "math2": ServerWaveform(wfm_data_type=WfmDataType.Float),
     }
@@ -760,7 +764,7 @@ def kill_server():
 
 
 if __name__ == "__main__":
-    for i, arg in enumerate(sys.argv[1:]):
+    for _, arg in enumerate(sys.argv[1:]):
         if arg.lower() == "--verbose":
             verbose = True
     verbose = True

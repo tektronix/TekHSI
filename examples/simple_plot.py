@@ -1,8 +1,10 @@
 """An example script for connecting to a scope, retrieving waveform data from multiple channels, and plotting it."""
 
-from tekhsi import TekHSIConnect
-from tm_data_types import AnalogWaveform
 import matplotlib.pyplot as plt
+
+from tm_data_types import AnalogWaveform
+
+from tekhsi import TekHSIConnect
 
 address = "192.168.0.1"  # Replace with the IP address of your instrument
 

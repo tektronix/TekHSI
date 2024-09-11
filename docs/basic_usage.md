@@ -287,14 +287,14 @@ running and then only consider the change when it arrives. It reduces the need f
 start and '\*OPC?'.
 
 ```python
-def any_horizontal_change(prevheader, currentheader):
+def any_horizontal_change(previous_header, current_header):
     """Prebuilt acq acceptance filter that accepts only acqs with
     changes to horizontal settings.
     """
-    for key, cur in currentheader.items():
-        if key not in prevheader:
+    for key, cur in current_header.items():
+        if key not in previous_header:
             return True
-        prev = prevheader[key]
+        prev = previous_header[key]
         if prev is None and cur != None:
             return True
         if prev is not None and (

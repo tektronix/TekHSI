@@ -7,23 +7,26 @@ import uuid
 
 from atexit import register
 from enum import Enum
-
-from typing import List, Optional, Dict
+from typing import ClassVar, Dict, List, Optional
 
 import grpc
 import numpy as np
 
 from tm_data_types import (
     AnalogWaveform,
+    DigitalWaveform,
     IQWaveform,
     IQWaveformMetaInfo,
     Waveform,
-    DigitalWaveform,
 )
-from tekhsi.helpers.functions import print_with_timestamp
 
-from tekhsi._tek_highspeed_server_pb2 import ConnectRequest, WaveformHeader, WaveformRequest  # pylint: disable=no-name-in-module
+from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
+    ConnectRequest,
+    WaveformHeader,
+    WaveformRequest,
+)
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
+from tekhsi.helpers.functions import print_with_timestamp
 
 
 class AcqWaitOn(Enum):
@@ -45,7 +48,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     - this API is intended to aid in retrieving data from instruments as fast as possible.
     """
 
-    _connections = {}
+    _connections: ClassVar[Dict[str, "TekHSIConnect"]] = {}
 
     ################################################################################################
     # Magic Methods
@@ -59,7 +62,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
            callback (function, optional): Callback function to handle incoming data.
            data_filter (function, optional): Filter function to apply to incoming data.
         """
-        self.prevheaders = []
+        self.previous_headers = []
         self.chunksize = 80000
         self.url = url
         self.v_datatypes = {1: np.int8, 2: np.int16, 4: np.float32, 8: np.double}
@@ -128,7 +131,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             exc_val: The exception value.
             exc_tb: The traceback object.
         """
-
         # Required for "with" command to work with this class
 
         self._is_exiting = True
@@ -141,7 +143,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         if self._instrument and self._sum_count > 0:
             print_with_timestamp(
                 f"Average Update Rate:{(1 / (self._sum_acq_time / self._sum_count)):.2f}, "
-                f"Data Rate:{(self._sum_data_rate / self._sum_count):.2f}Mbs"
+                f"Data Rate:{(self._sum_data_rate / self._sum_count):.2f}Mbs",
             )
 
     ################################################################################################
@@ -233,12 +235,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Public Methods
     ################################################################################################
     @staticmethod
-    def any_acq(prevheader, currentheader) -> bool:
+    def any_acq(
+        previous_header: Dict[str, WaveformHeader],  # noqa: ARG004
+        current_header: Dict[str, WaveformHeader],  # noqa: ARG004
+    ) -> bool:
         """Prebuilt acq acceptance filter that accepts all new acqs.
 
         Args:
-            prevheader (List[WaveformHeader]): Previous header list.
-            currentheader (List[WaveformHeader]): Current header list.
+            previous_header: Previous header.
+            current_header: Current header.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
@@ -247,22 +252,23 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_horizontal_change(
-        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
+        previous_header: Dict[str, WaveformHeader],
+        current_header: Dict[str, WaveformHeader],
     ) -> bool:
-        """Prebuilt acq acceptance filter that accepts only acqs with changes to horizontal settings.
+        """Acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
         Args:
-            prevheader (dict[str, WaveformHeader]): Previous header dictionary.
-            currentheader (dict[str, WaveformHeader]): Current header dictionary.
+            previous_header (dict[str, WaveformHeader]): Previous header dictionary.
+            current_header (dict[str, WaveformHeader]): Current header dictionary.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
         """
-        for key, cur in currentheader.items():
-            if key not in prevheader:
+        for key, cur in current_header.items():
+            if key not in previous_header:
                 return True
-            prev = prevheader[key]
-            if prev is None and cur != None:  # pylint: disable=singleton-comparison
+            prev = previous_header[key]
+            if prev is None and cur is not None:
                 return True
             if prev is not None and (
                 prev.noofsamples != cur.noofsamples
@@ -274,21 +280,22 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def any_vertical_change(
-        prevheader: Dict[str, WaveformHeader], currentheader: Dict[str, WaveformHeader]
+        previous_header: Dict[str, WaveformHeader],
+        current_header: Dict[str, WaveformHeader],
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
         Args:
-            prevheader (dict[str, WaveformHeader]): Previous header dictionary.
-            currentheader (dict[str, WaveformHeader]): Current header dictionary.
+            previous_header (dict[str, WaveformHeader]): Previous header dictionary.
+            current_header (dict[str, WaveformHeader]): Current header dictionary.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
         """
-        for key, cur in currentheader.items():
-            if key not in prevheader:
+        for key, cur in current_header.items():
+            if key not in previous_header:
                 return True
-            prev = prevheader[key]
+            prev = previous_header[key]
             if prev is not None and (
                 prev.verticalspacing != cur.verticalspacing
                 or prev.verticaloffset != cur.verticaloffset
@@ -308,7 +315,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def close(self):
         """Close and clean up gRPC connection."""
-
         if not self._connected:
             return
 
@@ -345,9 +351,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._disconnect()
 
     @staticmethod
-    def data_arrival(waveforms: List[Waveform]) -> None:
-        """Available to be overridden if user wants to create a
-        derived class.
+    def data_arrival(waveforms: List[Waveform]) -> None:  # noqa: ARG004
+        """Available to be overridden if user wants to create a derived class.
 
         This method will be called on every accepted acq.
 
@@ -400,7 +405,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._lock_getdata.acquire()
         try:
             retval = self._datacache.get(
-                name.lower(), None
+                name.lower(),
+                None,
             )  # Return None if cached data is not found
         finally:
             self._lock_getdata.release()
@@ -509,7 +515,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._sum_count += 1
             print(
                 f"UpdateRate:{(1 / acqtime):.2f},"
-                f"Data Rate:{((datasize * 8 / 1e6) / transfertime):.2f}Mbs,Data Width:{datawidth}"
+                f"Data Rate:{((datasize * 8 / 1e6) / transfertime):.2f}Mbs,Data Width:{datawidth}",
             )
 
     @staticmethod
@@ -531,7 +537,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def _finished_with_data_access(self) -> None:
         """Releases access to instrument data - this is required
-        to allow the instrument to continue acquiring"""
+        to allow the instrument to continue acquiring
+        """
         if not self._in_wait_for_data:
             return
 
@@ -573,7 +580,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 header_dict[header.sourcename] = header
 
     # pylint: disable= too-many-locals
-    def _read_waveform(self, header: WaveformHeader):
+    def _read_waveform(self, header: WaveformHeader):  # noqa: C901,PLR0912,PLR0915
         """Reads the analog waveform associated with the passed header.
 
         Args:
@@ -583,7 +590,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             Waveform: contains definition and data for the specified source
         """
         try:
-            if 0 < header.wfmtype <= 3:  # Vector
+            if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
                 waveform = AnalogWaveform()
                 waveform.source_name = header.sourcename
                 waveform.y_axis_spacing = header.verticalspacing
@@ -752,7 +759,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 self._lock_filter.release()
                 self._holding_scope_open = False
 
-    def _run_inner(self, headers, waveforms, startwait):
+    def _run_inner(self, headers, waveforms, startwait):  # noqa: C901,PLR0912
         """Background thread for participating in the instruments sequence.
 
         Args:
@@ -890,7 +897,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     @register
     def _terminate():
         """Cleans up mess on termination if possible - this is required
-        to keep the scope from hanging"""
+        to keep the scope from hanging
+        """
         for key in TekHSIConnect._connections:  # pylint:disable=consider-using-dict-items
             with contextlib.suppress(Exception):
                 if TekHSIConnect._connections[key]._holding_scope_open:
