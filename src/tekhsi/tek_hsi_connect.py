@@ -311,7 +311,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         Args:
             symbols (List[str]): list of symbols to be moved
         """
-        self.activesymbols = symbols
+        self.activesymbols = symbols        
 
     def close(self):
         """Close and clean up gRPC connection."""
@@ -607,6 +607,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 dt = None
                 sum_chunk_size = 0
                 dt_type = self.v_datatypes[header.sourcewidth]
+                data_size = header.sourcewidth
 
                 waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
                 for response in response_iterator:
@@ -726,8 +727,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             waveform = self._read_waveform(header)
             self._recordlength = waveform.record_length
             datasize += waveform.record_length * header.sourcewidth
-            # TODO: reuse this variable later
-            _ = (
+            wfm_data_rate = (
                 waveform.record_length
                 * header.sourcewidth
                 * 8
