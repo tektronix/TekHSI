@@ -58,7 +58,7 @@ numpy = [
   {python = "^3.9", version = "^1.26"},
   {python = "^3.8, <3.12", version = "^1.24"}
 ]
-protobuf = "^4.22.1"
+protobuf = "^5.28.1"
 python = "^3.8"
 python-dateutil = "^2.8.2"
 tm_data_types = "^0.1.0"
@@ -81,8 +81,8 @@ pre-commit = [
   {python = ">=3.9", version = "^3.7"},
   {python = "3.8", version = "^3.5"}
 ]
-pylint = "3.2.6"
-pyright = "1.1.376"
+pylint = "3.2.7"
+pyright = "1.1.380"
 pyroma = "^4.2"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -105,7 +105,7 @@ mkdocs-macros-plugin = "^1.0.5"
 mkdocs-mermaid2-plugin = "^1.1.1"
 mkdocs-section-index = "^0.3.9"
 mkdocs-spellcheck = "^1.1.0"
-mkdocstrings = "^0.25.0"
+mkdocstrings = "^0.26.1"
 mkdocstrings-python = "^1.10.2"
 nodeenv = "^1.9.1"
 pygments = "^2.17.2"
