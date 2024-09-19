@@ -20,7 +20,7 @@ Things to be included in the next release go here.
 
 ### Added
 
-- Updated documentation to include examples illustrating usage of `PyISA` and `tm_devices`.
+- Updated documentation to include examples illustrating usage of `PyVISA` and `tm_devices`.
 - Updated documentation requirements.
 
 ---
