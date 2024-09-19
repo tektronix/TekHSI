@@ -18,6 +18,11 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+### Added
+
+- Updated documentation to include examples illustrating usage of `PyISA` and `tm_devices`.
+- Updated documentation requirements.
+
 ---
 
 ## v0.1.1 (2024-09-11)

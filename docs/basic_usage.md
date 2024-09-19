@@ -335,3 +335,75 @@ TekHSI is compatible with PyVISA. You can mix PyVISA with TekHSI. This has some 
     to take little or no time.
 3. TekHSI requires much less code that the normal processing of curve commands.
 4. The waveform output from TekHSI is easy to use with file readers/writers that allow this data to be quickly exported using the [tm_data_types](https://github.com/tektronix/tm_data_types) module.
+
+```python
+"""An example script demonstrating the command & control using PyVISA and retrieving waveform data from a single channel using TekHSI."""
+
+import pyvisa
+
+from tm_data_types import AnalogWaveform
+from tekhsi import TekHSIConnect
+
+addr = "192.168.0.1"  # Replace with the IP address of your instrument
+
+rm = pyvisa.ResourceManager("@py")
+
+# write command to instrument sample using pyvisa
+visa_scope = rm.open_resource(f"TCPIP0::{addr}::INSTR")
+
+sample_query = visa_scope.query("*IDN?")
+print(sample_query)
+# Make the waveform display OFF
+visa_scope.write("DISplay:WAVEform OFF")
+# Set the Horizontal mode to Manual
+visa_scope.write("HOR:MODE MAN")
+# Set the horizontal Record Length
+visa_scope.write("HOR:MODE:RECO 2500")
+
+# time.sleep(2) # Optional delay
+# Connect to instrument via TekHSI, select channel 1
+with TekHSIConnect(f"{addr}:5000", ["ch1"]) as connect:
+    # Save data from 10 acquisitions
+    for i in range(10):
+        with connect.access_data():
+            waveform: AnalogWaveform = connect.get_data("ch1")
+            print(f"{waveform.source_name}_{i}:{waveform.record_length}")
+
+visa_scope.write("DISplay:WAVEform ON")
+
+# close visa connection
+rm.close()
+```
+
+#### `tm_devices` can be used along with TekHSI
+
+```python
+"""An example script demonstrating the command & control using tm_devices and retrieving waveform data from a single channel using TekHSI."""
+
+from tm_data_types import AnalogWaveform
+from tm_devices import DeviceManager
+from tm_devices.drivers import MSO6B
+
+from tekhsi import TekHSIConnect
+
+addr = "192.168.0.1"  # Replace with the IP address of your instrument
+
+with DeviceManager(verbose=True) as device_manager:
+    scope: MSO6B = device_manager.add_scope(f"{addr}")
+    idn_response = scope.commands.idn.query()
+    print(idn_response)
+    scope.commands.display.waveform.write("OFF")
+    scope.commands.horizontal.mode.write("OFF")
+    scope.commands.horizontal.mode.recordlength.write("2500")
+
+    # time.sleep(2) # Optional delay
+    # Connect to instrument via TekHSI, select channel 1
+    with TekHSIConnect(f"{scope.ip_address}:5000", ["ch1"]) as connect:
+        # Save data from 10 acquisitions
+        for i in range(10):
+            with connect.access_data():
+                waveform: AnalogWaveform = connect.get_data("ch1")
+                print(f"{waveform.source_name}_{i}:{waveform.record_length}")
+
+    scope.commands.display.waveform.write("ON")
+```
