@@ -1,6 +1,6 @@
 """A script to connect to a scope, apply a custom filter to waveform data, and save to files."""
 
-from typing import Dict, List
+from typing import Dict
 
 from tm_data_types import AnalogWaveform, write_file
 
@@ -9,7 +9,9 @@ from tekhsi import TekHSIConnect, WaveformHeader
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
 
-def custom_filter(previous_header: Dict[WaveformHeader], current_header: List[WaveformHeader]):
+def custom_filter(
+    previous_header: Dict[str, WaveformHeader], current_header: Dict[str, WaveformHeader]
+):
     """A custom criterion for deciding when to consider an acquisition for acceptance."""
     for key, cur in current_header.items():
         if key not in previous_header:

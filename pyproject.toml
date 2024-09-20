@@ -84,6 +84,8 @@ pre-commit = [
 pylint = "3.2.7"
 pyright = "1.1.380"
 pyroma = "^4.2"
+pyvisa = "^1.14.1"
+tm_devices = "^2.3.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
 twine = "^5.0.0"
@@ -189,6 +191,7 @@ disable = [
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
+  "singleton-comparison",  # ignored for inital commits   # TODO: remove this ignore
   "suppressed-message",  # allowed
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
@@ -307,6 +310,12 @@ lines-between-types = 1
 order-by-type = false
 
 [tool.ruff.lint.per-file-ignores]
+"docs/additional_examples_and_pseudo_code/**" = [
+  "E501",  # Line too long
+  "ERA001",  # Found commented-out code
+  "S101",  # Use of assert detected
+  "SIM117"  # Use a single `with` statement with multiple contexts instead of nested `with` statements
+]
 "examples/**" = [
   "E501",  # Line too long
   "ERA001",  # Found commented-out code

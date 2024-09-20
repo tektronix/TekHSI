@@ -20,29 +20,8 @@ Please keep in mind that as these library evolve, we will be adding new data typ
 The following code shows how you decide at runtime, which type you have using a simple plotting example.
 
 ```python
-from tm_data_types import read_file, AnalogWaveform, IQWaveform, DigitalWaveform
-import numpy as np
-
-data = read_file("Test.wfm")
-
-# currently wfm files can be of three flavors
-# AnalogWaveform, IQWaveform, or DigitalWaveform
-# each can be explicitly checked for as follows.
-if isinstance(data, AnalogWaveform):
-    wfm: AnalogWaveform = data
-    # returns the sampled values in vertical units
-    vd = wfm.normalized_vertical_values
-    y_axis = wfm.y_axis_units
-elif isinstance(data, IQWaveform):
-    wfm: IQWaveform = data
-    # Returns the real portion of the iq data for plotting.
-    # Note that 'normalized_vertical_values' is a complex array.
-    vd = wfm.normalized_vertical_values.real
-    y_axis = wfm.y_axis_units
-elif isinstance(data, DigitalWaveform):
-    wfm: DigitalWaveform = data
-    # Returns bit 3 as a float stream for plotting.
-    vd = wfm.get_nth_bitstream(3).astype(np.float32)
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/supported_data_types.py"
 ```
 
 #### AnalogWaveform
@@ -55,29 +34,8 @@ we know the type is Analog, so we type 'waveform' accordingly. This gives access
 type hinting in your IDE.
 
 ```python
-from tekhsi import TekHSIConnect
-from tm_data_types import AnalogWaveform
-import matplotlib.pyplot as plt
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    # Get one data set to setup plot
-    with connection.access_data():
-        waveform: AnalogWaveform = connection.get_data("ch1")
-
-    # Data converted into vertical units
-    # This is the usual way to access the data
-    vd = waveform.normalized_vertical_values
-
-    # Horizontal Times - returns an array of times
-    # that corresponds to the time at each index in
-    # vertical array
-    hd = waveform.normalized_horizontal_values
-
-    # Simple Plot Example
-    _, ax = plt.subplots()
-    ax.plot(hd, vd)
-    ax.set(xlabel=waveform.x_axis_units, ylabel=waveform.y_axis_units, title="Simple Plot")
-    plt.show()
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/analog_waveform_usage.py"
 ```
 
 #### DigitalWaveform
@@ -87,29 +45,8 @@ DigitalWavefrom is available when you have plugged a digital probe into a scope 
 In addition, there are special methods for digital waveforms. Probably the most useful is 'get_n_bitstream()' which returns just one of the selected bits as a bitstream for use.
 
 ```python
-from tekhsi import TekHSIConnect
-from tm_data_types import DigitalWaveform
-import matplotlib.pyplot as plt
-import numpy as np
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    # Get one data set to setup plot
-    with connection.access_data():
-        waveform: DigitalWaveform = connection.get_data("ch4_DAll")
-
-    # Digital retrieval of bit 3 in the digital array
-    vd = waveform.get_nth_bitstream(3).astype(np.float32)
-
-    # Horizontal Times - returns an array of times
-    # that corresponds to the time at each index in
-    # vertical array
-    hd = waveform.normalized_horizontal_values
-
-    # Simple Plot Example
-    _, ax = plt.subplots()
-    ax.plot(hd, vd)
-    ax.set(xlabel=waveform.x_axis_units, ylabel=waveform.y_axis_units, title="Simple Plot")
-    plt.show()
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/digital_waveform_usage.py"
 ```
 
 #### IQWaveform
@@ -123,28 +60,8 @@ Proper usage of the IQWaveform type requires accessing metadata about the wavefo
 This shows the minimal code required to display a spectrogram using matplotlib.
 
 ```python
-from tekhsi import TekHSIConnect
-from tm_data_types import IQWaveform
-import matplotlib.pyplot as plt
-
-with TekHSIConnect("169.254.3.12:5000") as connection:
-    # Get one data set to setup plot
-    with connection.access_data():
-        waveform: IQWaveform = connection.get_data("ch1_iq")
-
-    # IQ Data Access (Complex Array)
-    iq_data = waveform.normalized_vertical_values
-
-    # Simple Plot Example
-    _, ax = plt.subplots()
-    ax.specgram(
-        iq_data,
-        NFFT=int(waveform.meta_info.iq_fft_length),
-        Fc=waveform.meta_info.iq_center_frequency,
-        Fs=waveform.meta_info.iq_sample_rate,
-    )
-    ax.set_title("Spectrogram")
-    plt.show()
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/iq_waveform_usage.py"
 ```
 
 ## TekHSIConnect
@@ -166,10 +83,8 @@ The [`TekHSIConnect`][tekhsi.tek_hsi_connect.TekHSIConnect] method is defined as
 The 'activesymbols' property returns a list of the available symbols. Available means, the channel is on and what type returned will depend upon the probe installed or action requested by the user. This call will only return the currently available channel list. If channels are off, or modes are disabled, the corresponding symbol will not be present.
 
 ```python
-from tekhsi import TekHSIConnect
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    print(connection.activesymbols)
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/active_symbols.py"
 ```
 
 Example output is:
@@ -190,15 +105,8 @@ the same acquisition when inside the 'access_data()' code block.
 This also means you are potentially holding off scope acquisitions when inside the 'access_data()' code block. So, it's recommended you only get the data and do any processing outside of this block.
 
 ```python
-from tekhsi import TekHSIConnect
-from tm_data_types import AnalogWaveform
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    # Request access to data
-    with connection.access_data():
-        # Access granted
-        ch1: AnalogWaveform = connection.get_data("ch1")
-        ch3: AnalogWaveform = connection.get_data("ch3")
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/access_data.py"
 ```
 
 ### AcqWaitOn
@@ -213,11 +121,8 @@ This code snippet will continue when the current data from the stored acquisitio
 has not been read by 'get_data()'. This is import because, the underlying data is buffered because it's stored as data on the instrument is available. If you have seen the underlying data since the last 'get_data()' it will return the buffered data. If you have seen the data, it will block until the next new piece of data arrives.
 
 ```python
-from tekhsi import AcqWaitOn, TekHSIConnect
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    with connection.access_data(AcqWaitOn.NewData):
-        ...
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_new_data.py"
 ```
 
 #### AcqWaitOn.NewData
@@ -225,11 +130,8 @@ with TekHSIConnect("192.168.0.1:5000") as connection:
 This option requests that data access wait until the next new acquisitions is available.
 
 ```python
-from tekhsi import AcqWaitOn, TekHSIConnect
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    with connection.access_data(AcqWaitOn.NextAcq):
-        ...
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_next_acq.py"
 ```
 
 #### AcqWaitOn.Time
@@ -238,11 +140,8 @@ This option requests a time delay before accepting the next acquisition. The typ
 command is approximately the same as sleeping for half a second then calling access_data(AcqWaitOn.NextAcq).
 
 ```python
-from tekhsi import AcqWaitOn, TekHSIConnect
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    with connection.access_data(AcqWaitOn.Time, after=0.5):
-        ...
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_time.py"
 ```
 
 ### get_data()
@@ -252,15 +151,8 @@ names must correspond to the names returned from 'activesymbols' however, the
 names are case-insensitive.
 
 ```python
-from tekhsi import AcqWaitOn, TekHSIConnect
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    with connection.access_data(AcqWaitOn.NewData):
-        ch1: AnalogWaveform = connection.get_data("ch1")
-        ch3: AnalogWaveform = connection.get_data("ch3")
-        ch1_iq: IQWaveform = connection.get_data("ch1_iq")
-        ch4_dall: DigitalWaveform = connection.get_data("ch4_DAll")
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/blocking_methods.py"
 ```
 
 ### Acquisition Filters
@@ -287,23 +179,8 @@ running and then only consider the change when it arrives. It reduces the need f
 start and '\*OPC?'.
 
 ```python
-def any_horizontal_change(previous_header, current_header):
-    """Prebuilt acq acceptance filter that accepts only acqs with
-    changes to horizontal settings.
-    """
-    for key, cur in current_header.items():
-        if key not in previous_header:
-            return True
-        prev = previous_header[key]
-        if prev is None and cur != None:
-            return True
-        if prev is not None and (
-            prev.noofsamples != cur.noofsamples
-            or prev.horizontalspacing != cur.horizontalspacing
-            or prev.horizontalzeroindex != cur.horizontalzeroindex
-        ):
-            return True
-    return False
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/acq_filters.py"
 ```
 
 ### Blocking Methods
@@ -311,15 +188,8 @@ def any_horizontal_change(previous_header, current_header):
 The method 'access_data()' blocks until data meeting the specified criterion arrives. In the following code, that means that the first line will hold off execution beyond that point until data is available for the subsequent 'get_data()' methods.
 
 ```python
-from tekhsi import AcqWaitOn, TekHSIConnect
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
-
-with TekHSIConnect("192.168.0.1:5000") as connection:
-    with connection.access_data(AcqWaitOn.NewData):
-        ch1: AnalogWaveform = connection.get_data("ch1")
-        ch3: AnalogWaveform = connection.get_data("ch3")
-        ch1_iq: IQWaveform = connection.get_data("ch1_iq")
-        ch4_dall: DigitalWaveform = connection.get_data("ch4_DAll")
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/blocking_methods.py"
 ```
 
 Most other methods won't block.
@@ -335,3 +205,15 @@ TekHSI is compatible with PyVISA. You can mix PyVISA with TekHSI. This has some 
     to take little or no time.
 3. TekHSI requires much less code that the normal processing of curve commands.
 4. The waveform output from TekHSI is easy to use with file readers/writers that allow this data to be quickly exported using the [tm_data_types](https://github.com/tektronix/tm_data_types) module.
+
+```python
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/pyvisa_usage.py"
+```
+
+#### `tm_devices` can be used along with TekHSI
+
+```python
+# fmt: off
+--8<-- "docs/additional_examples_and_pseudo_code/tm_devices_usage.py"
+```
