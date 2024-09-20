@@ -50,7 +50,7 @@ maintainers = ["Tektronix <opensource@tektronix.com>"]
 name = "TekHSI"
 readme = "README.md"
 repository = "https://github.com/tektronix/TekHSI"
-version = "0.1.1"
+version = "1.0.0"
 
 [tool.poetry.dependencies]
 grpcio = "^1.51.3"

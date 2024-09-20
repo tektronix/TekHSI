@@ -18,6 +18,18 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+---
+
+## v1.0.0 (2024-09-20)
+
+### Merged Pull Requests
+
+- Updated Documentation to include usage of PyVISA and tm_devices along with TekHSI. ([#24](https://github.com/tektronix/TekHSI/pull/24))
+- python-deps(deps): bump the python-dependencies group across 1 directory with 4 updates ([#23](https://github.com/tektronix/TekHSI/pull/23))
+- test: enabled doctest in test-docs.yml ([#22](https://github.com/tektronix/TekHSI/pull/22))
+- fix: Remove corrupted requirements file ([#21](https://github.com/tektronix/TekHSI/pull/21))
+- ci: Update tektronix/python-package-ci-cd workflows to v1.4.0 ([#20](https://github.com/tektronix/TekHSI/pull/20))
+
 ### Added
 
 - Updated documentation to include examples illustrating usage of `PyVISA` and `tm_devices`.
