@@ -191,7 +191,7 @@ disable = [
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
-  "singleton-comparison",  # caught by ruff
+  "singleton-comparison",  # ignored for inital commits   # TODO: remove this ignore
   "suppressed-message",  # allowed
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
