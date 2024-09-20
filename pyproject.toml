@@ -84,6 +84,7 @@ pre-commit = [
 pylint = "3.2.7"
 pyright = "1.1.380"
 pyroma = "^4.2"
+pyvisa = "^1.14.1"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
 twine = "^5.0.0"
@@ -110,7 +111,6 @@ mkdocstrings-python = "^1.10.2"
 nodeenv = "^1.9.1"
 pygments = "^2.17.2"
 pymdown-extensions = "^10.8.1"
-pyvisa = "^1.14.1"
 symspellpy = "^6.7.7"
 tm_devices = "^2.3.0"
 tomli = "^2.0.1"
@@ -310,9 +310,9 @@ lines-between-types = 1
 order-by-type = false
 
 [tool.ruff.lint.per-file-ignores]
-"docs/additional_examples_and_pseudo_codes/**" = [
+"docs/additional_examples_and_pseudo_code/**" = [
   "E501",  # Line too long
-  "E711",  # /comparison to None
+  "E711",  # Comparison to None
   "ERA001",  # Found commented-out code
   "S101",  # Use of assert detected
   "SIM117"  # Use a single `with` statement with multiple contexts instead of nested `with` statements

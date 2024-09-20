@@ -34,4 +34,4 @@ with TekHSIConnect(f"{addr}:5000", ["ch1"]) as connect:
 visa_scope.write("DISplay:WAVEform ON")
 
 # close visa connection
-rm.close()
+visa_scope.close()

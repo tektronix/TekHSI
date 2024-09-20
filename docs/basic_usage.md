@@ -21,7 +21,7 @@ The following code shows how you decide at runtime, which type you have using a 
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/supported_data_types.py"
+--8<-- "docs/additional_examples_and_pseudo_code/supported_data_types.py"
 ```
 
 #### AnalogWaveform
@@ -35,7 +35,7 @@ type hinting in your IDE.
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/analog_waveform_usage.py"
+--8<-- "docs/additional_examples_and_pseudo_code/analog_waveform_usage.py"
 ```
 
 #### DigitalWaveform
@@ -46,7 +46,7 @@ In addition, there are special methods for digital waveforms. Probably the most 
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/digital_waveform_usage.py"
+--8<-- "docs/additional_examples_and_pseudo_code/digital_waveform_usage.py"
 ```
 
 #### IQWaveform
@@ -61,7 +61,7 @@ This shows the minimal code required to display a spectrogram using matplotlib.
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/iq_waveform_usage.py"
+--8<-- "docs/additional_examples_and_pseudo_code/iq_waveform_usage.py"
 ```
 
 ## TekHSIConnect
@@ -84,7 +84,7 @@ The 'activesymbols' property returns a list of the available symbols. Available 
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/active_symbols.py"
+--8<-- "docs/additional_examples_and_pseudo_code/active_symbols.py"
 ```
 
 Example output is:
@@ -106,7 +106,7 @@ This also means you are potentially holding off scope acquisitions when inside t
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/access_data.py"
+--8<-- "docs/additional_examples_and_pseudo_code/access_data.py"
 ```
 
 ### AcqWaitOn
@@ -122,7 +122,7 @@ has not been read by 'get_data()'. This is import because, the underlying data i
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/wait_on_new_data.py"
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_new_data.py"
 ```
 
 #### AcqWaitOn.NewData
@@ -131,7 +131,7 @@ This option requests that data access wait until the next new acquisitions is av
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/wait_on_next_acq.py"
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_next_acq.py"
 ```
 
 #### AcqWaitOn.Time
@@ -141,7 +141,7 @@ command is approximately the same as sleeping for half a second then calling acc
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/wait_on_time.py"
+--8<-- "docs/additional_examples_and_pseudo_code/wait_on_time.py"
 ```
 
 ### get_data()
@@ -152,7 +152,7 @@ names are case-insensitive.
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/blocking_methods.py"
+--8<-- "docs/additional_examples_and_pseudo_code/blocking_methods.py"
 ```
 
 ### Acquisition Filters
@@ -180,7 +180,7 @@ start and '\*OPC?'.
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/acq_filters.py"
+--8<-- "docs/additional_examples_and_pseudo_code/acq_filters.py"
 ```
 
 ### Blocking Methods
@@ -189,7 +189,7 @@ The method 'access_data()' blocks until data meeting the specified criterion arr
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/blocking_methods.py"
+--8<-- "docs/additional_examples_and_pseudo_code/blocking_methods.py"
 ```
 
 Most other methods won't block.
@@ -208,12 +208,12 @@ TekHSI is compatible with PyVISA. You can mix PyVISA with TekHSI. This has some 
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/pyvisa_usage.py"
+--8<-- "docs/additional_examples_and_pseudo_code/pyvisa_usage.py"
 ```
 
 #### `tm_devices` can be used along with TekHSI
 
 ```python
 # fmt: off
---8<-- "docs/additional_examples_and_pseudo_codes/tm_devices_usage.py"
+--8<-- "docs/additional_examples_and_pseudo_code/tm_devices_usage.py"
 ```
