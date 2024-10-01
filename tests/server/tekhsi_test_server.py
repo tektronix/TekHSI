@@ -32,7 +32,7 @@ verbose = False
 server = None
 acq_id = 0
 
-TEST_SERVER_PORT_NUMBER = int(f"5{sys.version_info.major}{sys.version_info.minor}")
+TEST_SERVER_PORT_NUMBER = int(f"50{sys.version_info.major}{sys.version_info.minor}")
 TEST_SERVER_ADDRESS = f"localhost:{TEST_SERVER_PORT_NUMBER}"
 
 
