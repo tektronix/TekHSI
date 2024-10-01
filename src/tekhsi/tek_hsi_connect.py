@@ -7,7 +7,7 @@ import uuid
 
 from atexit import register
 from enum import Enum
-from typing import ClassVar, Dict, List, Optional
+from typing import Callable, ClassVar, Dict, List, Optional, TypeVar
 
 import grpc
 import numpy as np
@@ -28,24 +28,63 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
 from tekhsi.helpers.functions import print_with_timestamp
 
+AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
+
 
 class AcqWaitOn(Enum):
-    """This defines enumeration for wait_for_data."""
+    """This enumeration is used to select how to wait to access data."""
 
     NextAcq = 1
-    """Wait for the next acquisition."""
+    """Wait for the next acquisition.
+
+    Using the `NextAcq` criterion for data acceptance will force the data access call to wait until
+    the next new acquisition is available.
+
+    Examples:
+        >>> from tekhsi import AcqWaitOn, TekHSIConnect
+        >>> with TekHSIConnect("192.168.0.1:5000") as connection:
+        ...     with connection.access_data(AcqWaitOn.NextAcq):
+        ...         ...
+    """
     Time = 2
-    """Wait for a specific time."""
+    """Wait for a specific time.
+
+    Using the `Time` criterion for data acceptance will force a time delay before accepting the next
+    acquisition. The typical usage of this is if you are using multiple instruments and PyVISA. If
+    you are turning on an AFG you need some time for the instrument to be set up and the data to
+    arrive. This process is approximately the same as sleeping for half a second then calling
+    [`access_data(AcqWaitOn.NextAcq)`][tekhsi.TekHSIConnect.access_data].
+
+    Examples:
+        >>> from tekhsi import AcqWaitOn, TekHSIConnect
+        >>> with TekHSIConnect("192.168.0.1:5000") as connection:
+        ...     with connection.access_data(AcqWaitOn.Time, after=0.5):
+        ...         ...
+    """
     AnyAcq = 3
     """Wait for any acquisition."""
     NewData = 4
-    """Wait for new data."""
+    """Wait for new data.
+
+    Using the `NewData` criterion for data acceptance will continue when the current data from the
+    stored acquisition has not been read by [`get_data()`][tekhsi.TekHSIConnect.get_data]. This is
+    import since the underlying data is buffered because it's stored as data on the instrument is
+    available. If you have seen the underlying data since the last
+    [`get_data()`][tekhsi.TekHSIConnect.get_data] call, it will return the buffered data. If you
+    haven't seen the data, it will block until the next new piece of data arrives.
+
+    Examples:
+        >>> from tekhsi import AcqWaitOn, TekHSIConnect
+        >>> with TekHSIConnect("192.168.0.1:5000") as connection:
+        ...     with connection.access_data(AcqWaitOn.NewData):
+        ...         ...
+    """
 
 
 class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
-    """Support for Tektronix highspeed data API.
+    """Support for Tektronix High-Speed Interface data API.
 
-    - this API is intended to aid in retrieving data from instruments as fast as possible.
+    - This API is intended to aid in retrieving data from instruments as fast as possible.
     """
 
     _connections: ClassVar[Dict[str, "TekHSIConnect"]] = {}
@@ -53,14 +92,29 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Magic Methods
     ################################################################################################
-    def __init__(self, url: str, activesymbols=None, callback=None, data_filter=None):
+    def __init__(
+        self,
+        url: str,
+        activesymbols: Optional[List[str]] = None,
+        callback: Optional[Callable] = None,
+        data_filter: Optional[Callable] = None,
+    ):
         """Initialize a connection to a Tektronix instrument using gRPC.
 
         Args:
-           url (str): The URL of the gRPC server.
-           activesymbols (list, optional): List of active symbols to monitor.
-           callback (function, optional): Callback function to handle incoming data.
-           data_filter (function, optional): Filter function to apply to incoming data.
+            url: The IP Address and port of the TekHSI server.
+            activesymbols: A list of the symbols to transfer from the scope. If
+                `None`, then all available symbols are transferred. Otherwise, only the selected
+                list is transferred.
+            callback: An optional function to call when new data arrives. This
+                is the fastest way to access data, and it ensures no acquisitions are missed.
+                However, this happens in a background thread, which limits the libraries you can
+                call from this method.
+            data_filter: An optional function that is used to determine if
+                arriving data meets a custom criterion for acceptance by the client. If `None`,
+                all acquisitions are accepted. However, if customer behavior is desired, then this
+                method can be provided. Typically, these functions are used to look for specific
+                kinds of changes, such as record length changing.
         """
         self.previous_headers = []
         self.chunksize = 80000
@@ -153,8 +207,23 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     def available_symbols(self) -> List[str]:
         """Returns the list of available symbols on the instrument.
 
+        "Available" means the channel is on. What data type is returned will depend upon the probe
+        attached or action requested by the user. This property will only return the currently
+        available channel list. If channels are off or modes are disabled, the corresponding symbols
+        will not be present.
+
+        Examples:
+            >>> from tekhsi import TekHSIConnect
+            >>> with TekHSIConnect("192.168.0.1:5000") as connection:
+            ...     print(connection.available_symbols)
+            ['ch1', 'ch1_iq', 'ch3', 'ch4_DAll']
+
+        In the above example, `'ch1'` is an analog channel, `'ch1_iq'` is the spectrum view channel
+        associated with `'ch1'` (when enabled). `'ch3'` is another analog channel, and `'ch4_DAll'`
+        is a digital probe on `'ch4'`. Types are generally determined by the name of the symbol.
+
         Returns:
-            List[str]: List of available symbols.
+            A list of available symbols.
         """
         return self._available_symbols()
 
@@ -163,7 +232,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """This property returns time relative to the connection to the gRPC client.
 
         Returns:
-            float: current time relative to the start time of the gRPC client
+            The current time relative to the start time of the gRPC client
         """
         return time.time() - self._start_time
 
@@ -172,7 +241,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Indicates if instrumentation is enabled.
 
         Returns:
-            True if instrumentation is enabled, False otherwise.
+            `True` if instrumentation is enabled, `False` otherwise.
         """
         return self._instrument
 
@@ -181,7 +250,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Sets the instrumentation enabled state.
 
         Args:
-            value: True to enable instrumentation, False to disable.
+            value: `True` to enable instrumentation, `False` to disable.
         """
         self._instrument = value
 
@@ -190,7 +259,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Returns the list of names of sources on the instrument.
 
         Returns:
-            List[str]: list of sources
+            The list of sources.
         """
         return self.activesymbols
 
@@ -199,7 +268,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Indicates if verbose mode is enabled.
 
         Returns:
-            True if verbose mode is enabled, False otherwise.
+            `True` if verbose mode is enabled, `False` otherwise.
         """
         return self._verbose
 
@@ -208,7 +277,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Sets the verbose mode state.
 
         Args:
-            value: True to enable verbose mode, False to disable.
+            value: `True` to enable verbose mode, `False` to disable.
         """
         self._verbose = value
 
@@ -219,11 +288,35 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     def access_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1):
         """Grants access to data.
 
-        Must be called as part of a with command to grant access for get_data().
+        Must be used as a context manager to grant access for
+        [`get_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.get_data] method calls.
+
+        The `access_data()` context manager is used to get access to the available data. It holds
+        access to the current acquisition (as a blocking method) for the duration of the current
+        context. This is how you ensure that all data you get is from the same acquisition.
+        It does not matter if the scope is running continuously or using single sequence, all the
+        data is from the same acquisition when inside the `access_data()` context manager code
+        block.
+
+        This also means you are potentially holding off scope acquisitions when inside the
+        `access_data()` code block. So, it's recommended you only get the data in the context
+        manager, and then do any processing outside the context manager block.
+
+        Examples:
+            >>> from tm_data_types import AnalogWaveform
+            >>> from tekhsi import TekHSIConnect
+            >>> with TekHSIConnect("192.168.0.1:5000") as connection:
+            ...     # Request access to data
+            ...     with connection.access_data():
+            ...         # Access granted
+            ...         ch1: AnalogWaveform = connection.get_data("ch1")
+            ...         ch3: AnalogWaveform = connection.get_data("ch3")
 
         Args:
-            on: Criterion for acceptance. Defaults to AcqWaitOn.NewData.
-            after: Additional criterion when AcqWaitOn.Time is passed. Defaults to -1.
+            on: Criterion for acceptance of data. See
+                [`AcqWaitOn`][tekhsi.tek_hsi_connect.AcqWaitOn] for details on each available
+                criterion option.
+            after: Additional criterion when the `on` input parameter is set to `AcqWaitOn.Time`.
         """
         try:
             self.wait_for_data(on, after)
@@ -234,6 +327,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Public Methods
     ################################################################################################
+    # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_acq(
         previous_header: Dict[str, WaveformHeader],  # noqa: ARG004
@@ -242,15 +336,17 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Prebuilt acq acceptance filter that accepts all new acqs.
 
         Args:
-            previous_header: Previous header.
-            current_header: Current header.
+            previous_header: Previous header dictionary.
+            current_header: Current header dictionary.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
         """
         return True
 
+    # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
+    # --8<-- [start:any_horizontal_change]
     def any_horizontal_change(
         previous_header: Dict[str, WaveformHeader],
         current_header: Dict[str, WaveformHeader],
@@ -258,8 +354,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
         Args:
-            previous_header (dict[str, WaveformHeader]): Previous header dictionary.
-            current_header (dict[str, WaveformHeader]): Current header dictionary.
+            previous_header: Previous header dictionary.
+            current_header: Current header dictionary.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
@@ -278,6 +374,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 return True
         return False
 
+    # --8<-- [end:any_horizontal_change]
+
+    # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_vertical_change(
         previous_header: Dict[str, WaveformHeader],
@@ -286,8 +385,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
         Args:
-            previous_header (dict[str, WaveformHeader]): Previous header dictionary.
-            current_header (dict[str, WaveformHeader]): Current header dictionary.
+            previous_header: Previous header dictionary.
+            current_header: Current header dictionary.
 
         Returns:
             True if the acquisition is accepted, False otherwise.
@@ -335,6 +434,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 print_with_timestamp(msg)
 
         try:
+            # TODO: investigate this block, it seems like this code might not work as intended
             # Take this connection out of the connection list
             if self.clientname in TekHSIConnect._available_symbols(self):
                 del TekHSIConnect._available_symbols[self.clientname]  # pylint:disable=unsupported-delete-operation
@@ -351,7 +451,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._disconnect()
 
     @staticmethod
-    def data_arrival(waveforms: List[Waveform]) -> None:  # noqa: ARG004
+    def data_arrival(waveforms: List[AnyWaveform]) -> None:  # noqa: ARG004
         """Available to be overridden if user wants to create a derived class.
 
         This method will be called on every accepted acq.
@@ -388,10 +488,12 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         request = ConnectRequest(name=self.clientname)
         self.connection.RequestNewSequence(request)
 
-    def get_data(self, name: str) -> Optional[Waveform]:
-        """Returns the saved data of the previous acquisition with the data item.
+    def get_data(self, name: str) -> Optional[AnyWaveform]:
+        """Gets the saved data of the previous acquisition with the data item of the requested name.
 
-        of the requested name.
+        The provided `name` parameter must correspond to the names returned from the
+        [`available_symbols`][tekhsi.TekHSIConnect.available_symbols] property, however, the names
+        are case-insensitive.
 
         Args:
             name: Name of the data item.
@@ -433,8 +535,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Waits until specified acquisition criterion is met.
 
         Args:
-            on (AcqWaitOn, optional): criterion for acceptance. Defaults to AcqWaitOn.NewData.
-            after (float, optional): additional criterion when AcqWaitOn.Time is passed.
+            on: Criterion for acceptance of data.
+            after: Additional criterion when the `on` input parameter is set to `AcqWaitOn.Time`.
         """
         if not self._cachedataenabled:
             return
@@ -451,13 +553,12 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Private Methods
     ################################################################################################
-
     @staticmethod
     def _acq_id(headers: List[WaveformHeader]):
         """Retrieve the data ID from the first header in the list.
 
         Args:
-            headers (List[WaveformHeader]): List of waveform headers.
+            headers: List of waveform headers.
 
         Returns:
             The data ID of the first header, or None if the list is empty.
