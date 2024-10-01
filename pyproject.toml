@@ -303,19 +303,16 @@ task-tags = ["FIXME", "FUTURE", "RELIC", "TODO"]
 [tool.ruff.lint.isort]
 force-sort-within-sections = false
 known-first-party = [
-  "conftest",
   "tekhsi"
+]
+known-local-folder = [
+  "server",
+  "tests"
 ]
 lines-between-types = 1
 order-by-type = false
 
 [tool.ruff.lint.per-file-ignores]
-"docs/additional_examples_and_pseudo_code/**" = [
-  "E501",  # Line too long
-  "ERA001",  # Found commented-out code
-  "S101",  # Use of assert detected
-  "SIM117"  # Use a single `with` statement with multiple contexts instead of nested `with` statements
-]
 "examples/**" = [
   "E501",  # Line too long
   "ERA001",  # Found commented-out code
@@ -362,7 +359,6 @@ spaces_before_inline_comment = 2
 overrides."tool.poetry.*".inline_arrays = false
 overrides."tool.pylint.*".table_keys = false
 
-# TODO: enable --doctest-modules line
 [tool.tox]
 legacy_tox_ini = """
 [tox]
@@ -398,7 +394,6 @@ commands =
     !tests: poetry build --output=dist_{envname}
     !tests: twine check --strict dist_{envname}/*
     !tests: pre-commit run --all-files
-    # !tests: pytest -vv --doctest-modules --doctest-report=ndiff --showlocals --junitxml={tox_root}/.results_{envname}/results_doctests.xml --self-contained-html --html={tox_root}/.results_{envname}/results_doctests.html src
     pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]

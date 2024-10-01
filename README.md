@@ -15,23 +15,47 @@
 
 # TekHSI: Tektronix High Speed Interface
 
-`TekHSI` is a Python library that provides a low latency, high-speed data link between Tektronix scopes and host computer using gRPC. This library is designed to provide a reliable and efficient way to transfer data between devices, especially when dealing with large amounts of data.
+`TekHSI` is a Python library that provides a low latency, high-speed data link between Tektronix
+scopes and host computer using gRPC. This library is designed to provide a reliable and efficient
+way to transfer data between devices, especially when dealing with large amounts of data.
 
-With `TekHSI`, you can easily connect your Tektronix scope to other devices, such as host computers or other test equipment, and transmit data quickly and efficiently. This library is especially useful for applications that require real-time data acquisition and analysis, such as in the fields of electronics, telecommunications, and signal processing.
+With `TekHSI`, you can easily connect your Tektronix scope to other devices, such as host computers
+or other test equipment, and transmit data quickly and efficiently. This library is especially
+useful for applications that require real-time data acquisition and analysis, such as in the
+fields of electronics, telecommunications, and signal processing.
 
-`TekHSI` uses gRPC, a high-performance, open-source framework that provides a platform-independent way to communicate between applications. This means you can use `TekHSI` with any platform supporting gRPC, including Windows, Linux, and macOS.
+`TekHSI` uses gRPC, a high-performance, open-source framework that provides a platform-independent
+way to communicate between applications. This means you can use `TekHSI` with any platform
+supporting gRPC, including Windows, Linux, and macOS.
 
-## Some of the key features of `TekHSI` include:
+## Key Features
 
-1. Low latency - `TekHSI` provides a fast and efficient data link between devices, with minimal delay between data transmission and reception.
+1. Low latency - `TekHSI` provides a fast and efficient data link between devices, with minimal
+    delay between data transmission and reception.
 2. High speed - `TekHSI` can transfer large amounts of data quickly and efficiently.
-3. Easy to use - `TekHSI` is designed to be easy to use, with a simple and intuitive API that makes it easy to connect your Tektronix scope.
-4. Consistent sets - `TekHSI` guarantees that data arrives in "consistent sets." This means that data is all from the same acquisition. This is true when the instrument is stopped and when it is running. When using SCPI commands, this is only guaranteed when the instrument is stopped.
-5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes, or only accepting acquisitions after a certain time.
+3. Easy to use - `TekHSI` is designed to be easy to use, with a simple and intuitive API that makes
+    it easy to connect your Tektronix scope.
+4. Consistent sets - `TekHSI` guarantees that data arrives in "consistent sets." This means that
+    data is all from the same acquisition. This is true when the instrument is stopped and when it
+    is running. When using SCPI commands, this is only guaranteed when the instrument is stopped.
+5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes
+    accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes,
+    or only accepting acquisitions after a certain time.
 
-In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope and host computer, `TekHSI` is the library for you. With its low latency, high speed, and easy-to-use API, `TekHSI` provides a powerful solution for data acquisition and analysis.
+In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
+and host computer, `TekHSI` is the library for you. With its low latency, high speed, and
+easy-to-use API, `TekHSI` provides a powerful solution for data acquisition and analysis.
 
-## Devices with TekHSI support
+## Installation
+
+> [!IMPORTANT]
+> `TekHSI` requires a 64-bit Python installation due to its external dependencies
+
+```shell
+pip install tekhsi
+```
+
+## Device Support
 
 <div markdown="1" class="custom-table-center-cells device-support-table">
 

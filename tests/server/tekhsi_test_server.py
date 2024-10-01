@@ -32,6 +32,9 @@ verbose = False
 server = None
 acq_id = 0
 
+TEST_SERVER_PORT_NUMBER = int(f"50{sys.version_info.major}{sys.version_info.minor}")
+TEST_SERVER_ADDRESS = f"localhost:{TEST_SERVER_PORT_NUMBER}"
+
 
 class WfmDataType(Enum):
     Int8 = 1
@@ -737,7 +740,7 @@ def serve():
     try:
         if verbose:
             print("Server Startup Request")
-        server.add_insecure_port("[::]:5000")
+        server.add_insecure_port(f"[::]:{TEST_SERVER_PORT_NUMBER}")
         server.start()
         time.sleep(2)
         if verbose:

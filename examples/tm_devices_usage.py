@@ -1,4 +1,4 @@
-"""An example script demonstrating the command & control using tm_devices and retrieving waveform data from a single channel using TekHSI."""
+"""Command & control using tm_devices, but retrieving waveform data using TekHSI."""
 
 from tm_data_types import AnalogWaveform
 from tm_devices import DeviceManager

@@ -1,4 +1,4 @@
-"""An example script for connecting to a scope, retrieving waveform data from a single channel, and saving it to files."""
+"""A script for connecting to a scope, retrieving waveform data, and saving it to a file."""
 
 from tm_data_types import AnalogWaveform, write_file
 

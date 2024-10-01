@@ -1,4 +1,4 @@
-"""An example script demonstrating the command & control using PyVISA and retrieving waveform data from a single channel using TekHSI."""
+"""Command & control using PyVISA, but retrieving waveform data using TekHSI."""
 
 import pyvisa
 

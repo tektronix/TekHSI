@@ -59,6 +59,7 @@ markdown_extensions:
   - def_list
   - pymdownx.snippets:
       check_paths: true
+      dedent_subsections: true
   - pymdownx.highlight:
       use_pygments: true
       pygments_style: default

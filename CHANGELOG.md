@@ -18,6 +18,14 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+### Added
+
+- Added an installation section to the main README.
+
+### Changed
+
+- Updated the documentation by moving portions from the Basic Usage page to the API docs.
+
 ---
 
 ## v1.0.0 (2024-09-20)

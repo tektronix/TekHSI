@@ -17,6 +17,8 @@ from tm_data_types import Waveform
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
 
+from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
+
 PROJECT_ROOT_DIR = Path(__file__).parent.parent
 
 
@@ -36,7 +38,7 @@ class DerivedWaveformHandler:  # pylint: disable=too-few-public-methods
 
 
 class TestServerManager:
-    def __init__(self, port=5000):
+    def __init__(self, port=TEST_SERVER_PORT_NUMBER):
         """Initialize the TestServerManager with a specified port."""
         self.server_process = None
         self.port = port
@@ -126,7 +128,7 @@ def expected_header():
 @pytest.fixture()
 def grpc_channel():  # pylint: disable=useless-suppression
     """Create a gRPC channel to the test server."""
-    channel = grpc.insecure_channel("localhost:5000")
+    channel = grpc.insecure_channel(TEST_SERVER_ADDRESS)
     yield channel
     channel.close()
 
@@ -147,4 +149,4 @@ def start_test_server():
 @pytest.fixture()
 def tekhsi_client():
     """Create a TekHSIConnect client."""
-    return TekHSIConnect("localhost:5000")
+    return TekHSIConnect(TEST_SERVER_ADDRESS)

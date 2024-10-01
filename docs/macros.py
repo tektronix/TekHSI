@@ -14,11 +14,11 @@ from mkdocs_macros.plugin import MacrosPlugin  # pyright: ignore[reportMissingTy
 
 HEADER_ONE_REGEX = re.compile(r"^#\s(.+)$", re.MULTILINE)
 PAGE_REPLACEMENTS = {
-    "basic_usage.md": (
-        (r"> [!IMPORTANT]", "!!! important"),
-        (r"> [!TIP]", "!!! tip"),
+    "index.md": (
+        (" Scopes ", r" [Scopes](default:Scope) "),
+        ("> [!IMPORTANT]", "!!! important"),
+        ("> `TekHSI` requires a 64-bit", "    `TekHSI` requires a 64-bit"),
     ),
-    "index.md": ((" Scopes ", r" [Scopes](default:Scope) "),),
 }
 FILES_TO_REMOVE_BLACK_FORMATTER_DISABLE_COMMENT = {
     "basic_usage.md",
