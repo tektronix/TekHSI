@@ -303,8 +303,11 @@ task-tags = ["FIXME", "FUTURE", "RELIC", "TODO"]
 [tool.ruff.lint.isort]
 force-sort-within-sections = false
 known-first-party = [
-  "conftest",
   "tekhsi"
+]
+known-local-folder = [
+  "server",
+  "tests"
 ]
 lines-between-types = 1
 order-by-type = false
