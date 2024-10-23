@@ -82,7 +82,7 @@ pre-commit = [
   {python = "3.8", version = "^3.5"}
 ]
 pylint = "3.2.7"
-pyright = "1.1.383"
+pyright = "1.1.386"
 pyroma = "^4.2"
 pyvisa = "^1.14.1"
 tm_devices = "^2.3.0"
