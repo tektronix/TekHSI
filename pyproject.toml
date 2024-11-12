@@ -272,7 +272,6 @@ flake8-quotes = {docstring-quotes = "double"}
 ignore = [
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
   "COM812",  # Trailing comma missing (handled by formatter)
-  "D",  # pydocstyle  # TODO: enable this
   "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
   "FBT",  # flake8-boolean-trap  # TODO: enable this
   "FIX002",  # Line contains TO DO (allowed in this package)
@@ -315,6 +314,7 @@ order-by-type = false
   "ALL"
 ]
 "tests/**" = [
+  "D104",  # Missing docstring in public package
   "PLC1901",  # compare-to-empty-string
   "PLR2004",  # Magic value used in comparison
   "S101",  # Use of assert detected
@@ -324,9 +324,11 @@ order-by-type = false
   # TODO: remove this entire ignore section
   "ANN",
   "BLE001",
-  "PLW0603",
+  "D102",
+  "D107",
   "N80",
   "PLW0602",
+  "PLW0603",
   "SIM"
 ]
 

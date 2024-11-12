@@ -1028,6 +1028,8 @@ def test_read_waveform_digital(
 
 
 class DummyConnection:  # pylint: disable=too-few-public-methods
+    """A dummy connection class for testing purposes."""
+
     def __init__(self, holding_scope_open: bool) -> None:
         """Initialize the DummyConnection.
 

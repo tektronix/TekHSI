@@ -1,3 +1,5 @@
+"""Use TekHSI to plot an analog waveform."""
+
 import matplotlib.pyplot as plt
 
 from tm_data_types import AnalogWaveform

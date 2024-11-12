@@ -1,3 +1,5 @@
+"""Pytest configuration."""
+
 import subprocess
 import sys
 import time
@@ -24,6 +26,8 @@ PROJECT_ROOT_DIR = Path(__file__).parent.parent
 
 
 class DerivedWaveform(Waveform, ABC):
+    """A derived waveform class for testing purposes."""
+
     @property
     def _measured_data(self) -> str:
         """Implement the abstract method."""
@@ -31,6 +35,8 @@ class DerivedWaveform(Waveform, ABC):
 
 
 class DerivedWaveformHandler:  # pylint: disable=too-few-public-methods
+    """A derived waveform handler class for testing purposes."""
+
     @staticmethod
     def data_arrival(waveforms: List[DerivedWaveform]) -> None:
         """Override the data_arrival method to process waveforms."""
@@ -39,6 +45,8 @@ class DerivedWaveformHandler:  # pylint: disable=too-few-public-methods
 
 
 class TestServerManager:
+    """A class to manage the test server process."""
+
     def __init__(self, port: int = TEST_SERVER_PORT_NUMBER) -> None:
         """Initialize the TestServerManager with a specified port."""
         self.server_process = None

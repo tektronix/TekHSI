@@ -1,3 +1,5 @@
+"""Use TekHSI to plot an IQ waveform."""
+
 import matplotlib.pyplot as plt
 
 from tm_data_types import IQWaveform

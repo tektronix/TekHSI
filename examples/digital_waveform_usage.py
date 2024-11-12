@@ -1,3 +1,5 @@
+"""Use TekHSI to plot a digital waveform."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 

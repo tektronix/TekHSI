@@ -645,8 +645,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         )
 
     def _finished_with_data_access(self) -> None:
-        """Releases access to instrument data - this is required
-        to allow the instrument to continue acquiring
+        """Releases access to instrument data.
+
+        This is required to allow the instrument to continue acquiring
         """
         if not self._in_wait_for_data:
             return
@@ -966,9 +967,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._wait_for_data_count += 1
 
     def _wait_for_data_access(self) -> None:
-        """Waits for instrument server to give the gRPC service a
-        chance at the datastore.
-        """
+        """Waits for instrument server to give the gRPC service a chance at the datastore."""
         self._in_wait_for_data = True
 
         if self.verbose:
@@ -1009,7 +1008,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     @register
     def _terminate() -> None:
-        """Cleans up mess on termination if possible - this is required
+        """Terminate the connection to the instrument.
+
+        Cleans up mess on termination if possible - this is required
         to keep the scope from hanging
         """
         for key in TekHSIConnect._connections:  # pylint:disable=consider-using-dict-items
