@@ -1,6 +1,7 @@
 __pycache__
 *.py[cod]
 *$py.class
+**/logs/**
 
 # ignore .pyi files
 *.pyi
@@ -54,6 +55,7 @@ coverage.xml
 *.py,cover
 .results*/
 .hypothesis/
+tests/generated_**/*
 
 # Translations
 *.mo

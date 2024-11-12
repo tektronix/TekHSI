@@ -134,3 +134,15 @@ several benefits over the traditional data retrieval methods.
 # fmt: off
 --8<-- "examples/tm_devices_usage.py"
 ```
+
+## Customize logging and console output
+
+The amount of console output and logging saved to the log file can be customized as needed. This
+configuration can be done in the Python code itself as demonstrated here. If no logging is
+explicitly configured, the default logging settings will be used (as defined by the
+[`configure_logging()`][tekhsi.helpers.logging.configure_logging] function).
+
+```python
+# fmt: off
+--8<-- "examples/customize_logging.py"
+```

@@ -1,6 +1,7 @@
 """Module for connecting to Tektronix instruments and retrieving waveform data using gRPC."""
 
 import contextlib
+import logging
 import threading
 import time
 import uuid
@@ -27,7 +28,9 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WaveformRequest,
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
-from tekhsi.helpers.functions import print_with_timestamp
+from tekhsi.helpers.logging import configure_logging
+
+_logger = logging.getLogger(__name__)
 
 AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
 
@@ -117,6 +120,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 method can be provided. Typically, these functions are used to look for specific
                 kinds of changes, such as record length changing.
         """
+        # Configure logging in case it hasn't been done yet
+        configure_logging()
+
         self.previous_headers = []
         self.chunksize = 80000
         self.url = url
@@ -174,8 +180,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             The object itself.
         """
         # Required for "with" command to work with this class
-        if self.verbose:
-            print_with_timestamp("enter()")
+        _logger.debug("enter()")
         return self
 
     def __exit__(
@@ -195,15 +200,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         self._is_exiting = True
 
-        if self.verbose:
-            print_with_timestamp("exit()")
+        _logger.debug("exit()")
 
         self.close()
 
         if self._instrument and self._sum_count > 0:
-            print_with_timestamp(
-                f"Average Update Rate:{(1 / (self._sum_acq_time / self._sum_count)):.2f}, "
-                f"Data Rate:{(self._sum_data_rate / self._sum_count):.2f}Mbs",
+            _logger.info(
+                "Average Update Rate:%.2f, Data Rate:%.2fMbs",
+                (1 / (self._sum_acq_time / self._sum_count)),
+                (self._sum_data_rate / self._sum_count),
             )
 
     ################################################################################################
@@ -423,8 +428,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         if not self._connected:
             return
 
-        if self.verbose:
-            print_with_timestamp("close")
+        _logger.debug("close")
 
         # This will force the scope to give the background
         # thread access to data. That should cause it to exit.
@@ -435,9 +439,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self.thread.join(20.0)
         except RuntimeError as error:
             # Handle specific exceptions related to threading
-            if self.verbose:
-                msg = f"Thread error: {error}"
-                print_with_timestamp(msg)
+            _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Thread error: %s", error)
 
         try:
             # TODO: investigate this block, it seems like this code might not work as intended
@@ -446,12 +448,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 del TekHSIConnect._available_symbols[self.clientname]  # pylint:disable=unsupported-delete-operation
         except KeyError as error:
             # Handle specific exception if the key is not found
-            if self.verbose:
-                msg = f"Key error: {error}"
-                print_with_timestamp(msg)
+            _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Key error: %s", error)
 
-        if self.verbose:
-            print_with_timestamp("disconnect")
+        _logger.debug("disconnect")
 
         # disconnect from the instrument
         self._disconnect()
@@ -473,8 +472,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             return
 
         if self._wait_for_data_count <= 0:
-            if self.verbose:
-                print_with_timestamp("** done_with_data called when no wait_for_data pending")
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "done_with_data called when no wait_for_data pending",
+            )
             return
 
         self._wait_for_data_count -= 1
@@ -488,8 +489,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         get access to the currently available data. Otherwise, the API will wait until the next
         acquisition.
         """
-        if self.verbose:
-            print_with_timestamp("force sequence")
+        _logger.debug("force_sequence")
         request = ConnectRequest(name=self.clientname)
         self.connection.RequestNewSequence(request)
 
@@ -585,8 +585,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def _connect(self) -> None:
         """Request connect to the gRCP server."""
-        if self.verbose:
-            print_with_timestamp("connect")
+        _logger.debug("connect")
         request = ConnectRequest(name=self.clientname)
         self.connection.Connect(request)
 
@@ -595,8 +594,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         if not self._connected:
             return
         self._connected = False
-        if self.verbose:
-            print_with_timestamp("disconnect")
+        _logger.debug("disconnect")
         request = ConnectRequest(name=self.clientname)
         self.connection.Disconnect(request)
 
@@ -622,9 +620,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._sum_transfer_time += transfertime
             self._sum_data_rate += (datasize * 8 / 1e6) / transfertime
             self._sum_count += 1
-            print(
-                f"UpdateRate:{(1 / acqtime):.2f},"
-                f"Data Rate:{((datasize * 8 / 1e6) / transfertime):.2f}Mbs,Data Width:{datawidth}",
+            _logger.info(
+                "UpdateRate:%.2f,Data Rate:%.2fMbs,Data Width:%d",
+                (1 / acqtime),
+                ((datasize * 8 / 1e6) / transfertime),
+                datawidth,
             )
 
     @staticmethod
@@ -652,8 +652,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         if not self._in_wait_for_data:
             return
 
-        if self.verbose:
-            print_with_timestamp("finished_with_data_access")
+        _logger.debug("finished_with_data_access")
 
         request = ConnectRequest(name=self.clientname)
         self.connection.FinishedWithDataAccess(request)
@@ -667,8 +666,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         Returns:
             WaveformHeader: the description of the properties of the specified waveform
         """
-        if self.verbose:
-            print(f"{name}:read header")
+        _logger.debug("%s:read header", name)
         request = WaveformRequest(sourcename=name, chunksize=self.chunksize)
         response = self.native.GetHeader(request)
         return response.headerordata.header
@@ -818,8 +816,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                         sum_of_chunks += len(dt)
 
         except Exception as e:  # noqa: BLE001
-            if self.verbose:
-                print_with_timestamp(f"Exception: {e}")
+            _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Exception: %s", e)
 
         return waveform
 
@@ -916,8 +913,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             datasize += self._read_waveforms(headers, waveforms)
             duration = time.perf_counter() - start
         except Exception as ex:  # noqa: BLE001
-            if self.verbose:
-                print_with_timestamp(f"exception:_run_inner:{ex}")
+            _logger.log(
+                logging.ERROR if self.verbose else logging.DEBUG, "exception:_run_inner:%s", ex
+            )
             # We're exiting so silence any issues and not
             # accumulate bad stats or send bad data
             return
@@ -934,15 +932,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     self._callback(waveforms)
 
         except Exception as ex:  # noqa: BLE001
-            if self.verbose:
-                print_with_timestamp(f"exception:_run_inner:{ex}")
+            _logger.log(
+                logging.ERROR if self.verbose else logging.DEBUG, "exception:_run_inner:%s", ex
+            )
 
         if self._connected and not self._is_exiting:
             self._acqcount += 1
             self._instrumentation(time.perf_counter() - startwait, duration, datasize, datawidth)
 
     def _wait_for_acq_time(self, after: float) -> None:
-        """Waits until both a new acquisition has arrived and it is later than after.
+        """Waits until both a new acquisition has arrived, and it is later than after.
 
         Args:
             after (float): Acquisition must occur after this time
@@ -970,8 +969,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Waits for instrument server to give the gRPC service a chance at the datastore."""
         self._in_wait_for_data = True
 
-        if self.verbose:
-            print("wait_for_data_access")
+        _logger.debug("wait_for_data_access")
 
         request = ConnectRequest(name=self.clientname)
         self.connection.WaitForDataAccess(request)

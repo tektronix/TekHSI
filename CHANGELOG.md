@@ -25,6 +25,14 @@ Things to be included in the next release go here.
 ### Changed
 
 - Updated the documentation by moving portions from the Basic Usage page to the API docs.
+- Switched from using standard `print()` calls to using the `logging` module for all logging in the `tekhsi` package.
+    - A configuration function provides the ability to set different logging levels for stdout and file logging.
+    - By default, a log file is created with every debug message logged to it.
+
+### Removed
+
+- _**<span style="color:orange">minor breaking change</span>**_: Removed the `print_with_timestamp()` function since this functionality is now handled by the `logging` module.
+- _**<span style="color:orange">minor breaking change</span>**_: Removed the `get_timestamp_string()` function since this functionality is now handled by the `logging` module.
 
 ---
 

@@ -1,5 +1,6 @@
 """Pytest configuration."""
 
+import logging
 import subprocess
 import sys
 import time
@@ -17,12 +18,38 @@ import pytest
 from grpc import Channel
 from tm_data_types import Waveform
 
+from tekhsi import configure_logging, LoggingLevels
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
 
 from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
 
 PROJECT_ROOT_DIR = Path(__file__).parent.parent
+
+
+####################################################################################################
+# Configure the logging for the package that will run during unit tests
+class _DynamicStreamHandler(logging.StreamHandler):  # pyright: ignore[reportMissingTypeArgument]
+    def emit(self, record: logging.LogRecord) -> None:
+        self.stream = sys.stdout
+        super().emit(record)
+
+
+_logger = configure_logging(
+    log_console_level=LoggingLevels.NONE,
+    log_file_level=LoggingLevels.DEBUG,
+    log_file_directory=Path(__file__).parent / "logs",
+    log_file_name=f"unit_test_py{sys.version_info.major}{sys.version_info.minor}.log",
+)
+_unit_test_console_handler = _DynamicStreamHandler(stream=sys.stdout)
+_unit_test_console_handler.setLevel(logging.DEBUG)
+_unit_test_console_formatter = logging.Formatter("%(asctime)s - %(message)s")
+_unit_test_console_formatter.default_msec_format = (
+    "%s.%06d"  # Use 6 digits of precision for milliseconds
+)
+_unit_test_console_handler.setFormatter(_unit_test_console_formatter)
+_logger.addHandler(_unit_test_console_handler)
+####################################################################################################
 
 
 class DerivedWaveform(Waveform, ABC):

@@ -8,7 +8,7 @@ exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError"
 ]
-fail_under = 74  # TODO: set to 100 after reaching 100% coverage
+fail_under = 80  # TODO: set to 100 after reaching 100% coverage
 show_missing = true
 skip_empty = true
 
@@ -53,6 +53,7 @@ repository = "https://github.com/tektronix/TekHSI"
 version = "1.0.0"
 
 [tool.poetry.dependencies]
+colorlog = "^6.9.0"
 grpcio = "^1.51.3"
 numpy = [
   {python = "^3.9", version = "^1.26"},
@@ -63,6 +64,7 @@ python = "^3.8, <3.13"
 python-dateutil = "^2.8.2"
 tm_data_types = "^0.1.0"
 typing_extensions = "^4.12.0"
+tzlocal = "^5.2"
 
 [tool.poetry.group.dev.dependencies]
 docutils = "^0.20"  # TODO: remove this when the minimum Python version is >=3.9
@@ -246,6 +248,7 @@ filterwarnings = [
 ]
 junit_family = "xunit2"
 junit_logging = "all"
+log_format = "[%(asctime)s] [%(levelname)8s] %(message)s"
 markers = [
   'docs',
   'order',
@@ -276,6 +279,7 @@ ignore = [
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
   "TD002",  # Missing author in TO DO (allowed in this package)
   "TD003",  # Missing issue link on the line following this TO DO (allowed in this package)
+  "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
   "UP037"  # Remove quotes from type annotation (allowed in this package)
 ]

@@ -4,7 +4,7 @@ import sys
 
 from io import StringIO
 from typing import Callable, Dict, List, Optional, Type
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -17,7 +17,6 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     ConnectStatus,
     WaveformHeader,
 )
-from tekhsi.helpers import print_with_timestamp
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
 
 
@@ -341,16 +340,14 @@ def test_get_data(
     ),
     [
         (True, 1, 5, 0, 5, None, True),  # Valid case: Cache enabled and data count decrement
-        (True, 0, 5, 0, 0, "** done_with_data called when no wait_for_data pending", True),
+        (True, 0, 5, 0, 0, "done_with_data called when no wait_for_data pending", True),
         (False, 1, 5, 1, 0, None, True),  # Caching disabled
-        (True, -1, 5, -1, 0, "** done_with_data called when no wait_for_data pending", True),
+        (True, -1, 5, -1, 0, "done_with_data called when no wait_for_data pending", True),
         (True, 2, 5, 1, 5, None, True),  # wait_for_data_count greater than 1
         (True, 0, 5, 0, 0, None, False),  # No wait_for_data pending, verbose is False
     ],
 )
-@patch("tekhsi.tek_hsi_connect.print_with_timestamp")
 def test_done_with_data(  # noqa: PLR0913
-    mock_print_with_timestamp: MagicMock,
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_for_data_count: int,
@@ -359,11 +356,11 @@ def test_done_with_data(  # noqa: PLR0913
     expected_lastacqseen: int,
     expected_output: Optional[str],
     verbose: bool,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test the done_with_data method of TekHSIConnect.
 
     Args:
-        mock_print_with_timestamp: Mocked print_with_timestamp function.
         tekhsi_client: An instance of the TekHSI client to be tested.
         cache_enabled: Whether the data cache is enabled.
         wait_for_data_count: The initial wait_for_data_count value.
@@ -372,6 +369,7 @@ def test_done_with_data(  # noqa: PLR0913
         expected_lastacqseen: The expected last acquisition seen after the method call.
         expected_output: The expected output message, if any.
         verbose: Whether verbose mode is enabled.
+        caplog: Pytest fixture to capture log messages.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -380,11 +378,7 @@ def test_done_with_data(  # noqa: PLR0913
         connection._acqcount = acqcount
         connection.verbose = verbose
 
-        # Mock the print_with_timestamp to capture its output
-        if expected_output:
-            mock_print_with_timestamp.return_value = print_with_timestamp(expected_output)
-
-            # Call the method
+        # Call the method
         connection.done_with_data()
 
         # Verify the internal state
@@ -392,11 +386,7 @@ def test_done_with_data(  # noqa: PLR0913
         assert connection._lastacqseen == expected_lastacqseen
         # Verify the output
         if expected_output:
-            mock_print_with_timestamp.assert_called_once_with(expected_output)
-            captured = mock_print_with_timestamp.return_value
-            assert expected_output in captured
-        elif verbose:
-            mock_print_with_timestamp.assert_not_called()
+            assert expected_output in caplog.messages[-1]
 
 
 def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
@@ -936,9 +926,7 @@ def test_read_waveform_analog(
         (True, True, True, 0.5, 0.2, 1000, 16, None),
     ],
 )
-@patch("builtins.print")
 def test_instrumentation(  # noqa: PLR0913
-    mock_print: MagicMock,
     tekhsi_client: TekHSIConnect,
     instrument: bool,
     connected: bool,
@@ -948,11 +936,11 @@ def test_instrumentation(  # noqa: PLR0913
     datasize: int,
     datawidth: int,
     expected_output: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test the _instrumentation method of TekHSIConnect.
 
     Args:
-        mock_print: Mocked print function.
         tekhsi_client: An instance of the TekHSI client to be tested.
         instrument: Whether the instrument is enabled.
         connected: Whether the client is connected.
@@ -962,6 +950,7 @@ def test_instrumentation(  # noqa: PLR0913
         datasize: The size of the data.
         datawidth: The width of the data.
         expected_output: The expected output message, if any.
+        caplog: Pytest fixture to capture log messages.
     """
     client = tekhsi_client
     client._instrument = instrument
@@ -975,9 +964,7 @@ def test_instrumentation(  # noqa: PLR0913
     client._instrumentation(acqtime, transfertime, datasize, datawidth)
 
     if expected_output:
-        mock_print.assert_called_once_with(expected_output)
-    else:
-        mock_print.assert_not_called()
+        assert expected_output in caplog.messages[-1]
 
 
 @pytest.mark.parametrize(
