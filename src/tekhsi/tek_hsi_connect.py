@@ -1005,6 +1005,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Register Methods
     ################################################################################################
+    # TODO: is this method actually necessary?
     @staticmethod
     @register
     def _terminate() -> None:
@@ -1015,7 +1016,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         for key in TekHSIConnect._connections:  # pylint:disable=consider-using-dict-items
             with contextlib.suppress(Exception):
-                if TekHSIConnect._connections[key]._holding_scope_open:
-                    TekHSIConnect._connections[key]._finished_with_data_access()
+                if TekHSIConnect._connections[key]._holding_scope_open:  # noqa: SLF001
+                    TekHSIConnect._connections[key]._finished_with_data_access()  # noqa: SLF001
             with contextlib.suppress(Exception):
                 TekHSIConnect._connections[key].close()

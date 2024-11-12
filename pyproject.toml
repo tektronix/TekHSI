@@ -178,7 +178,7 @@ recursive = true
 enable = ["all"]
 disable = [
   "broad-exception-caught",  # caught by ruff
-  "consider-using-with",  # ignored for inital commits   # TODO: remove this ignore
+  "consider-using-with",  # TODO: enable this check
   "duplicate-code",
   "fixme",  # caught by ruff
   "global-statement",  # caught by ruff
@@ -191,7 +191,6 @@ disable = [
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
-  "singleton-comparison",  # ignored for inital commits   # TODO: remove this ignore
   "suppressed-message",  # allowed
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
@@ -273,10 +272,8 @@ ignore = [
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
   "COM812",  # Trailing comma missing (handled by formatter)
   "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
-  "FBT",  # flake8-boolean-trap  # TODO: enable this
   "FIX002",  # Line contains TO DO (allowed in this package)
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
-  "SLF001",  # Private member accessed  # TODO: enable this
   "TD002",  # Missing author in TO DO (allowed in this package)
   "TD003",  # Missing issue link on the line following this TO DO (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
@@ -329,7 +326,12 @@ order-by-type = false
   "N80",
   "PLW0602",
   "PLW0603",
-  "SIM"
+  "SIM",
+  "SLF001"  # Private member accessed
+]
+"tests/test_client.py" = [
+  "FBT001",  # Boolean-typed positional argument in function definition
+  "SLF001"  # Private member accessed
 ]
 
 [tool.semantic_release]
