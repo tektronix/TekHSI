@@ -7,7 +7,8 @@ import uuid
 
 from atexit import register
 from enum import Enum
-from typing import Callable, ClassVar, Dict, List, Optional, TypeVar
+from types import TracebackType
+from typing import Callable, ClassVar, Dict, List, Optional, Self, Type, TypeVar
 
 import grpc
 import numpy as np
@@ -98,7 +99,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         activesymbols: Optional[List[str]] = None,
         callback: Optional[Callable] = None,
         data_filter: Optional[Callable] = None,
-    ):
+    ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
 
         Args:
@@ -166,7 +167,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.thread.daemon = True
         self.thread.start()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the runtime context related to this object.
 
         Returns:
@@ -177,7 +178,12 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             print_with_timestamp("enter()")
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         """Exit the runtime context related to this object.
 
         Args:
@@ -246,7 +252,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return self._instrument
 
     @instrumentation_enabled.setter
-    def instrumentation_enabled(self, value: bool):
+    def instrumentation_enabled(self, value: bool) -> None:
         """Sets the instrumentation enabled state.
 
         Args:
@@ -273,7 +279,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return self._verbose
 
     @verbose.setter
-    def verbose(self, value: bool):
+    def verbose(self, value: bool) -> None:
         """Sets the verbose mode state.
 
         Args:
@@ -285,7 +291,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Context Manager Methods
     ################################################################################################
     @contextlib.contextmanager
-    def access_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1):
+    def access_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1) -> Self:
         """Grants access to data.
 
         Must be used as a context manager to grant access for
@@ -412,7 +418,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         self.activesymbols = symbols
 
-    def close(self):
+    def close(self) -> None:
         """Close and clean up gRPC connection."""
         if not self._connected:
             return
@@ -461,7 +467,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         return
 
-    def done_with_data(self):
+    def done_with_data(self) -> None:
         """Releases the acquisition after accessing the required data."""
         if not self._cachedataenabled:
             return
@@ -474,7 +480,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._wait_for_data_count -= 1
         self._lastacqseen = self._acqcount
         self._done_with_data_release_lock()
-        return
 
     def force_sequence(self) -> None:
         """force_sequence asks the instrument to please give us access.
@@ -514,7 +519,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._lock_getdata.release()
         return retval
 
-    def set_acq_filter(self, acq_filter):
+    def set_acq_filter(self, acq_filter: Callable) -> None:
         """Sets rules for acquisitions that are accepted and forwarded.
 
         This is to allow only import data changes to be passed to the callback or saved to backing
@@ -531,7 +536,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._lastacqseen = self._acqcount
         self._lock_filter.release()
 
-    def wait_for_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1):
+    def wait_for_data(self, on: AcqWaitOn = AcqWaitOn.NewData, after: float = -1) -> None:
         """Waits until specified acquisition criterion is met.
 
         Args:
@@ -554,7 +559,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Private Methods
     ################################################################################################
     @staticmethod
-    def _acq_id(headers: List[WaveformHeader]):
+    def _acq_id(headers: List[WaveformHeader]) -> Optional[int]:
         """Retrieve the data ID from the first header in the list.
 
         Args:
@@ -594,13 +599,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         request = ConnectRequest(name=self.clientname)
         self.connection.Disconnect(request)
 
-    def _done_with_data_release_lock(self):
+    def _done_with_data_release_lock(self) -> None:
         """Releases the lock after accessing the required data."""
         if self._wait_for_data_holds_lock:
             self._lock.release()
             self._wait_for_data_holds_lock = False
 
-    def _instrumentation(self, acqtime, transfertime, datasize, datawidth) -> None:
+    def _instrumentation(
+        self, acqtime: float, transfertime: float, datasize: int, datawidth: int
+    ) -> None:
         """Prints the performance information for debugging.
 
         Args:
@@ -664,7 +671,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         response = self.native.GetHeader(request)
         return response.headerordata.header
 
-    def _read_headers(self, headers, header_dict: dict):
+    def _read_headers(
+        self, headers: List[WaveformHeader], header_dict: Dict[str, WaveformHeader]
+    ) -> None:
         """Reads headers for the active symbols.
 
         Args:
@@ -681,7 +690,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 header_dict[header.sourcename] = header
 
     # pylint: disable= too-many-locals
-    def _read_waveform(self, header: WaveformHeader):  # noqa: C901,PLR0912,PLR0915
+    def _read_waveform(self, header: WaveformHeader) -> Waveform:  # noqa: C901,PLR0912,PLR0915
         """Reads the analog waveform associated with the passed header.
 
         Args:
@@ -812,12 +821,12 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         return waveform
 
-    def _read_waveforms(self, headers, waveforms):
+    def _read_waveforms(self, headers: List[WaveformHeader], waveforms: List[Waveform]) -> int:
         """Reads the waveforms for the headers.
 
         Args:
-            headers (list): list of headers
-            waveforms (list): list of waveforms
+            headers: list of headers
+            waveforms: list of waveforms
         """
         n = len(headers)
         datasize = 0
@@ -842,7 +851,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveforms.append(waveform)
         return datasize
 
-    def _run(self):
+    def _run(self) -> None:
         """Background thread for participating in the instruments sequence."""
         while self.thread_active and not self._is_exiting:
             waveforms = []
@@ -860,13 +869,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 self._lock_filter.release()
                 self._holding_scope_open = False
 
-    def _run_inner(self, headers, waveforms, startwait):  # noqa: C901,PLR0912
+    def _run_inner(  # noqa: C901,PLR0912
+        self, headers: List[WaveformHeader], waveforms: List[Waveform], startwait: float
+    ) -> None:
         """Background thread for participating in the instruments sequence.
 
         Args:
-            headers (list): list of headers
-            waveforms (list): list of waveforms
-            startwait (float): start time
+            headers: list of headers
+            waveforms: list of waveforms
+            startwait: start time
         """
         datasize = 0
         datawidth = 1
@@ -987,7 +998,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 time.sleep(0.0001)
         self._wait_for_data_count += 1
 
-    def _wait_next_acq(self):
+    def _wait_next_acq(self) -> None:
         self._lock.acquire(blocking=True)
         self._wait_for_data_holds_lock = True
 
@@ -996,7 +1007,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     @staticmethod
     @register
-    def _terminate():
+    def _terminate() -> None:
         """Cleans up mess on termination if possible - this is required
         to keep the scope from hanging
         """

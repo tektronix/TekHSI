@@ -3,12 +3,13 @@
 import sys
 
 from io import StringIO
-from unittest.mock import patch
+from typing import Callable, Dict, List, Optional, Type
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
+from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
 
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
@@ -27,24 +28,24 @@ from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
     ],
 )
 def test_server_connection(
-    tekhsi_client,
-    capsys,
-    instrument,
-    sum_count,
-    sum_acq_time,
-    sum_data_rate,
-    expected_output,
-):
+    tekhsi_client: TekHSIConnect,
+    capsys: pytest.CaptureFixture[str],
+    instrument: bool,
+    sum_count: int,
+    sum_acq_time: float,
+    sum_data_rate: float,
+    expected_output: str,
+) -> None:
     """Test the server connection using the TekHSI client.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        tekhsi_client: An instance of the TekHSI client to be tested.
         capsys (CaptureFixture): Pytest fixture to capture system output.
-        instrument (bool): Whether the instrument is connected.
-        sum_count (int): The sum count.
-        sum_acq_time (float): The sum acquisition time.
-        sum_data_rate (float): The sum data rate.
-        expected_output (str): The expected output message.
+        instrument: Whether the instrument is connected.
+        sum_count: The sum count.
+        sum_acq_time: The sum acquisition time.
+        sum_data_rate: The sum data rate.
+        expected_output: The expected output message.
     """
     # Set the required attributes
     tekhsi_client._instrument = instrument
@@ -77,13 +78,17 @@ def test_server_connection(
         ({}, {}, True),  # Always returns True
     ],
 )
-def test_any_acq(previous_header, current_header, expected):
+def test_any_acq(
+    previous_header: Dict[str, WaveformHeader],
+    current_header: Dict[str, WaveformHeader],
+    expected: bool,
+) -> None:
     """Test the any_acq method of TekHSIConnect.
 
     Args:
         previous_header (dict): The previous header data.
         current_header (dict): The current header data.
-        expected (bool): The expected result of the any_acq method.
+        expected: The expected result of the any_acq method.
     """
     result = TekHSIConnect.any_acq(previous_header, current_header)
     assert result == expected
@@ -167,13 +172,17 @@ def test_any_acq(previous_header, current_header, expected):
         ),
     ],
 )
-def test_any_horizontal_change(previous_header, current_header, expected):
+def test_any_horizontal_change(
+    previous_header: Dict[str, WaveformHeader],
+    current_header: Dict[str, WaveformHeader],
+    expected: bool,
+) -> None:
     """Test the any_horizontal_change method of TekHSIConnect.
 
     Args:
         previous_header (dict): The previous header data.
         current_header (dict): The current header data.
-        expected (bool): The expected result of the any_horizontal_change method.
+        expected: The expected result of the any_horizontal_change method.
     """
     result = TekHSIConnect.any_horizontal_change(previous_header, current_header)
     assert result == expected
@@ -235,13 +244,17 @@ def test_any_horizontal_change(previous_header, current_header, expected):
         ),
     ],
 )
-def test_any_vertical_change(previous_header, current_header, expected):
+def test_any_vertical_change(
+    previous_header: Dict[str, WaveformHeader],
+    current_header: Dict[str, WaveformHeader],
+    expected: bool,
+) -> None:
     """Test the any_vertical_change method of TekHSIConnect.
 
     Args:
         previous_header (dict): The previous header data.
         current_header (dict): The current header data.
-        expected (bool): The expected result of the any_vertical_change method.
+        expected: The expected result of the any_vertical_change method.
     """
     result = TekHSIConnect.any_vertical_change(previous_header, current_header)
     assert result == expected
@@ -254,14 +267,19 @@ def test_any_vertical_change(previous_header, current_header, expected):
         (None, ValueError, "Filter cannot be None"),
     ],
 )
-def test_set_acq_filter(tekhsi_client, acq_filter, expected_exception, expected_message):
+def test_set_acq_filter(
+    tekhsi_client: TekHSIConnect,
+    acq_filter: Callable,
+    expected_exception: Type[BaseException],
+    expected_message: str,
+) -> None:
     """Test the set_acq_filter method of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        tekhsi_client: An instance of the TekHSI client to be tested.
         acq_filter (dict): The acquisition filter to be set.
         expected_exception (Exception): The expected exception to be raised, if any.
-        expected_message (str): The expected exception message, if any.
+        expected_message: The expected exception message, if any.
     """
     with tekhsi_client as connection:
         if expected_exception:
@@ -283,14 +301,20 @@ def test_set_acq_filter(tekhsi_client, acq_filter, expected_exception, expected_
         (False, {"test_data": "waveform_data"}, "test_data", None),  # Caching disabled
     ],
 )
-def test_get_data(tekhsi_client, cache_enabled, data_cache, name, expected_result):
+def test_get_data(
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    data_cache: Dict[str, str],
+    name: str,
+    expected_result: Optional[str],
+) -> None:
     """Test the get_data method of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
         data_cache (dict): The data cache to be used.
-        name (str): The name of the data to retrieve.
+        name: The name of the data to retrieve.
         expected_result (Any): The expected result of the get_data method.
     """
     with tekhsi_client as connection:
@@ -326,28 +350,28 @@ def test_get_data(tekhsi_client, cache_enabled, data_cache, name, expected_resul
 )
 @patch("tekhsi.tek_hsi_connect.print_with_timestamp")
 def test_done_with_data(  # noqa: PLR0913
-    mock_print_with_timestamp,
-    tekhsi_client,
-    cache_enabled,
-    wait_for_data_count,
-    acqcount,
-    expected_wait_for_data_count,
-    expected_lastacqseen,
-    expected_output,
-    verbose,
-):
+    mock_print_with_timestamp: MagicMock,
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    wait_for_data_count: int,
+    acqcount: int,
+    expected_wait_for_data_count: int,
+    expected_lastacqseen: int,
+    expected_output: Optional[str],
+    verbose: bool,
+) -> None:
     """Test the done_with_data method of TekHSIConnect.
 
     Args:
-        mock_print_with_timestamp (MagicMock): Mocked print_with_timestamp function.
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
-        wait_for_data_count (int): The initial wait_for_data_count value.
-        acqcount (int): The initial acquisition count.
-        expected_wait_for_data_count (int): The expected wait_for_data_count after the method call.
-        expected_lastacqseen (int): The expected last acquisition seen after the method call.
-        expected_output (str): The expected output message, if any.
-        verbose (bool): Whether verbose mode is enabled.
+        mock_print_with_timestamp: Mocked print_with_timestamp function.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
+        wait_for_data_count: The initial wait_for_data_count value.
+        acqcount: The initial acquisition count.
+        expected_wait_for_data_count: The expected wait_for_data_count after the method call.
+        expected_lastacqseen: The expected last acquisition seen after the method call.
+        expected_output: The expected output message, if any.
+        verbose: Whether verbose mode is enabled.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -375,11 +399,11 @@ def test_done_with_data(  # noqa: PLR0913
             mock_print_with_timestamp.assert_not_called()
 
 
-def test_done_with_data_lock(tekhsi_client):
+def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
     """Test the done_with_data method of TekHSIConnect when the lock is not acquired.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        tekhsi_client: An instance of the TekHSI client to be tested.
     """
     with tekhsi_client as connection:
         # Negative test case: Simulate lock not being acquired
@@ -387,7 +411,7 @@ def test_done_with_data_lock(tekhsi_client):
         connection._wait_for_data_count = 1
         connection._acqcount = 5
 
-        def mock_method():
+        def mock_method() -> None:
             raise RuntimeError("Lock not acquired")
 
         connection._done_with_data_release_lock = mock_method
@@ -443,32 +467,32 @@ def test_done_with_data_lock(tekhsi_client):
     ],
 )
 def test_wait_for_data(  # noqa: PLR0913
-    tekhsi_client,
-    cache_enabled,
-    wait_on,
-    after,
-    datacache,
-    acqcount,
-    acqtime,
-    lastacqseen,
-    expected_wait_for_data_count,
-    expected_lastacqseen,
-    expected_output,
-):
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    wait_on: AcqWaitOn,
+    after: int,
+    datacache: Dict[str, str],
+    acqcount: int,
+    acqtime: int,
+    lastacqseen: int,
+    expected_wait_for_data_count: int,
+    expected_lastacqseen: int,
+    expected_output: Optional[str],
+) -> None:
     """Test the wait_for_data method of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
         wait_on (AcqWaitOn): The condition to wait on (e.g., NewData, AnyAcq, NextAcq, Time).
-        after (float): The time after which the acquisition must occur.
+        after: The time after which the acquisition must occur.
         datacache (dict): The data cache to be used.
-        acqcount (int): The initial acquisition count.
-        acqtime (float): The initial acquisition time.
-        lastacqseen (int): The last acquisition seen.
-        expected_wait_for_data_count (int): The expected wait_for_data_count after the method call.
-        expected_lastacqseen (int): The expected last acquisition seen after the method call.
-        expected_output (str): The expected output message, if any.
+        acqcount: The initial acquisition count.
+        acqtime: The initial acquisition time.
+        lastacqseen: The last acquisition seen.
+        expected_wait_for_data_count: The expected wait_for_data_count after the method call.
+        expected_lastacqseen: The expected last acquisition seen after the method call.
+        expected_output: The expected output message, if any.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -500,12 +524,12 @@ def test_wait_for_data(  # noqa: PLR0913
         (["ch1", "ch1_iq", "ch2", "ch3", "math1", "math2"]),  # Default symbols
     ],
 )
-def test_available_symbols(tekhsi_client, expected_symbols):
+def test_available_symbols(tekhsi_client: TekHSIConnect, expected_symbols: List[str]) -> None:
     """Test the available_symbols property of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        expected_symbols (list): The expected list of available symbols.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        expected_symbols: The expected list of available symbols.
     """
     with tekhsi_client as connection:
         # Retrieve the available symbols
@@ -524,14 +548,16 @@ def test_available_symbols(tekhsi_client, expected_symbols):
         (False, False, False),  # No change
     ],
 )
-def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expected_value):
+def test_instrumentation_enabled(
+    tekhsi_client: TekHSIConnect, initial_value: bool, new_value: bool, expected_value: bool
+) -> None:
     """Test the instrumentation_enabled property of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        initial_value (bool): The initial value of the instrumentation_enabled property.
-        new_value (bool): The new value to set for the instrumentation_enabled property.
-        expected_value (bool): The expected value of the instrumentation_enabled property after
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        initial_value: The initial value of the instrumentation_enabled property.
+        new_value: The new value to set for the instrumentation_enabled property.
+        expected_value: The expected value of the instrumentation_enabled property after
             setting the new value.
     """
     with tekhsi_client as connection:
@@ -557,13 +583,15 @@ def test_instrumentation_enabled(tekhsi_client, initial_value, new_value, expect
         (["source1", "source2", "source3"], ["source1", "source2", "source3"]),  # Multiple sources
     ],
 )
-def test_source_names(tekhsi_client, initial_symbols, expected_symbols):
+def test_source_names(
+    tekhsi_client: TekHSIConnect, initial_symbols: List[str], expected_symbols: List[str]
+) -> None:
     """Test the source_names property of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        initial_symbols (list): The initial list of active symbols to set.
-        expected_symbols (list): The expected list of source names.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        initial_symbols: The initial list of active symbols to set.
+        expected_symbols: The expected list of source names.
     """
     with tekhsi_client as connection:
         # Set the initial symbols
@@ -586,12 +614,12 @@ def test_source_names(tekhsi_client, initial_symbols, expected_symbols):
         (None, False),
     ],
 )
-def test_is_header_value(header, expected):
+def test_is_header_value(header: WaveformHeader, expected: bool) -> None:
     """Test the _is_header_value method of TekHSIConnect.
 
     Args:
-        header (WaveformHeader): The header to be checked.
-        expected (bool): The expected result of the _is_header_value method.
+        header: The header to be checked.
+        expected: The expected result of the _is_header_value method.
     """
     assert TekHSIConnect._is_header_value(header) == expected
 
@@ -614,30 +642,30 @@ def test_is_header_value(header, expected):
     ],
 )
 def test_wait_for_data_acq_time(  # noqa: PLR0913
-    tekhsi_client,
-    cache_enabled,
-    wait_on,
-    after,
-    datacache,
-    acqcount,
-    acqtime,
-    lastacqseen,
-    expected_wait_for_data_count,
-    expected_lastacqseen,
-):
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    wait_on: AcqWaitOn,
+    after: int,
+    datacache: Dict[str, str],
+    acqcount: int,
+    acqtime: int,
+    lastacqseen: int,
+    expected_wait_for_data_count: int,
+    expected_lastacqseen: int,
+) -> None:
     """Test the wait_for_data method of TekHSIConnect with acquisition time condition.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
         wait_on (AcqWaitOn): The condition to wait on (e.g., NewData, AnyAcq, NextAcq, Time).
-        after (float): The time after which the acquisition must occur.
+        after: The time after which the acquisition must occur.
         datacache (dict): The data cache to be used.
-        acqcount (int): The initial acquisition count.
-        acqtime (float): The initial acquisition time.
-        lastacqseen (int): The last acquisition seen.
-        expected_wait_for_data_count (int): The expected wait_for_data_count after the method call.
-        expected_lastacqseen (int): The expected last acquisition seen after the method call.
+        acqcount: The initial acquisition count.
+        acqtime: The initial acquisition time.
+        lastacqseen: The last acquisition seen.
+        expected_wait_for_data_count: The expected wait_for_data_count after the method call.
+        expected_lastacqseen: The expected last acquisition seen after the method call.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -669,24 +697,24 @@ def test_wait_for_data_acq_time(  # noqa: PLR0913
     ],
 )
 def test_wait_for_data_any_acq(
-    tekhsi_client,
-    cache_enabled,
-    wait_on,
-    datacache,
-    acqcount,
-    expected_wait_for_data_count,
-    expected_lastacqseen,
-):
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    wait_on: AcqWaitOn,
+    datacache: Dict[str, str],
+    acqcount: int,
+    expected_wait_for_data_count: int,
+    expected_lastacqseen: int,
+) -> None:
     """Test the wait_for_data method of TekHSIConnect with any acquisition condition.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
         wait_on (AcqWaitOn): The condition to wait on (e.g., NewData, AnyAcq, NextAcq, Time).
         datacache (dict): The data cache to be used.
-        acqcount (int): The initial acquisition count.
-        expected_wait_for_data_count (int): The expected wait_for_data_count after the method call.
-        expected_lastacqseen (int): The expected last acquisition seen after the method call.
+        acqcount: The initial acquisition count.
+        expected_wait_for_data_count: The expected wait_for_data_count after the method call.
+        expected_lastacqseen: The expected last acquisition seen after the method call.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -718,26 +746,26 @@ def test_wait_for_data_any_acq(
     ],
 )
 def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
-    tekhsi_client,
-    cache_enabled,
-    wait_on,
-    datacache,
-    acqcount,
-    lastacqseen,
-    expected_wait_for_data_count,
-    expected_lastacqseen,
-):
+    tekhsi_client: TekHSIConnect,
+    cache_enabled: bool,
+    wait_on: AcqWaitOn,
+    datacache: Dict[str, str],
+    acqcount: int,
+    lastacqseen: int,
+    expected_wait_for_data_count: int,
+    expected_lastacqseen: int,
+) -> None:
     """Test the wait_for_data method of TekHSIConnect with new and next acquisition conditions.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        cache_enabled (bool): Whether the data cache is enabled.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        cache_enabled: Whether the data cache is enabled.
         wait_on (AcqWaitOn): The condition to wait on (e.g., NewData, AnyAcq, NextAcq, Time).
         datacache (dict): The data cache to be used.
-        acqcount (int): The initial acquisition count.
-        lastacqseen (int): The last acquisition seen.
-        expected_wait_for_data_count (int): The expected wait_for_data_count after the method call.
-        expected_lastacqseen (int): The expected last acquisition seen after the method call.
+        acqcount: The initial acquisition count.
+        lastacqseen: The last acquisition seen.
+        expected_wait_for_data_count: The expected wait_for_data_count after the method call.
+        expected_lastacqseen: The expected last acquisition seen after the method call.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -777,13 +805,15 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
         ),
     ],
 )
-def test_read_waveforms(tekhsi_client, headers, expected_datasize):
+def test_read_waveforms(
+    tekhsi_client: TekHSIConnect, headers: List[WaveformHeader], expected_datasize: int
+) -> None:
     """Test the _read_waveforms method of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        headers (list): A list of WaveformHeader objects.
-        expected_datasize (int): The expected size of the data read.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        headers: A list of WaveformHeader objects.
+        expected_datasize: The expected size of the data read.
     """
     waveforms = []
     datasize = tekhsi_client._read_waveforms(headers, waveforms)
@@ -791,7 +821,7 @@ def test_read_waveforms(tekhsi_client, headers, expected_datasize):
     assert len(waveforms) == len(headers)
 
 
-def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler):
+def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler) -> None:
     """Test the data_arrival method of DerivedWaveformHandler.
 
     Args:
@@ -825,12 +855,12 @@ def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler):
         ([WaveformHeader(dataid=3)], 3),  # Single header
     ],
 )
-def test_acq_id(headers, expected):
+def test_acq_id(headers: List[WaveformHeader], expected: int) -> None:
     """Test the _acq_id method of TekHSIConnect.
 
     Args:
-        headers (list): A list of WaveformHeader objects.
-        expected (int): The expected acquisition ID.
+        headers: A list of WaveformHeader objects.
+        expected: The expected acquisition ID.
     """
     result = TekHSIConnect._acq_id(headers)
     assert result == expected
@@ -859,20 +889,20 @@ def test_acq_id(headers, expected):
     ],
 )
 def test_read_waveform_analog(
-    tekhsi_client,
-    header,
-    response_data,
-    expected_waveform_type,
-    expected_length,
-):
+    tekhsi_client: TekHSIConnect,
+    header: WaveformHeader,
+    response_data: bytes,
+    expected_waveform_type: Type[Waveform],
+    expected_length: int,
+) -> None:
     """Test reading an analog or IQ waveform.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        header (WaveformHeader): The header information for the waveform.
-        response_data (bytes): The response data for the waveform.
-        expected_waveform_type (type): The expected type of the waveform.
-        expected_length (int): The expected length of the waveform data.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        header: The header information for the waveform.
+        response_data: The response data for the waveform.
+        expected_waveform_type: The expected type of the waveform.
+        expected_length: The expected length of the waveform data.
     """
     client = tekhsi_client
     client.chunksize = 1024
@@ -882,7 +912,8 @@ def test_read_waveform_analog(
 
     waveform = client._read_waveform(header)
     assert isinstance(waveform, expected_waveform_type)
-    if expected_waveform_type == AnalogWaveform:
+    if isinstance(expected_waveform_type, AnalogWaveform):
+        assert isinstance(waveform, AnalogWaveform)
         assert len(waveform.y_axis_values) == expected_length
 
 
@@ -906,30 +937,30 @@ def test_read_waveform_analog(
 )
 @patch("builtins.print")
 def test_instrumentation(  # noqa: PLR0913
-    mock_print,
-    tekhsi_client,
-    instrument,
-    connected,
-    is_exiting,
-    acqtime,
-    transfertime,
-    datasize,
-    datawidth,
-    expected_output,
-):
+    mock_print: MagicMock,
+    tekhsi_client: TekHSIConnect,
+    instrument: bool,
+    connected: bool,
+    is_exiting: bool,
+    acqtime: float,
+    transfertime: float,
+    datasize: int,
+    datawidth: int,
+    expected_output: str,
+) -> None:
     """Test the _instrumentation method of TekHSIConnect.
 
     Args:
-        mock_print (MagicMock): Mocked print function.
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        instrument (bool): Whether the instrument is enabled.
-        connected (bool): Whether the client is connected.
-        is_exiting (bool): Whether the client is in the process of exiting.
-        acqtime (float): The acquisition time.
-        transfertime (float): The transfer time.
-        datasize (int): The size of the data.
-        datawidth (int): The width of the data.
-        expected_output (str): The expected output message, if any.
+        mock_print: Mocked print function.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        instrument: Whether the instrument is enabled.
+        connected: Whether the client is connected.
+        is_exiting: Whether the client is in the process of exiting.
+        acqtime: The acquisition time.
+        transfertime: The transfer time.
+        datasize: The size of the data.
+        datawidth: The width of the data.
+        expected_output: The expected output message, if any.
     """
     client = tekhsi_client
     client._instrument = instrument
@@ -969,14 +1000,16 @@ def test_instrumentation(  # noqa: PLR0913
         ),
     ],
 )
-def test_read_waveform_digital(tekhsi_client, header, response_data, expected_length):
+def test_read_waveform_digital(
+    tekhsi_client: TekHSIConnect, header: WaveformHeader, response_data: bytes, expected_length: int
+) -> None:
     """Test reading a digital waveform.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        header (WaveformHeader): The header information for the waveform.
-        response_data (bytes): The response data for the waveform.
-        expected_length (int): The expected length of the waveform data.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        header: The header information for the waveform.
+        response_data: The response data for the waveform.
+        expected_length: The expected length of the waveform data.
     """
     tekhsi_client.chunksize = 1024
     tekhsi_client.thread_active = True
@@ -994,27 +1027,27 @@ def test_read_waveform_digital(tekhsi_client, header, response_data, expected_le
 
 
 class DummyConnection:  # pylint: disable=too-few-public-methods
-    def __init__(self, holding_scope_open):
+    def __init__(self, holding_scope_open: bool) -> None:
         """Initialize the DummyConnection.
 
         Args:
-            holding_scope_open (bool): Indicates if the scope is open.
+            holding_scope_open: Indicates if the scope is open.
         """
         self._holding_scope_open = holding_scope_open
         self.finished_with_data_access_called = False
         self.close_called = False
 
-    def _finished_with_data_access(self):
+    def _finished_with_data_access(self) -> None:
         """Mark data access as finished."""
         self.finished_with_data_access_called = True
 
-    def close(self):
+    def close(self) -> None:
         """Close the connection."""
         self.close_called = True
 
 
 @pytest.fixture(name="setup_tekhsi_connections")
-def fixture_setup_tekhsi_connections():
+def fixture_setup_tekhsi_connections() -> None:
     """Fixture to set up dummy connections for TekHSIConnect."""
     TekHSIConnect._connections = {
         "conn1": DummyConnection(holding_scope_open=True),
@@ -1022,7 +1055,7 @@ def fixture_setup_tekhsi_connections():
     }
 
 
-def test_terminate(setup_tekhsi_connections):  # noqa: ARG001
+def test_terminate(setup_tekhsi_connections: None) -> None:  # noqa: ARG001
     """Test the _terminate method of TekHSIConnect.
 
     Args:
@@ -1038,11 +1071,11 @@ def test_terminate(setup_tekhsi_connections):  # noqa: ARG001
     assert conn2.close_called
 
 
-def test_active_symbols(tekhsi_client):
+def test_active_symbols(tekhsi_client: TekHSIConnect) -> None:
     """Test the active_symbols method of TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        tekhsi_client: An instance of the TekHSI client to be tested.
     """
     symbols = ["symbol1", "symbol2", "symbol3"]
 
@@ -1053,15 +1086,15 @@ def test_active_symbols(tekhsi_client):
     assert tekhsi_client.activesymbols == symbols
 
 
-def test_callback_invocation(tekhsi_client):
+def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
     """Test the invocation of the callback function in TekHSIConnect.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
+        tekhsi_client: An instance of the TekHSI client to be tested.
     """
 
-    def real_callback(waveforms):
-        assert waveforms == ["waveform1", "waveform2"]
+    def real_callback(waveforms_inner: List[str]) -> None:
+        assert waveforms_inner == ["waveform1", "waveform2"]
 
     tekhsi_client._callback = real_callback
     waveforms = ["waveform1", "waveform2"]
@@ -1082,13 +1115,15 @@ def test_callback_invocation(tekhsi_client):
         ),
     ],
 )
-def test_read_waveform_iq(tekhsi_client, header, expected_sample_rate):
+def test_read_waveform_iq(
+    tekhsi_client: TekHSIConnect, header: WaveformHeader, expected_sample_rate: float
+) -> None:
     """Test reading an IQ waveform.
 
     Args:
-        tekhsi_client (TekHSIConnect): An instance of the TekHSI client to be tested.
-        header (WaveformHeader): The header information for the waveform.
-        expected_sample_rate (float): The expected IQ sample rate.
+        tekhsi_client: An instance of the TekHSI client to be tested.
+        header: The header information for the waveform.
+        expected_sample_rate: The expected IQ sample rate.
     """
     waveform = tekhsi_client._read_waveform(header)
     assert isinstance(waveform, IQWaveform)

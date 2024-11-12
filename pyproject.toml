@@ -270,26 +270,25 @@ fixable = ["ALL"]
 flake8-pytest-style = {mark-parentheses = false}
 flake8-quotes = {docstring-quotes = "double"}
 ignore = [
-  "ANN",  # flake8-annotations  # TODO: enable this
-  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
   "BLE001",  # Do not catch blind exception: `Exception`  # TODO: enable this
   "COM812",  # Trailing comma missing (handled by formatter)
   "D",  # pydocstyle  # TODO: enable this
   "EM101",  # Exception must not use a string literal, assign to variable first  # TODO: enable this
   "EM102",  # Exception must not use an f-string literal, assign to variable first (covered by TRY003)
-  "FA100",  # Missing `from __future__ import annotations`, but uses ...  # TODO: enable this
+  "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
   "FBT",  # flake8-boolean-trap  # TODO: enable this
-  "FIX002",  # Line contains TO DO
+  "FIX002",  # Line contains TO DO (allowed in this package)
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
   "PLW0603",  # Using the global statement to update ... is discouraged  # TODO: enable this
   "PTH",  # flake8-use-pathlib  # TODO: enable this
   "RET504",  # Unnecessary assignment to ... before return statement  # TODO: enable this
   "SLF001",  # Private member accessed  # TODO: enable this
-  "TD002",  # Missing author in TO DO
-  "TD003",  # Missing issue link on the line following this TO DO
+  "TD002",  # Missing author in TO DO (allowed in this package)
+  "TD003",  # Missing issue link on the line following this TO DO (allowed in this package)
   "TRY003",  # Avoid specifying long messages outside the exception class  # TODO: enable this
-  "UP024",  # Replace aliased errors with `OSError`
-  "UP037"  # Remove quotes from type annotation
+  "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
+  "UP037"  # Remove quotes from type annotation (allowed in this package)
 ]
 pydocstyle = {convention = "google"}
 pylint = {max-args = 7}
@@ -315,9 +314,9 @@ order-by-type = false
 "examples/**" = [
   "E501",  # Line too long
   "ERA001",  # Found commented-out code
-  "T201",  # `print` found
   "S101",  # Use of assert detected
-  "SIM117"  # Use a single `with` statement with multiple contexts instead of nested `with` statements
+  "SIM117",  # Use a single `with` statement with multiple contexts instead of nested `with` statements
+  "T201"  # `print` found
 ]
 "src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
   "ALL"
@@ -325,11 +324,12 @@ order-by-type = false
 "tests/**" = [
   "PLC1901",  # compare-to-empty-string
   "PLR2004",  # Magic value used in comparison
-  "T201",  # `print` found
-  "S101"  # Use of assert detected
+  "S101",  # Use of assert detected
+  "T201"  # `print` found
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
+  "ANN",
   "N80",
   "PLW0602",
   "SIM"
