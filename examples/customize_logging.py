@@ -1,4 +1,4 @@
-"""A script for connecting to a scope, retrieving waveform data, and saving it to a file."""
+"""A script demonstrating how to customize the logging that happens during runtime."""
 
 from tm_data_types import AnalogWaveform, write_file
 
