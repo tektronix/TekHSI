@@ -412,7 +412,8 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
         connection._acqcount = 5
 
         def mock_method() -> None:
-            raise RuntimeError("Lock not acquired")
+            msg = "Lock not acquired"
+            raise RuntimeError(msg)
 
         connection._done_with_data_release_lock = mock_method
 

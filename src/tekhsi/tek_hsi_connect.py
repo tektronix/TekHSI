@@ -529,7 +529,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             acq_filter  (function): A function that takes two headers and returns True if the data
         """
         if acq_filter is None:
-            raise ValueError("Filter cannot be None")
+            msg = "Filter cannot be None"
+            raise ValueError(msg)
 
         self._lock_filter.acquire()
         self._filter = acq_filter
@@ -815,7 +816,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     if dt is not None:
                         sum_of_chunks += len(dt)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             if self.verbose:
                 print_with_timestamp(f"Exception: {e}")
 
@@ -913,7 +914,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._headers = header_dict
             datasize += self._read_waveforms(headers, waveforms)
             duration = time.perf_counter() - start
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             if self.verbose:
                 print_with_timestamp(f"exception:_run_inner:{ex}")
             # We're exiting so silence any issues and not
@@ -931,7 +932,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 if self._callback is not None:
                     self._callback(waveforms)
 
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             if self.verbose:
                 print_with_timestamp(f"exception:_run_inner:{ex}")
 

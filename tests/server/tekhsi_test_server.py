@@ -113,7 +113,8 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
             self._repeats = repeats
 
         if frequency <= 0.0:
-            raise ValueError("frequency out of range")
+            msg = "frequency out of range"
+            raise ValueError(msg)
 
         period = 1.0 / frequency
         resolution = None
@@ -288,7 +289,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NormalizedReply
             The return reply contains the status + the requested header information.
@@ -352,7 +353,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status. The yield reply, returns
@@ -395,7 +396,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status + the requested header information.
@@ -711,7 +712,7 @@ def make_new_data():
     symbol names and associated data. This is called on initialization of the TekHSI_Connect service
     and periodically to create new data. The symbols defined here well be seen by the client.
 
-    Returns
+    Returns:
     -------
     dict
         Returns a name/value dictionary defining a set of symbols and their associated waveforms.

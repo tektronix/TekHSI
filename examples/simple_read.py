@@ -23,7 +23,8 @@ elif isinstance(file, DigitalWaveform):
     waveform: DigitalWaveform = file
     vertical_data = waveform.get_nth_bitstream(3).astype(np.float32)
 else:
-    raise TypeError("Unsupported waveform type")
+    msg = "Unsupported waveform type"
+    raise TypeError(msg)
 
 horizontal_data = waveform.normalized_horizontal_values
 min_val = np.min(vertical_data)

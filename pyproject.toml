@@ -271,22 +271,15 @@ flake8-pytest-style = {mark-parentheses = false}
 flake8-quotes = {docstring-quotes = "double"}
 ignore = [
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
-  "BLE001",  # Do not catch blind exception: `Exception`  # TODO: enable this
   "COM812",  # Trailing comma missing (handled by formatter)
   "D",  # pydocstyle  # TODO: enable this
-  "EM101",  # Exception must not use a string literal, assign to variable first  # TODO: enable this
-  "EM102",  # Exception must not use an f-string literal, assign to variable first (covered by TRY003)
   "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
   "FBT",  # flake8-boolean-trap  # TODO: enable this
   "FIX002",  # Line contains TO DO (allowed in this package)
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
-  "PLW0603",  # Using the global statement to update ... is discouraged  # TODO: enable this
-  "PTH",  # flake8-use-pathlib  # TODO: enable this
-  "RET504",  # Unnecessary assignment to ... before return statement  # TODO: enable this
   "SLF001",  # Private member accessed  # TODO: enable this
   "TD002",  # Missing author in TO DO (allowed in this package)
   "TD003",  # Missing issue link on the line following this TO DO (allowed in this package)
-  "TRY003",  # Avoid specifying long messages outside the exception class  # TODO: enable this
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
   "UP037"  # Remove quotes from type annotation (allowed in this package)
 ]
@@ -330,6 +323,8 @@ order-by-type = false
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
   "ANN",
+  "BLE001",
+  "PLW0603",
   "N80",
   "PLW0602",
   "SIM"

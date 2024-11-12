@@ -1,4 +1,3 @@
-import os
 import subprocess
 import sys
 import time
@@ -67,12 +66,15 @@ class TestServerManager:
         self.kill_process_on_port()  # Ensure the port is free before starting the server
 
         # Ensure the script path is correct
-        server_script = os.path.join(os.path.dirname(__file__), "server", "tekhsi_test_server.py")
-        if not os.path.exists(server_script):
-            raise RuntimeError("Server script not found.")
+        server_script = Path(__file__).parent / "server" / "tekhsi_test_server.py"
+        if not server_script.exists():
+            msg = "Server script not found."
+            raise RuntimeError(msg)
 
             # Start the server
-        self.server_process = subprocess.Popen([sys.executable, server_script, "--verbose"])  # noqa: S603
+        self.server_process = subprocess.Popen(  # noqa: S603
+            [sys.executable, server_script.as_posix(), "--verbose"]
+        )
         # Wait a few seconds for the server to start
         time.sleep(5)
         return self
