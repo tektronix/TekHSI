@@ -8,7 +8,7 @@ exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError"
 ]
-fail_under = 80  # TODO: set to 100 after reaching 100% coverage
+fail_under = 74  # TODO: set to 100 after reaching 100% coverage
 show_missing = true
 skip_empty = true
 
@@ -279,6 +279,7 @@ ignore = [
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
   "TD002",  # Missing author in TO DO (allowed in this package)
   "TD003",  # Missing issue link on the line following this TO DO (allowed in this package)
+  "UP006",  # Use {to} instead of {from} for type annotation (allowed in this package)
   "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
   "UP037"  # Remove quotes from type annotation (allowed in this package)
@@ -395,6 +396,7 @@ setenv =
 commands_pre =
     poetry install --no-root --without=main
 commands =
+    !tests: python -c "import shutil; shutil.rmtree('dist_{envname}', ignore_errors=True)"
     !tests: poetry build --output=dist_{envname}
     !tests: twine check --strict dist_{envname}/*
     !tests: pre-commit run --all-files

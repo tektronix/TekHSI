@@ -9,7 +9,7 @@ from abc import ABC
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Self, Type, Union
+from typing import Dict, Generator, List, Optional, Type, Union
 
 import grpc
 import psutil
@@ -17,6 +17,7 @@ import pytest
 
 from grpc import Channel
 from tm_data_types import Waveform
+from typing_extensions import Self
 
 from tekhsi import configure_logging, LoggingLevels
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub

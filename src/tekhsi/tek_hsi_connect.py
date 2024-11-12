@@ -1,5 +1,7 @@
 """Module for connecting to Tektronix instruments and retrieving waveform data using gRPC."""
 
+from __future__ import annotations
+
 import contextlib
 import logging
 import threading
@@ -8,8 +10,7 @@ import uuid
 
 from atexit import register
 from enum import Enum
-from types import TracebackType
-from typing import Callable, ClassVar, Dict, List, Optional, Self, Type, TypeVar
+from typing import Callable, ClassVar, Dict, List, Optional, Type, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
@@ -29,6 +30,11 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
 from tekhsi.helpers.logging import configure_logging
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from typing_extensions import Self
 
 _logger = logging.getLogger(__name__)
 
