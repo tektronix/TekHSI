@@ -11,7 +11,7 @@ addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
 def custom_filter(
     previous_header: Dict[str, WaveformHeader], current_header: Dict[str, WaveformHeader]
-):
+) -> bool:
     """A custom criterion for deciding when to consider an acquisition for acceptance."""
     for key, cur in current_header.items():
         if key not in previous_header:

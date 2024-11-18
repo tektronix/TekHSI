@@ -1,10 +1,12 @@
+"""Use TekHSI to plot an IQ waveform."""
+
 import matplotlib.pyplot as plt
 
 from tm_data_types import IQWaveform
 
 from tekhsi import TekHSIConnect
 
-with TekHSIConnect("169.254.3.12:5000") as connection:
+with TekHSIConnect("192.168.0.1:5000") as connection:
     # Get one data set to setup plot
     with connection.access_data():
         waveform: IQWaveform = connection.get_data("ch1_iq")

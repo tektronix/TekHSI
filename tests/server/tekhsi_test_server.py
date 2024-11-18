@@ -37,12 +37,16 @@ TEST_SERVER_ADDRESS = f"localhost:{TEST_SERVER_PORT_NUMBER}"
 
 
 class WfmDataType(Enum):
+    """Waveform data type enumerations."""
+
     Int8 = 1
     Int16 = 2
     Float = 4
 
 
 class WfmEncoding(Enum):
+    """Waveform encoding enumerations."""
+
     Sine = 1
     Square = 2
     PRBS7 = 3
@@ -113,7 +117,8 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
             self._repeats = repeats
 
         if frequency <= 0.0:
-            raise ValueError("frequency out of range")
+            msg = "frequency out of range"
+            raise ValueError(msg)
 
         period = 1.0 / frequency
         resolution = None
@@ -288,7 +293,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NormalizedReply
             The return reply contains the status + the requested header information.
@@ -341,6 +346,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
 
     def GetWaveform(self, request, context):  # noqa: ARG002
         """This message returns the stream of the data representing the requested channel/math.
+
         The data is returned as native data. How the data is represented is defined in the
         header.
 
@@ -352,7 +358,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status. The yield reply, returns
@@ -395,7 +401,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         context : Any
             This contains information relevant to the current gRPC call.
 
-        Returns
+        Returns:
         -------
         NativeReply
             The return reply contains the status + the requested header information.
@@ -687,6 +693,7 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
 def periodic_data_creation():
     """This is a background task that periodically creates new data.
+
     This coordinates with the Connect server so that WaitForDataAccess
     only returns when new data has arrived.
 
@@ -707,11 +714,13 @@ def periodic_data_creation():
 
 
 def make_new_data():
-    """This function is called to make new data for the server. This defines both the
+    """This function is called to make new data for the server.
+
+    This defines both the
     symbol names and associated data. This is called on initialization of the TekHSI_Connect service
     and periodically to create new data. The symbols defined here well be seen by the client.
 
-    Returns
+    Returns:
     -------
     dict
         Returns a name/value dictionary defining a set of symbols and their associated waveforms.
