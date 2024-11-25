@@ -59,7 +59,6 @@ markdown_extensions:
   - def_list
   - pymdownx.snippets:
       check_paths: true
-      dedent_subsections: true
   - pymdownx.highlight:
       use_pygments: true
       pygments_style: default
@@ -90,7 +89,8 @@ plugins:
       use_default: true
       inline_refs: none
       markdown_links: true
-  - mermaid2
+  - mermaid2:
+      javascript: https://unpkg.com/mermaid@11.3.0/dist/mermaid.min.js
   - mkdocstrings:  # additional customization takes place in docs/generate_api_pages.py
       enable_inventory: true
       custom_templates: docs/_templates/mkdocstrings
@@ -98,28 +98,36 @@ plugins:
         python:  # see https://mkdocstrings.github.io/python/usage/
           paths: [src]
           options:
-            docstring_options:
-              ignore_init_summary: true
-              trim_doctest_flags: true
-            merge_init_into_class: true
-            members_order: alphabetical
-            show_inheritance_diagram: true
-            inherited_members: true
+            # General options
+            show_inheritance_diagram: true  # INSIDERS FEATURE
             show_source: false  # a link is included at the top of each page
-            docstring_section_style: list
-            filters: ['!^_', ^__init__]
-            summary: true
-            show_signature_annotations: true
-            separate_signature: true
-            line_length: 100
-            signature_crossrefs: true
-            show_labels: true
+            # Headings options
             heading_level: 1
             show_root_heading: true
             show_root_full_path: false
             show_category_heading: false
             show_symbol_type_heading: true
             show_symbol_type_toc: false
+            # Members options
+            inherited_members: true
+            members_order: alphabetical
+            filters: ['!^_', ^__init__]
+            summary: false  # Currently implemented with custom templates
+            show_labels: true
+            # Docstrings options
+            docstring_options:
+              ignore_init_summary: true
+              trim_doctest_flags: true
+            docstring_section_style: list
+            merge_init_into_class: true
+            relative_crossrefs: true  # INSIDERS FEATURE
+            scoped_crossrefs: true  # INSIDERS FEATURE
+            # Signature options
+            line_length: 100
+            modernize_annotations: false  # INSIDERS FEATURE (if the source code annotations format changes, update this to true)
+            show_signature_annotations: true
+            signature_crossrefs: true
+            separate_signature: true
           import:
             - url: https://docs.python.org/3/objects.inv
               domains: [std, py]
@@ -154,8 +162,8 @@ plugins:
       strict_only: true
 nav:  # The first entry in each section needs a hard-coded title to avoid being folded in as the section index
   - index.md
-  - Usage Guide:
-      - Basic usage: basic_usage.md
+  - The Basics:
+      - Basic Usage: basic_usage.md
       - glossary.md
       - CHANGELOG.md
   - Contributing:
