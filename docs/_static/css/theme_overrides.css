@@ -131,8 +131,7 @@ a.autorefs:hover, a.autorefs:hover code, .rst-content .admonition a.autorefs:hov
     color: #d600d6 !important;
 }
 
-/* Hide all ToC entries for auto-generated command parts. */
-li:has(> a[href^="gen_"]),
-li:has(> a[href*="/gen_"]) {
-    display: none;
+/* Remove the mermaidTooltip */
+.mermaidTooltip {
+    display: none !important;
 }

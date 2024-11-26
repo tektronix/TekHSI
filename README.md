@@ -71,10 +71,6 @@ pip install tekhsi
 
 </div>
 
-<div markdown="1" class="custom-table-center-cells device-support-table">
-
-</div>
-
 ## Documentation
 
 See the full documentation at <https://TekHSI.readthedocs.io>
