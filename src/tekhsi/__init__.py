@@ -14,9 +14,9 @@ __version__ = version(PACKAGE_NAME)
 
 __all__ = [
     "PACKAGE_NAME",
-    "configure_logging",
+    "AcqWaitOn",
     "LoggingLevels",
     "TekHSIConnect",
-    "AcqWaitOn",
     "WaveformHeader",
+    "configure_logging",
 ]
