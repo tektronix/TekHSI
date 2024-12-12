@@ -4,7 +4,7 @@ repo_url: https://github.com/tektronix/TekHSI
 edit_uri: ''
 site_author: Tektronix
 site_description: Transfer waveforms from Tektronix Oscilloscopes using the High-Speed
-  Serial Interface
+  Interface
 copyright: © Copyright 2022, Tektronix
 strict: true
 site_url: !ENV [READTHEDOCS_CANONICAL_URL, null]
