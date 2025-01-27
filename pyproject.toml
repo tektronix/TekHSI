@@ -74,11 +74,11 @@ matplotlib = [
   {python = "3.8", version = "^3.7"}
 ]
 nodeenv = "^1.9.1"
-pip = "^24.0"
+pip = "^25.0"
 poetry = "^1.8.0"
 poetry-audit-plugin = "^0.4.0"
 poetry-plugin-export = "^1.7.1"
-poetry-pre-commit-plugin = "^0.1.2"
+poetry-pre-commit-plugin = "^0.2.1"
 pre-commit = [
   {python = ">=3.9", version = "^3.7"},
   {python = "3.8", version = "^3.5"}
@@ -87,7 +87,7 @@ pylint = "3.2.7"
 pyright = {extras = ["nodejs"], version = "^1.1.387"}
 pyroma = "^4.2"
 pyvisa = "^1.14.1"
-tm_devices = "^2.3.0"
+tm_devices = "^3.1.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
 twine = "^6.0.1"
