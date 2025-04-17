@@ -106,6 +106,17 @@ synchronization using start and `*OPC?`.
 # fmt: off
 --8<-- "src/tekhsi/tek_hsi_connect.py:any_horizontal_change"
 ```
+## Transmitting an acquisition made before connecting
+There are cases in which you might want to connect and transfer waveforms that you have already acquired on the scope.
+
+To do this, we provide a the [`force_sequence()`][tekhsi.TekHSIConnect.force_sequence] method.
+
+It is important to note that this is provided for the specific case when you establish the HSI connection AFTER acquiring the data. 
+
+```python
+# fmt: off
+--8<-- "examples/force_sequence.py"
+```
 
 ## Mixing TekHSI and PyVISA
 
