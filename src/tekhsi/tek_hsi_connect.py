@@ -496,7 +496,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         acquisition.
 
         Examples:
-            from tm_data_types import AnalogWaveform, write_file
+            >>> from tm_data_types import AnalogWaveform, write_file
             from tekhsi import TekHSIConnect
 
             addr = "192.168.0.1"  # Replace with the IP address of your instrument
