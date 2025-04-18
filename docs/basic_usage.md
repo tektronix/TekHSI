@@ -109,7 +109,7 @@ synchronization using start and `*OPC?`.
 ## Transmitting an acquisition made before connecting
 There are cases in which you might want to connect and transfer waveforms that you have already acquired on the scope.
 
-To do this, we provide a the [`force_sequence()`][tekhsi.TekHSIConnect.force_sequence] method.
+To do this, we provide the [`force_sequence()`][tekhsi.TekHSIConnect.force_sequence] method.
 
 It is important to note that this is provided for the specific case when you establish the HSI connection AFTER acquiring the data. 
 
