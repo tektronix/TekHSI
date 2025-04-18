@@ -1,4 +1,4 @@
-"""A script demonstrating a way to use force_sequence to save a wfm locally"""
+"""A script demonstrating a way to use force_sequence to save a wfm locally."""
 
 from tm_data_types import AnalogWaveform, write_file
 from tekhsi import TekHSIConnect
