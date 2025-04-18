@@ -490,6 +490,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def force_sequence(self) -> None:
         """Ask the instrument to give us access to the already acquired data. 
+
         This is useful when connecting to a stopped instrument to
         get access to the currently available data. Otherwise, the API will wait until the next
         acquisition.
