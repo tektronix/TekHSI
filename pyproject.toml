@@ -60,7 +60,7 @@ numpy = [
   {python = "^3.8, <3.12", version = "^1.24"}
 ]
 protobuf = "^5.28.1"
-python = "^3.8, <3.13"
+python = "^3.8,!=3.9.0,!=3.9.1"  # This is the main Python version requirement, the excluded versions of Python had major bugs and shouldn't be used
 python-dateutil = "^2.8.2"
 tm_data_types = "^0.1.0"
 typing_extensions = "^4.12.0"
@@ -74,11 +74,11 @@ matplotlib = [
   {python = "3.8", version = "^3.7"}
 ]
 nodeenv = "^1.9.1"
-pip = "^24.0"
+pip = "^25.0"
 poetry = "^1.8.0"
 poetry-audit-plugin = "^0.4.0"
 poetry-plugin-export = "^1.7.1"
-poetry-pre-commit-plugin = "^0.1.2"
+poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = [
   {python = ">=3.9", version = "^3.7"},
   {python = "3.8", version = "^3.5"}
