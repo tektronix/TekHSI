@@ -55,6 +55,10 @@ version = "1.0.0"
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"
 grpcio = "^1.51.3"
+llvmlite = [
+  {python = ">=3.8,<3.9", version = "^0.41.0"},
+  {python = ">=3.9,<4.0", version = "^0.43.0"}
+]
 numpy = [
   {python = "^3.9", version = "^1.26"},
   {python = "^3.8, <3.12", version = "^1.24"}
