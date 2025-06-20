@@ -1,9 +1,10 @@
-"""Unit tests for the TekHSI client functionality."""
+"""Unit tests for the TekHSI client functionality ."""
 
 import sys
 
+from collections.abc import Callable
 from io import StringIO
-from typing import Callable, Dict, List, Optional, Type
+from typing import Optional
 from unittest.mock import patch
 
 import numpy as np
@@ -78,8 +79,8 @@ def test_server_connection(
     ],
 )
 def test_any_acq(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_acq method of TekHSIConnect.
@@ -172,8 +173,8 @@ def test_any_acq(
     ],
 )
 def test_any_horizontal_change(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_horizontal_change method of TekHSIConnect.
@@ -244,8 +245,8 @@ def test_any_horizontal_change(
     ],
 )
 def test_any_vertical_change(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_vertical_change method of TekHSIConnect.
@@ -269,7 +270,7 @@ def test_any_vertical_change(
 def test_set_acq_filter(
     tekhsi_client: TekHSIConnect,
     acq_filter: Callable,
-    expected_exception: Type[BaseException],
+    expected_exception: type[BaseException],
     expected_message: str,
 ) -> None:
     """Test the set_acq_filter method of TekHSIConnect.
@@ -303,7 +304,7 @@ def test_set_acq_filter(
 def test_get_data(
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
-    data_cache: Dict[str, str],
+    data_cache: dict[str, str],
     name: str,
     expected_result: Optional[str],
 ) -> None:
@@ -462,7 +463,7 @@ def test_wait_for_data(  # noqa: PLR0913
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     acqtime: int,
     lastacqseen: int,
@@ -515,7 +516,7 @@ def test_wait_for_data(  # noqa: PLR0913
         (["ch1", "ch1_iq", "ch2", "ch3", "math1", "math2"]),  # Default symbols
     ],
 )
-def test_available_symbols(tekhsi_client: TekHSIConnect, expected_symbols: List[str]) -> None:
+def test_available_symbols(tekhsi_client: TekHSIConnect, expected_symbols: list[str]) -> None:
     """Test the available_symbols property of TekHSIConnect.
 
     Args:
@@ -575,7 +576,7 @@ def test_instrumentation_enabled(
     ],
 )
 def test_source_names(
-    tekhsi_client: TekHSIConnect, initial_symbols: List[str], expected_symbols: List[str]
+    tekhsi_client: TekHSIConnect, initial_symbols: list[str], expected_symbols: list[str]
 ) -> None:
     """Test the source_names property of TekHSIConnect.
 
@@ -637,7 +638,7 @@ def test_wait_for_data_acq_time(  # noqa: PLR0913
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     acqtime: int,
     lastacqseen: int,
@@ -691,7 +692,7 @@ def test_wait_for_data_any_acq(
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
@@ -740,7 +741,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     lastacqseen: int,
     expected_wait_for_data_count: int,
@@ -797,7 +798,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     ],
 )
 def test_read_waveforms(
-    tekhsi_client: TekHSIConnect, headers: List[WaveformHeader], expected_datasize: int
+    tekhsi_client: TekHSIConnect, headers: list[WaveformHeader], expected_datasize: int
 ) -> None:
     """Test the _read_waveforms method of TekHSIConnect.
 
@@ -846,7 +847,7 @@ def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler) -> None:
         ([WaveformHeader(dataid=3)], 3),  # Single header
     ],
 )
-def test_acq_id(headers: List[WaveformHeader], expected: int) -> None:
+def test_acq_id(headers: list[WaveformHeader], expected: int) -> None:
     """Test the _acq_id method of TekHSIConnect.
 
     Args:
@@ -883,7 +884,7 @@ def test_read_waveform_analog(
     tekhsi_client: TekHSIConnect,
     header: WaveformHeader,
     response_data: bytes,
-    expected_waveform_type: Type[Waveform],
+    expected_waveform_type: type[Waveform],
     expected_length: int,
 ) -> None:
     """Test reading an analog or IQ waveform.
@@ -1083,7 +1084,7 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
         tekhsi_client: An instance of the TekHSI client to be tested.
     """
 
-    def real_callback(waveforms_inner: List[str]) -> None:
+    def real_callback(waveforms_inner: list[str]) -> None:
         assert waveforms_inner == ["waveform1", "waveform2"]
 
     tekhsi_client._callback = real_callback

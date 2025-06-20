@@ -54,47 +54,33 @@ version = "1.0.0"
 
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"
+cryptography = "^44.0.1"
 grpcio = "^1.51.3"
+jinja2 = "^3.1.6"
 numpy = [
-  {python = "^3.9", version = "^1.26"},
-  {python = "^3.8, <3.12", version = "^1.24"}
+  {python = ">=3.9", version = "^1.26"}
 ]
 protobuf = "^5.28.1"
-python = "^3.8, <3.13"
+python = ">=3.9.2,<3.13"
 python-dateutil = "^2.8.2"
 tm_data_types = "^0.1.0"
 typing_extensions = "^4.12.0"
 tzlocal = "^5.2"
 
 [tool.poetry.group.dev.dependencies]
-docutils = "^0.20"  # TODO: Drop Python 3.8: remove this when the minimum Python version is >=3.9
+docutils = "^0.20"
 docutils-stubs = "^0.0.22"
 matplotlib = [
-  {python = ">=3.9", version = "^3.8"},
-  {python = "3.8", version = "^3.7"}
+  {python = ">=3.9", version = "^3.8"}
 ]
 nodeenv = "^1.9.1"
-pip = "^24.0"
+pip = ">=24.0"
 poetry = "^1.8.0"
 poetry-audit-plugin = "^0.4.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.1.2"
-pre-commit = [
-  {python = ">=3.9", version = "^3.7"},
-  {python = "3.8", version = "^3.5"}
-]
-pylint = "3.2.7"
-pyright = {extras = ["nodejs"], version = "^1.1.387"}
-pyroma = "^4.2"
-pyvisa = "^1.14.1"
-tm_devices = "^2.3.0"
-tox = "^4.0"
-tox-gh-actions = "^3.1.0"
-twine = "^6.0.1"
-types-python-dateutil = "^2.9"
-types-pyyaml = "^6.0"
-types-requests = "^2.31"
-wheel = "^0.45"
+pre-commit = "^3.7"
+pylint = "3.3.7"
 
 [tool.poetry.group.docs.dependencies]
 black = "^24.4.2"
@@ -134,6 +120,9 @@ pytest-order = "^1.2.1"
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/tektronix/TekHSI/issues"
 "Changelog" = "https://github.com/tektronix/TekHSI/blob/main/CHANGELOG.md"
+
+[tool.poetry-audit]
+ignore = ["PVE-2025-75180"]
 
 [tool.pylint.basic]
 good-names = ["_"]
@@ -175,7 +164,7 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.8"
+py-version = "3.9"
 recursive = true
 
 [tool.pylint."messages control"]
@@ -226,7 +215,7 @@ ignore = [
   "temp_*.py"
 ]
 pythonPlatform = "All"
-pythonVersion = "3.8"
+pythonVersion = "3.9"
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -266,7 +255,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py38"  # always generate Python 3.8 compatible code
+target-version = "py39"  # always generate Python 3.9 compatible code
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -371,15 +360,14 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py38,py39,py310,py311,py312,tests,docs,doctests
+envlist = py39,py310,py311,py312,tests,docs,doctests
 skip_missing_interpreters = True
 labels =
-  basic = py38,py39,py310,py311,py312,tests
+  basic = py39,py310,py311,py312,tests
   documentation = docs,doctests
 
 [gh-actions]
 python =
-    3.8: py38
     3.9: py39
     3.10: py310
     3.11: py311
