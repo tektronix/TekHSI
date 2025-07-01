@@ -15,7 +15,7 @@ jobs:
     uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-package-build.yml@v1.7.3
     with:
       package-name: tekhsi
-      python-versions-array: '["3.9", "3.10", "3.11", "3.12"]'  # Removed 3.8 support
+      python-versions-array: '["3.9.2", "3.10", "3.11", "3.12"]'  # Removed 3.8 support
       operating-systems-array: '["ubuntu", "windows", "macos"]'
     permissions:
       contents: read
