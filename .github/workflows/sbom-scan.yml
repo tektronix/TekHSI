@@ -10,6 +10,9 @@ on:
 jobs:
   sbom-scan:
     uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-sbom-scan.yml@v1.7.3
+    with:
+      severity-cutoff: medium  # add this line if supported
+      fail-build: true  # ensure failure happens only if severity >= medium
     permissions:
       security-events: write
       contents: write
