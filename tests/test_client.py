@@ -1,4 +1,4 @@
-"""Unit tests for the TekHSI client functionality ."""
+"""Unit tests for the TekHSI client functionality."""
 
 import sys
 
