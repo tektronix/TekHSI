@@ -5,7 +5,7 @@ ci:
   autofix_prs: false
   autoupdate_schedule: quarterly
   skip:
-    - check-poetry
+    - poetry-check
     - pylint
 #    - pyright
 #    - pyright-verifytypes
@@ -39,7 +39,7 @@ repos:
       - id: remove-tabs
       - id: forbid-tabs
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: cb3c2be894b151dff143b1baf6acbd55f2b7faed  # frozen: 0.30.0
+    rev: 54da05914997e6b04e4db33ed6757d744984c68b  # frozen: 0.33.2
     hooks:
       - id: check-readthedocs
       - id: check-dependabot
@@ -47,12 +47,12 @@ repos:
       - id: check-github-workflows
         args: [--verbose]
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: 060504a904804d5314d4db5dd12aa8751717ffc7  # frozen: v1.7.4.20
+    rev: a185be0fd5b45112845b700d91b81050c75579e2  # frozen: v1.7.7.23
     hooks:
       - id: actionlint
         additional_dependencies: [pyflakes, shellcheck-py]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 76efedd776e04c9604a1d54fef389a292cbf7768  # frozen: v4.0.0
+    rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -65,13 +65,12 @@ repos:
     hooks:
       - id: curlylint
   - repo: https://github.com/executablebooks/mdformat
-    rev: 08fba30538869a440b5059de90af03e3502e35fb  # frozen: 0.7.17
+    rev: ff29be1a1ba8029d9375882aa2c812b62112a593  # frozen: 0.7.22
     hooks:
       - id: mdformat
         args: [--number, --end-of-line, keep, --ignore-missing-references]
         additional_dependencies:
           - setuptools  # This is required since Python 3.12 no longer installs setuptools by default in virtual environments
-          - mdformat-admon
           - mdformat-black  # This may need to be updated/removed in the future once ruff supports formatting python code blocks in markdown
           - mdformat-beautysh
           - mdformat-config
@@ -91,7 +90,7 @@ repos:
     hooks:
       - id: check-poetry
   - repo: https://github.com/pappasam/toml-sort
-    rev: b9b6210da457c38122995e434b314f4c4a4a923e  # frozen: v0.23.1
+    rev: 4ec24891e200ae663aa2a7cecd19516080777133  # frozen: v0.24.2
     hooks:
       - id: toml-sort-fix
   - repo: local
@@ -126,21 +125,26 @@ repos:
         args: [., --min=10]
       - id: poetry-audit
         name: poetry-audit
-        entry: poetry
+        entry: poetry audit
         language: system
-        types: [toml]
         pass_filenames: false
         always_run: true
-        args: [audit, --json, --ignore-code=CVE-2019-8341]
+        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
+        args: [--json, --ignore-code=CVE-2019-8341]
+      - id: poetry-check
+        name: poetry-check
+        entry: poetry check
+        language: system
+        pass_filenames: false
+        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 859e42ab7d54544f32d4f73bbc2136a7d9094f54  # frozen: v0.8.1
+    rev: 0b19ef1fd6ad680ed7752d6daba883ce1265a6de  # frozen: v0.12.2
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
-  # TODO: Re-enable this once https://github.com/PyCQA/docformatter/issues/293 is resolved
-  #  - repo: https://github.com/PyCQA/docformatter
-  #    rev: dfefe062799848234b4cd60b04aa633c0608025e  # frozen: v1.7.5
-  #    hooks:
-  #      - id: docformatter
-  #        additional_dependencies: [tomli]
+  - repo: https://github.com/PyCQA/docformatter
+    rev: e73b8ba0c1316be565983236c72e653ad44e6b66  # frozen: v1.7.7
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]

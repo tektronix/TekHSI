@@ -10,11 +10,11 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   test-code:
-    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-test-code.yml@v1.6.2
+    uses: tektronix/python-package-ci-cd/.github/workflows/_reusable-test-code.yml@v1.7.5
     with:
       repo-name: tektronix/TekHSI
       operating-systems-array: '["ubuntu", "windows", "macos"]'
-      python-versions-array: '["3.8", "3.9", "3.10", "3.11", "3.12"]'  # when updating this, make sure to update all workflows that use this strategy
+      python-versions-array: '["3.9", "3.10", "3.11", "3.12", 3.13]'  # when updating this, make sure to update all workflows that use this strategy
       upload-to-codecov: true
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}

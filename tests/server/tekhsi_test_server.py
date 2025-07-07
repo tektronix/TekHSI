@@ -694,8 +694,8 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 def periodic_data_creation():
     """This is a background task that periodically creates new data.
 
-    This coordinates with the Connect server so that WaitForDataAccess
-    only returns when new data has arrived.
+    This coordinates with the Connect server so that WaitForDataAccess only returns when new data
+    has arrived.
 
     If you want to change the named sets of data returned you should modify 'make_new_data()'
     """
