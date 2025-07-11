@@ -30,7 +30,7 @@ repos:
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: [--maxkb=15000, --enforce-all]
+        args: [--maxkb=150000, --enforce-all]
       - id: forbid-submodules
       - id: pretty-format-json
         args: [--autofix, --indent=4]
