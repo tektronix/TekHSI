@@ -30,7 +30,7 @@ repos:
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: [--maxkb=150000, --enforce-all]
+        args: [--maxkb=15000, --enforce-all]
       - id: forbid-submodules
       - id: pretty-format-json
         args: [--autofix, --indent=4]
@@ -141,7 +141,7 @@ repos:
         language: system
         pass_filenames: false
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
- #        args: [--strict]  # TODO: enable this when poetry can be updated to v2+
+#        args: [--strict]  # TODO: enable this when poetry can be updated to v2+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 0b19ef1fd6ad680ed7752d6daba883ce1265a6de  # frozen: v0.12.2
     hooks:
