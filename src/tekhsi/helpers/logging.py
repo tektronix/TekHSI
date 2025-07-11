@@ -39,6 +39,7 @@ class LoggingLevels(Enum):
     """An enum member indicating no logging messages should be captured."""
 
 
+# pylint: disable=import-outside-toplevel
 def configure_logging(
     *,
     log_console_level: Union[str, LoggingLevels] = LoggingLevels.INFO,
@@ -71,7 +72,7 @@ def configure_logging(
         The base logger for the package, this base logger can also be accessed using
             `logging.getLogger(tekhsi.PACKAGE_NAME)`.
     """
-    from tekhsi.helpers.constants import (  # pylint: disable=import-outside-toplevel
+    from tekhsi.helpers.constants import (  # noqa: PLC0415
         PACKAGE_NAME,
     )
 

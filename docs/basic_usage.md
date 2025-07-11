@@ -6,6 +6,7 @@ This example shows how to use `TekHSI` and `tm_data_types` to pull analog wavefo
 Tektronix oscilloscope and save them to a csv file very easily.
 
 !!! important
+
     Matching the type of waveform with the channel type is critical. See the
     [supported data types section](#supported-data-types) for more information.
 

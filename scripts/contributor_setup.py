@@ -54,7 +54,7 @@ def main() -> None:
         if sys.version_info < (3, 9):
             msg = (
                 "Unable to set up the environment. "
-                "Please use a Python version greater than 3.8 for "
+                "Please use a Python version greater than 3.9 for "
                 "local development on this package."
             )
             raise SystemExit(msg)

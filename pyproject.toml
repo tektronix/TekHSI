@@ -34,6 +34,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.9",  # manually add this classifier since Poetry won't add it automatically due to the mimimum Python version being 3.9.2  # TODO: Drop Python 3.9: Remove this classifier
   "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers"
@@ -56,35 +57,34 @@ version = "1.0.0"
 colorlog = "^6.9.0"
 grpcio = "^1.51.3"
 numpy = [
-  {python = "^3.9", version = "^1.26"},
-  {python = "^3.8, <3.12", version = "^1.24"}
+  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  {python = ">=3.9,<3.13", version = "^1.24"},
+  {python = ">=3.13", version = "^2.1"}
 ]
 protobuf = "^5.28.1"
-python = "^3.8, <3.13"
+python = ">=3.9.2,<3.14"  # This is the main Python version requirement
 python-dateutil = "^2.8.2"
-tm_data_types = "^0.1.0"
+tm_data_types = "^0.2.0"
 typing_extensions = "^4.12.0"
 tzlocal = "^5.2"
 
 [tool.poetry.group.dev.dependencies]
-docutils = "^0.20"  # TODO: Drop Python 3.8: remove this when the minimum Python version is >=3.9
 docutils-stubs = "^0.0.22"
-matplotlib = [
-  {python = ">=3.9", version = "^3.8"},
-  {python = "3.8", version = "^3.7"}
-]
+matplotlib = "^3.8"
 nodeenv = "^1.9.1"
-pip = "^24.0"
+numpy = [
+  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  {python = ">=3.9,<3.13", version = "^1.24"},
+  {python = ">=3.13", version = "^2.1"}
+]
+pip = "^25.0"
 poetry = "^1.8.0"
 poetry-audit-plugin = "^0.4.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.1.2"
-pre-commit = [
-  {python = ">=3.9", version = "^3.7"},
-  {python = "3.8", version = "^3.5"}
-]
-pylint = "3.2.7"
-pyright = {extras = ["nodejs"], version = "^1.1.387"}
+pre-commit = "^4.2"
+pylint = "3.3.7"
+pyright = {extras = ["nodejs"], version = "1.1.402"}
 pyroma = "^4.2"
 pyvisa = "^1.14.1"
 tm_devices = "^2.3.0"
@@ -94,28 +94,28 @@ twine = "^6.0.1"
 types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
-wheel = "^0.45"
+wheel = "^0.45.0"
 
 [tool.poetry.group.docs.dependencies]
 black = "^24.4.2"
 codespell = "^2.2.6"
 griffe = "^1.1.0"
 mkdocs = "^1.6.0"
-mkdocs-ezglossary-plugin = "^1.6.10"
+mkdocs-ezglossary-plugin = "^2.0.0"
 mkdocs-gen-files = "^0.5.0"
-mkdocs-include-markdown-plugin = "^6.0.5"
+mkdocs-include-markdown-plugin = "^7.1.5"
 mkdocs-literate-nav = "^0.6.1"
 mkdocs-macros-plugin = "^1.0.5"
 mkdocs-mermaid2-plugin = "^1.1.1"
 mkdocs-section-index = "^0.3.9"
 mkdocs-spellcheck = "^1.1.0"
-mkdocstrings = "^0.26.1"
+mkdocstrings = "^0.29.1"
 mkdocstrings-python = "^1.10.2"
 nodeenv = "^1.9.1"
 packaging = "^24.2"
 pygments = "^2.17.2"
 pymdown-extensions = "^10.8.1"
-requests = "^2.32.3"
+requests = "^2.31.0"
 symspellpy = "^6.7.7"
 tomli = "^2.0.1"
 
@@ -175,7 +175,7 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.8"
+py-version = "3.9"
 recursive = true
 
 [tool.pylint."messages control"]
@@ -183,6 +183,7 @@ enable = ["all"]
 disable = [
   "broad-exception-caught",  # caught by ruff
   "consider-using-with",  # TODO: enable this check
+  "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
   "fixme",  # caught by ruff
   "global-statement",  # caught by ruff
@@ -226,7 +227,7 @@ ignore = [
   "temp_*.py"
 ]
 pythonPlatform = "All"
-pythonVersion = "3.8"
+pythonVersion = "3.9"
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -266,7 +267,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py38"  # always generate Python 3.8 compatible code
+target-version = "py39"  # always generate Python 3.8 compatible code
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -284,7 +285,10 @@ ignore = [
   "UP006",  # Use {to} instead of {from} for type annotation (allowed in this package)
   "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
-  "UP037"  # Remove quotes from type annotation (allowed in this package)
+  "UP035",  # Use `X | Y` for type annotations # TODO: Drop Python 3.9: enable this check
+  "UP036",  # Use `X | Y` for type annotations # TODO: Drop Python 3.9: enable this check
+  "UP037",  # Remove quotes from type annotation (allowed in this package)
+  "UP045"  # Use `X | None` for type annotations # TODO: Drop Python 3.9: enable this check
 ]
 pydocstyle = {convention = "google"}
 pylint = {max-args = 7}
@@ -371,19 +375,19 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py38,py39,py310,py311,py312,tests,docs,doctests
+envlist = py39,py310,py311,py312,py313,tests,docs,doctests
 skip_missing_interpreters = True
 labels =
-  basic = py38,py39,py310,py311,py312,tests
+  basic = py39,py310,py311,py312,py313,tests
   documentation = docs,doctests
 
 [gh-actions]
 python =
-    3.8: py38
     3.9: py39
     3.10: py310
     3.11: py311
     3.12: py312
+    3.13: py313
 
 [testenv]
 package = wheel
@@ -393,14 +397,14 @@ deps =
 setenv =
     COVERAGE_FILE = .coverage_{envname}
     DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
-    # Skip pre-commit checks that are not needed (yamlfix should be removed from this list once Python 3.8 support is dropped)
-    SKIP = file-contents-sorter,yamlfix
+    # Skip pre-commit checks that are not needed
+    SKIP = file-contents-sorter
 commands_pre =
     python -m poetry install --no-root --without=main
 commands =
-    !tests: python -c "import shutil; shutil.rmtree('dist_{envname}', ignore_errors=True)"
-    !tests: poetry build --output=dist_{envname}
-    !tests: twine check --strict dist_{envname}/*
+    !tests: python -c "import shutil; shutil.rmtree('.dist_{envname}', ignore_errors=True)"
+    !tests: poetry build --output=.dist_{envname}
+    !tests: twine check --strict .dist_{envname}/*
     !tests: pre-commit run --all-files
     pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 

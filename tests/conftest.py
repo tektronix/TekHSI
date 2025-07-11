@@ -6,10 +6,11 @@ import sys
 import time
 
 from abc import ABC
+from collections.abc import Generator
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Type, Union
+from typing import Dict, List, Optional, Type, Union
 
 import grpc
 import psutil

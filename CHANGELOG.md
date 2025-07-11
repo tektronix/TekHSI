@@ -18,7 +18,13 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+### Removed
+
+- Python 3.8 support has been removed from the package. The minimum supported version is now Python 3.9.
+
 ### Added
+
+- Added support for Python 3.13.
 
 - Added an installation section to the main README.
 
@@ -79,7 +85,7 @@ Things to be included in the next release go here.
 - tests: Update test_client.py for tests to run efficiently on tox. ([#8](https://github.com/tektronix/TekHSI/pull/8))
 - fix: Resolved some security issues flagged by CodeQL ([#4](https://github.com/tektronix/TekHSI/pull/4))
 - build: Update dependencies to temporarily use the GitHub repo for tm_data_types ([#2](https://github.com/tektronix/TekHSI/pull/2))
-- fix: Updated line endings in  known_words.txt ([#1](https://github.com/tektronix/TekHSI/pull/1))
+- fix: Updated line endings in known_words.txt ([#1](https://github.com/tektronix/TekHSI/pull/1))
 
 ### Added
 
