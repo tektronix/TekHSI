@@ -61,7 +61,7 @@ version = "1.0.0"
 
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"
-grpcio = ">=1.53.2,<1.56.0"
+grpcio = "^1.51.3"
 numpy = [
   # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
   {python = ">=3.9,<3.13", version = "^1.24"},
