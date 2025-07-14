@@ -25,7 +25,6 @@ Things to be included in the next release go here.
 ### Added
 
 - Added support for Python 3.13.
-
 - Added an installation section to the main README.
 
 ### Changed
