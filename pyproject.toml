@@ -206,9 +206,11 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
+  "too-many-positional-arguments",  # caught by ruff
   "too-many-statements",  # caught by ruff
   "too-many-statements",  # caught by ruff
   "undefined-variable",  # caught by ruff
+  "unnecessary-default-type-args",  # caught by ruff
   "unused-argument",  # caught by ruff
   "unused-import",  # caught by ruff
   "use-implicit-booleaness-not-comparison-to-string",  # caught by ruff
