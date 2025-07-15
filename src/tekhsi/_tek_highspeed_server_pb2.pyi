@@ -232,9 +232,14 @@ class ConnectStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 
 class WfmReplyStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = []
-    WFMREPLYSTATUS_SUCCESS = 0
-    WFMREPLYSTATUS_ERROR = 1
-    WFMREPLYSTATUS_UNKNOWN = 2
+    WFMREPLYSTATUS_NO_CONNECTION_FAILURE = 0
+    WFMREPLYSTATUS_OUTSIDE_SEQUENCE_FAILURE = 1
+    WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE = 2
+    WFMREPLYSTATUS_SUCCESS = 3
+    WFMREPLYSTATUS_ERROR = 4
+    WFMREPLYSTATUS_UNKNOWN = 5
+    WFMREPLYSTATUS_TYPE_MISMATCH_FAILURE = 6
+    WFMREPLYSTATUS_UNSPECIFIED = 7
 
 class WfmPairType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = []
