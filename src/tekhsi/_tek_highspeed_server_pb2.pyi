@@ -25,6 +25,8 @@ WFMREPLYSTATUS_NO_CONNECTION_FAILURE: WfmReplyStatus
 WFMREPLYSTATUS_OUTSIDE_SEQUENCE_FAILURE: WfmReplyStatus
 WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE: WfmReplyStatus
 WFMREPLYSTATUS_SUCCESS: WfmReplyStatus
+WFMREPLYSTATUS_ERROR: WfmReplyStatus
+WFMREPLYSTATUS_UNKNOWN: WfmReplyStatus
 WFMREPLYSTATUS_TYPE_MISMATCH_FAILURE: WfmReplyStatus
 WFMREPLYSTATUS_UNSPECIFIED: WfmReplyStatus
 WFMTYPE_ANALOG_16: WfmType
@@ -230,6 +232,9 @@ class ConnectStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 
 class WfmReplyStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = []
+    WFMREPLYSTATUS_SUCCESS = 0
+    WFMREPLYSTATUS_ERROR = 1
+    WFMREPLYSTATUS_UNKNOWN = 2
 
 class WfmPairType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = []

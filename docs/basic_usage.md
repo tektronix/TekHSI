@@ -79,7 +79,7 @@ for more information.
 
 An acquisition filter allows custom rules to be applied that can be used to filter (or restrict)
 the acquisitions that are accepted for processing by the client. Normally the filter is set to `None`,
-which let's all acquisitions through. However, there are several predefined filters that can be used:
+which lets all acquisitions through. However, there are several predefined filters that can be used:
 
 - [`any_acq`][tekhsi.TekHSIConnect.any_acq] - This is equivalent to setting the acquisition filter
     to `None`, and it allows all acquisitions to be processed.
