@@ -39,7 +39,7 @@ repos:
       - id: remove-tabs
       - id: forbid-tabs
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: cb3c2be894b151dff143b1baf6acbd55f2b7faed  # frozen: 0.30.0
+    rev: 54da05914997e6b04e4db33ed6757d744984c68b  # frozen: 0.33.2
     hooks:
       - id: check-readthedocs
       - id: check-dependabot
@@ -47,12 +47,12 @@ repos:
       - id: check-github-workflows
         args: [--verbose]
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: 060504a904804d5314d4db5dd12aa8751717ffc7  # frozen: v1.7.4.20
+    rev: a185be0fd5b45112845b700d91b81050c75579e2  # frozen: v1.7.7.23
     hooks:
       - id: actionlint
         additional_dependencies: [pyflakes, shellcheck-py]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 76efedd776e04c9604a1d54fef389a292cbf7768  # frozen: v4.0.0
+    rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -133,7 +133,7 @@ repos:
         always_run: true
         args: [audit, --json, --ignore-code=CVE-2019-8341]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 859e42ab7d54544f32d4f73bbc2136a7d9094f54  # frozen: v0.8.1
+    rev: 6c5418a077bd954e7078087a655421b85772095b  # frozen: v0.12.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
