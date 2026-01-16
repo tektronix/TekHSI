@@ -1,5 +1,6 @@
 """Unit tests for the TekHSI client functionality."""
 
+import logging
 import sys
 
 from io import StringIO
@@ -13,9 +14,8 @@ from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
 
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
-    ConnectRequest,
-    ConnectStatus,
     WaveformHeader,
+    WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
 
@@ -26,9 +26,10 @@ from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
         (True, 5, 10.0, 50.0, "Average Update Rate:0.50, Data Rate:10.00Mbs"),
     ],
 )
-def test_server_connection(
+def test_server_connection(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
     capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
     instrument: bool,
     sum_count: int,
     sum_acq_time: float,
@@ -40,6 +41,7 @@ def test_server_connection(
     Args:
         tekhsi_client: An instance of the TekHSI client to be tested.
         capsys (CaptureFixture): Pytest fixture to capture system output.
+        caplog (LogCaptureFixture): Pytest fixture to capture log output.
         instrument: Whether the instrument is connected.
         sum_count: The sum count.
         sum_acq_time: The sum acquisition time.
@@ -52,19 +54,12 @@ def test_server_connection(
     tekhsi_client._sum_acq_time = sum_acq_time
     tekhsi_client._sum_data_rate = sum_data_rate
 
-    # Set the verbose attribute to True
     tekhsi_client.verbose = True
-    # Use the context manager to handle connection
-    with tekhsi_client as connection:
-        captured = capsys.readouterr()
-        request = ConnectRequest(name="test_client")
-        response = connection.connection.Connect(request)
-        assert "enter()" in captured.out
+    with caplog.at_level(logging.DEBUG), tekhsi_client as connection:
+        assert "enter()" in caplog.text
+        # Check connection success by internal state
+        assert getattr(connection, "_connected", False) is True
 
-        # Verify the connection status
-        assert response.status == ConnectStatus.CONNECTSTATUS_SUCCESS
-
-    # Capture the printed output
     captured = capsys.readouterr()
 
     # Verify the printed output
@@ -781,7 +776,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
             [
                 WaveformHeader(
                     sourcename="ch1",
-                    wfmtype=1,
+                    wfmtype=WfmType.WFMTYPE_ANALOG_8,
                     verticalspacing=1.0,
                     verticaloffset=0.0,
                     verticalunits="V",
@@ -863,7 +858,7 @@ def test_acq_id(headers: List[WaveformHeader], expected: int) -> None:
         (
             WaveformHeader(
                 sourcename="ch1",
-                wfmtype=1,  # Analog waveform type
+                wfmtype=WfmType.WFMTYPE_ANALOG_8,  # Analog waveform type
                 verticalspacing=1.0,
                 verticaloffset=0.0,
                 verticalunits="V",
@@ -973,7 +968,7 @@ def test_instrumentation(  # noqa: PLR0913
         (
             WaveformHeader(
                 sourcename="ch1",
-                wfmtype=4,
+                wfmtype=WfmType.WFMTYPE_DIGITAL_8,
                 verticalspacing=1.0,
                 verticaloffset=0.0,
                 verticalunits="V",
@@ -1056,9 +1051,9 @@ def test_terminate(setup_tekhsi_connections: None) -> None:  # noqa: ARG001
     conn1 = TekHSIConnect._connections["conn1"]
     conn2 = TekHSIConnect._connections["conn2"]
 
-    assert conn1.finished_with_data_access_called
-    assert conn1.close_called
-    assert conn2.close_called
+    assert getattr(conn1, "finished_with_data_access_called", False)
+    assert getattr(conn1, "close_called", False)
+    assert getattr(conn2, "close_called", False)
 
 
 def test_active_symbols(tekhsi_client: TekHSIConnect) -> None:

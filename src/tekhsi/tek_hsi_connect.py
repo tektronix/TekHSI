@@ -436,11 +436,24 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         _logger.debug("close")
 
+        # Mark as disconnected early to prevent new operations
+        was_connected = self._connected
+        self._connected = False
+
         # This will force the scope to give the background
         # thread access to data. That should cause it to exit.
         try:
             self.thread_active = False
-            self.force_sequence()
+            if was_connected:
+                try:
+                    self.force_sequence()
+                except grpc.RpcError as rpc_error:
+                    # Handle gRPC errors gracefully during cleanup
+                    _logger.log(
+                        logging.WARNING if self.verbose else logging.DEBUG,
+                        "Error during force_sequence in close: %s",
+                        rpc_error,
+                    )
             # Wait for thread to exit
             self.thread.join(20.0)
         except RuntimeError as error:
@@ -495,6 +508,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         get access to the currently available data. Otherwise, the API will wait until the next
         acquisition.
         """
+        if not self._connected:
+            _logger.debug("force_sequence skipped - not connected")
+            return
+
         _logger.debug("force_sequence")
         request = ConnectRequest(name=self.clientname)
         self.connection.RequestNewSequence(request)
@@ -597,12 +614,27 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def _disconnect(self) -> None:
         """Disconnect from gRPC server."""
-        if not self._connected:
-            return
-        self._connected = False
+        # Note: _connected may already be False if called from close()
+        # but we still want to attempt the disconnect RPC call for cleanup
         _logger.debug("disconnect")
-        request = ConnectRequest(name=self.clientname)
-        self.connection.Disconnect(request)
+        try:
+            request = ConnectRequest(name=self.clientname)
+            self.connection.Disconnect(request)
+        except grpc.RpcError as rpc_error:
+            # Handle gRPC errors gracefully during disconnect
+            # This can happen if the server is already shutting down or connection is in a bad state
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "Error during disconnect: %s",
+                rpc_error,
+            )
+        except Exception as error:  # noqa: BLE001
+            # Handle any other unexpected errors during disconnect
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "Unexpected error during disconnect: %s",
+                error,
+            )
 
     def _done_with_data_release_lock(self) -> None:
         """Releases the lock after accessing the required data."""

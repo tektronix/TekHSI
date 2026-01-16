@@ -581,25 +581,38 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
     def RequestNewSequence(self, request, context):
         try:
-            if verbose:
-                if self._connections.get(request.name):
-                    print(f'RequestNewSequence Success "{request.name}"')
-                else:
+            # Validate connection exists before proceeding
+            if not self._connections.get(request.name):
+                if verbose:
                     print(f'RequestNewSequence Failed - No Connection "{request.name}"')
+                # Return OK status but with UNSPECIFIED to indicate the operation didn't proceed
+                # This is more graceful than FAILED_PRECONDITION for cleanup scenarios
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
+
+            if verbose:
+                print(f'RequestNewSequence Success "{request.name}"')
 
             global connect_server
-            mutex.acquire()
-            if verbose:
-                print("mutex-acquired: RequestNewSequence")
-            self._channels = make_new_data()
-            self._new_data = True
-            mutex.release()
-            if verbose:
-                print("mutex-released: RequestNewSequence")
-            context.set_code(grpc.StatusCode.OK)
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
-            )
+            mutex_acquired = False
+            try:
+                mutex.acquire()
+                mutex_acquired = True
+                if verbose:
+                    print("mutex-acquired: RequestNewSequence")
+                self._channels = make_new_data()
+                self._new_data = True
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                )
+            finally:
+                if mutex_acquired:
+                    mutex.release()
+                    if verbose:
+                        print("mutex-released: RequestNewSequence")
         except Exception as e:
             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
             if verbose:

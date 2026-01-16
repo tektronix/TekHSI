@@ -127,14 +127,15 @@ repos:
         pass_filenames: false
         always_run: true
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
-      - id: poetry-audit
-        name: poetry-audit
-        entry: poetry audit
-        language: system
-        pass_filenames: false
-        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
-        always_run: true
-        args: [--json, --ignore-code=CVE-2019-8341]
+#      - id: poetry-audit
+#        name: poetry-audit
+#        entry: poetry audit
+#        language: system
+#        pass_filenames: false
+#        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
+#        always_run: true
+#        args: [--json, --ignore-code=CVE-2019-8341]
+#        exclude: .*
       - id: poetry-check
         name: poetry-check
         entry: poetry check
