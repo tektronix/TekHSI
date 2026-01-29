@@ -85,7 +85,7 @@ class TestServerManager:
         """Check if the port is currently in use."""
         for proc in psutil.process_iter(["pid", "name"]):
             try:
-                for conn in proc.connections(kind="inet"):
+                for conn in proc.net_connections(kind="inet"):
                     if conn.laddr.port == self.port:
                         return proc.pid
             except (psutil.AccessDenied, psutil.NoSuchProcess):  # noqa: PERF203

@@ -20,8 +20,6 @@ from threading import Lock, Thread
 import grpc
 import numpy as np
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
-
 import tekhsi._tek_highspeed_server_pb2 as tekhsi_pb2
 import tekhsi._tek_highspeed_server_pb2_grpc as tekhsi_pb2_grpc
 
@@ -317,11 +315,11 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                     reply.headerordata.header.sourcename = request.sourcename
                     reply.headerordata.header.sourcewidth = 4
 
-                    if isinstance(data, AnalogWaveform):  # noqa: F821
+                    if wfm.encoding in (WfmEncoding.Sine, WfmEncoding.Square):
                         reply.headerordata.header.wfmtype = 3
-                    elif isinstance(data, IQWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.IQ:
                         reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.Digital:
                         reply.headerordata.header.wfmtype = 4
 
                     reply.headerordata.header.pairtype = 1
@@ -333,7 +331,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         except Exception as e:
             print(e)
         return tekhsi_pb2.NormalizedReply(
-            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_UNSPECIFIED")
+            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE")
         )
 
 
@@ -388,9 +386,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        return tekhsi_pb2.RawReply(
-            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_UNSPECIFIED")
-        )
+        return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
 
     def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
@@ -426,7 +422,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     reply.headerordata.header.noofsamples = wfm.length
                     reply.headerordata.header.sourcename = request.sourcename
 
-                    if isinstance(data, AnalogWaveform):  # noqa: F821
+                    if wfm.encoding in (WfmEncoding.Sine, WfmEncoding.Square):
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
@@ -439,7 +435,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
-                    elif isinstance(data, IQWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.IQ:
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
@@ -449,7 +445,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.Digital:
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 4
@@ -468,9 +464,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        return tekhsi_pb2.RawReply(
-            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_UNSPECIFIED")
-        )
+        return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
 
 
 class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
@@ -661,13 +655,17 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 time.sleep(0.001)
 
             mutex.acquire()
-            if verbose:
-                print("mutex-acquired: WaitForDataAccess")
-            self._dataaccess_allowed = True
-            context.set_code(grpc.StatusCode.OK)
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
-            )
+            try:
+                if verbose:
+                    print("mutex-acquired: WaitForDataAccess")
+                self._dataaccess_allowed = True
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                )
+            except Exception:
+                mutex.release()
+                raise
         except Exception as e:
             if verbose:
                 print(e)
@@ -721,10 +719,12 @@ def periodic_data_creation():
         global acq_id
         try:
             mutex.acquire()
-            acq_id = acq_id + 1
-            connect_server._channels = make_new_data()
-            connect_server._new_data = True
-            mutex.release()
+            try:
+                acq_id = acq_id + 1
+                connect_server._channels = make_new_data()
+                connect_server._new_data = True
+            finally:
+                mutex.release()
             time.sleep(2)  # Wait for 2 seconds
         except Exception as e:
             print(f"periodic_data_creation:{e}")

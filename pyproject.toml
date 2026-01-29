@@ -200,6 +200,7 @@ disable = [
   "missing-class-docstring",  # caught by ruff
   "missing-module-docstring",  # caught by ruff
   "no-member",  # caught by pyright
+  "no-self-use",  # R6301
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
@@ -207,16 +208,13 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
-  "too-many-positional-arguments",  # caught by ruff
-  "too-many-statements",  # caught by ruff
-  "too-many-statements",  # caught by ruff
-  "undefined-variable",  # caught by ruff
-  "unnecessary-default-type-args",  # caught by ruff
-  "unused-argument",  # caught by ruff
-  "unused-import",  # caught by ruff
-  "use-implicit-booleaness-not-comparison-to-string",  # caught by ruff
-  "while-used",  # using while loops in example scripts
-  "wrong-import-order",  # caught by ruff
+  "too-many-statements",  # R0915
+  "unexpected-keyword-arg",  # E1123
+  "unused-argument",  # W0613
+  "use-set-for-membership",  # R6201
+  "useless-suppression",  # I0021
+  "while-used",  # W0149
+  "wrong-import-order",  # C0411
 ]
 
 [tool.pylint.reports]
@@ -329,6 +327,17 @@ order-by-type = false
 ]
 "src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
   "ALL",
+]
+"src/tekhsi/tek_hsi_connect.py" = [
+  "BLE001",  # Do not catch blind exception: Exception
+  "C901",  # Function too complex
+  "PLR0912",  # Too many branches
+  "PLR0915",  # Too many statements
+  "SIM103",  # Return the negated condition directly
+  "SIM105",  # Use contextlib.suppress
+  "TRY300",  # Move statement to else block
+  "TRY301",  # Abstract raise to inner function
+  "TRY400",  # Use logging.exception instead of logging.error
 ]
 "tests/**" = [
   "D104",  # Missing docstring in public package
