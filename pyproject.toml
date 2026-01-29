@@ -208,8 +208,10 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
+  "too-many-positional-arguments",  # R0917
   "too-many-statements",  # R0915
   "unexpected-keyword-arg",  # E1123
+  "unnecessary-default-type-args",  # R6007
   "unused-argument",  # W0613
   "use-set-for-membership",  # R6201
   "useless-suppression",  # I0021
