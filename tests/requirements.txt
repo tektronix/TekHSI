@@ -41,4 +41,3 @@ tomli==2.2.1 ; python_full_version >= "3.10" and python_full_version <= "3.11.0a
 typepy==1.3.4 ; python_full_version >= "3.10" and python_version < "3.14"
 typepy[datetime]==1.3.4 ; python_full_version >= "3.10" and python_version < "3.14"
 urllib3==2.6.3 ; python_full_version >= "3.10" and python_version < "3.14"
-wheel ==0.46.2 ; python_full_version >= "3.10" and python_version < "3.14"
