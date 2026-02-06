@@ -3,9 +3,10 @@
 import logging
 import sys
 
+from collections.abc import Callable
 from io import StringIO
 from types import SimpleNamespace
-from typing import Callable, Dict, List, Optional, Type
+from typing import Dict, List, Type
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -301,7 +302,7 @@ def test_get_data(
     cache_enabled: bool,
     data_cache: Dict[str, str],
     name: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
 ) -> None:
     """Test the get_data method of TekHSIConnect.
 
@@ -350,7 +351,7 @@ def test_done_with_data(  # noqa: PLR0913
     acqcount: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
-    expected_output: Optional[str],
+    expected_output: str | None,
     verbose: bool,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -464,7 +465,7 @@ def test_wait_for_data(  # noqa: PLR0913
     lastacqseen: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
-    expected_output: Optional[str],
+    expected_output: str | None,
 ) -> None:
     """Test the wait_for_data method of TekHSIConnect.
 

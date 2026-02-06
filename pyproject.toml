@@ -40,7 +40,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.9",  # manually add this classifier since Poetry won't add it automatically due to the mimimum Python version being 3.9.2  # TODO: Drop Python 3.9: Remove this classifier
   "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
@@ -65,11 +64,11 @@ grpcio = ">=1.66.2,<2.0"
 grpcio-tools = ">=1.66.2,<2.0"
 numpy = [
   # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
-  {python = ">=3.9,<3.13", version = "^1.24"},
+  {python = ">=3.10,<3.13", version = "^1.24"},
   {python = ">=3.13", version = "^2.1"},
 ]
 protobuf = "^5.28.1"
-python = ">=3.9.2,<3.14"  # This is the main Python version requirement
+python = ">=3.10,<3.14"  # This is the main Python version requirement
 python-dateutil = "^2.8.2"
 tm_data_types = "^0.2.0"
 typing_extensions = "^4.12.0"
@@ -81,7 +80,7 @@ matplotlib = "^3.8"
 nodeenv = "^1.9.1"
 numpy = [
   # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
-  {python = ">=3.9,<3.13", version = "^1.24"},
+  {python = ">=3.10,<3.13", version = "^1.24"},
   {python = ">=3.13", version = "^2.1"},
 ]
 pip = "^25.0"
@@ -182,13 +181,14 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.9"
+py-version = "3.10"  # PYTHON VERSION MARKER
 recursive = true
 
-[tool.pylint."messages control"]
+[tool.pylint.messages_control]
 enable = ["all"]
 disable = [
   "broad-exception-caught",  # caught by ruff
+  "consider-alternative-union-syntax",  # R6003
   "consider-using-with",  # TODO: enable this check
   "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
@@ -236,7 +236,7 @@ ignore = [
   "temp_*.py",
 ]
 pythonPlatform = "All"
-pythonVersion = "3.9"
+pythonVersion = "3.10"  # PYTHON VERSION MARKER
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -276,7 +276,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py39"  # always generate Python 3.8 compatible code
+target-version = "py310"  # always generate Python 3.10 compatible code  # PYTHON VERSION MARKER
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -294,10 +294,10 @@ ignore = [
   "UP006",  # Use {to} instead of {from} for type annotation (allowed in this package)
   "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
-  "UP035",  # Use `X | Y` for type annotations # TODO: Drop Python 3.9: enable this check
-  "UP036",  # Use `X | Y` for type annotations # TODO: Drop Python 3.9: enable this check
+  "UP035",  # Use `X | Y` for type annotations
+  "UP036",  # Use `X | Y` for type annotations
   "UP037",  # Remove quotes from type annotation (allowed in this package)
-  "UP045",  # Use `X | None` for type annotations # TODO: Drop Python 3.9: enable this check
+  "UP045",  # Use `X | None` for type annotations
 ]
 pydocstyle = {convention = "google"}
 pylint = {max-args = 7}
@@ -397,15 +397,14 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py39,py310,py311,py312,py313,tests,docs,doctests
+envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKERS
 skip_missing_interpreters = True
 labels =
-  basic = py39,py310,py311,py312,py313,tests
+  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKERS
   documentation = docs,doctests
 
 [gh-actions]
-python =
-    3.9: py39
+python =  # PYTHON VERSION MARKER
     3.10: py310
     3.11: py311
     3.12: py312

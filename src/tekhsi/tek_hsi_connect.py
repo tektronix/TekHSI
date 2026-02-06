@@ -13,7 +13,7 @@ import uuid
 from atexit import register
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
-from typing import Callable, ClassVar, Dict, List, Optional, Type, TYPE_CHECKING, TypeVar
+from typing import Callable, ClassVar, Dict, List, Type, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
@@ -108,9 +108,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     def __init__(
         self,
         url: str,
-        activesymbols: Optional[List[str]] = None,
-        callback: Optional[Callable] = None,
-        data_filter: Optional[Callable] = None,
+        activesymbols: List[str] | None = None,
+        callback: Callable | None = None,
+        data_filter: Callable | None = None,
     ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
 
@@ -176,7 +176,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._parallel_reads_threshold = int(
             os.getenv("TEKHSI_PARALLEL_THRESHOLD", "2")
         )  # Min waveforms to parallelize
-        self._read_executor: Optional[ThreadPoolExecutor] = None
+        self._read_executor: ThreadPoolExecutor | None = None
         # Only enable if explicitly requested (not "auto" - too risky)
         self._use_parallel_reads = os.getenv("TEKHSI_USE_PARALLEL_READS", "").lower() in (
             "1",
@@ -219,9 +219,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit the runtime context related to this object.
 
@@ -567,7 +567,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         request = ConnectRequest(name=self.clientname)
         self.connection.RequestNewSequence(request)
 
-    def get_data(self, name: str) -> Optional[AnyWaveform]:
+    def get_data(self, name: str) -> AnyWaveform | None:
         """Gets the saved data of the previous acquisition with the data item of the requested name.
 
         The provided `name` parameter must correspond to the names returned from the
@@ -634,7 +634,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Private Methods
     ################################################################################################
     @staticmethod
-    def _acq_id(headers: List[WaveformHeader]) -> Optional[int]:
+    def _acq_id(headers: List[WaveformHeader]) -> int | None:
         """Retrieve the data ID from the first header in the list.
 
         Args:

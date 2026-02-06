@@ -10,7 +10,7 @@ from collections.abc import Generator
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, List, Type, Union
 
 import grpc
 import psutil
@@ -81,7 +81,7 @@ class TestServerManager:
         self.server_process = None
         self.port = port
 
-    def is_port_in_use(self) -> Optional[int]:
+    def is_port_in_use(self) -> int | None:
         """Check if the port is currently in use."""
         for proc in psutil.process_iter(["pid", "name"]):
             try:
@@ -118,9 +118,9 @@ class TestServerManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Terminate the dummy server process."""
         if self.server_process:

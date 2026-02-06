@@ -10,7 +10,7 @@ import time
 
 from enum import Enum
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union
 
 import colorlog
 
@@ -44,8 +44,8 @@ def configure_logging(
     *,
     log_console_level: Union[str, LoggingLevels] = LoggingLevels.INFO,
     log_file_level: Union[str, LoggingLevels] = LoggingLevels.DEBUG,
-    log_file_directory: Optional[Union[str, os.PathLike[str], Path]] = None,
-    log_file_name: Optional[str] = None,
+    log_file_directory: Union[str, os.PathLike[str], Path] | None = None,
+    log_file_name: str | None = None,
     log_colored_output: bool = False,
 ) -> logging.Logger:
     """Configure the logging for this package.

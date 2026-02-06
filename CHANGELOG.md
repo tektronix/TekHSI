@@ -20,7 +20,7 @@ Things to be included in the next release go here.
 
 ### Removed
 
-- Python 3.8 support has been removed from the package. The minimum supported version is now Python 3.9.
+- Python 3.8 and 3.9 support has been removed from the package. The minimum supported version is now Python 3.10.
 
 ### Added
 
