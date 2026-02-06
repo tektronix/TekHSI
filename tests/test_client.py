@@ -4,8 +4,9 @@ import logging
 import sys
 
 from io import StringIO
+from types import SimpleNamespace
 from typing import Callable, Dict, List, Optional, Type
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -1091,11 +1092,11 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
     ("header", "expected_sample_rate"),
     [
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),
+            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
             1024 * 1e6 / 1.9,
         ),
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),
+            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
             1024 * 1e6 / 3.77,
         ),
     ],
@@ -1113,3 +1114,140 @@ def test_read_waveform_iq(
     waveform = tekhsi_client._read_waveform(header)
     assert isinstance(waveform, IQWaveform)
     assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)
+
+
+def test_close_normal(tekhsi_client: TekHSIConnect) -> None:
+    """Test the close method of TekHSIConnect under normal conditions.
+
+    Ensures that the client is properly disconnected and the thread is joined.
+    """
+    client = tekhsi_client
+
+    client._connected = True
+    client.thread_active = True
+
+    client.force_sequence = MagicMock()
+    client._disconnect = MagicMock()
+
+    mock_thread = MagicMock()
+    client.thread = mock_thread
+
+    client._read_executor = None
+
+    client.close()
+
+    client.force_sequence.assert_called_once()
+    mock_thread.join.assert_called_once()
+    client._disconnect.assert_called_once()
+    assert client.thread_active is False
+
+
+def test_close_executor_metrics_logging(
+    tekhsi_client: TekHSIConnect, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test close() when the read executor is active.
+
+    Ensures performance metrics are logged when verbose is enabled.
+    """
+    client = tekhsi_client
+
+    client._connected = True
+    client.thread_active = True
+    client.verbose = True
+
+    client.force_sequence = MagicMock()
+    client._disconnect = MagicMock()
+
+    client.thread = MagicMock()
+
+    mock_executor = MagicMock()
+    client._read_executor = mock_executor
+
+    # Force metrics logging branch
+    client._parallel_read_count = 2
+    client._parallel_read_time = 0.2
+    client._sequential_read_count = 1
+    client._sequential_read_time = 0.1
+
+    client.close()
+
+    assert "Read performance:" in caplog.text
+
+
+def test_close_when_not_connected(tekhsi_client: TekHSIConnect) -> None:
+    """Test the close method when the client is not connected.
+
+    Should return immediately and not raise.
+    """
+    client = tekhsi_client
+    client._connected = False
+
+    # Should return immediately and not raise
+    client.close()
+
+
+def test_set_acq_filter_none_raises(tekhsi_client: TekHSIConnect) -> None:
+    """Test set_acq_filter(None) raises ValueError without side effects.
+
+    Ensures no background thread is running and not connected.
+    """
+    tekhsi_client.thread_active = False
+    tekhsi_client.thread = None
+    tekhsi_client._connected = False
+
+    with pytest.raises(ValueError, match="Filter cannot be None"):
+        tekhsi_client.set_acq_filter(None)  # type: ignore[arg-type]
+
+
+def test_read_waveform_with_stub_unknown_type() -> None:
+    """Test _read_waveform_with_stub with an unknown waveform type.
+
+    Expects a ValueError to be raised.
+    """
+    client = TekHSIConnect.__new__(TekHSIConnect)
+
+    header = SimpleNamespace(
+        wfmtype=999,
+        sourcename="CH1",
+        noofsamples=0,
+        sourcewidth=1,
+    )
+
+    native_stub = object()
+
+    with pytest.raises(ValueError, match="Unknown waveform type"):
+        TekHSIConnect._read_waveform_with_stub(client, header, native_stub)  # type: ignore[arg-type]
+
+
+def test_any_acq_with_new_key() -> None:
+    """Test any_acq when a new key is added to the current headers.
+
+    Should return True.
+    """
+    prev = {"ch1": WaveformHeader(noofsamples=1)}
+    curr = {
+        "ch1": WaveformHeader(noofsamples=1),
+        "ch2": WaveformHeader(noofsamples=1),
+    }
+    assert TekHSIConnect.any_acq(prev, curr)
+
+
+def test_is_header_value_false_cases() -> None:
+    """Test _is_header_value for cases that should return False.
+
+    Covers None header, zero samples, invalid source width, and hasdata False.
+    """
+    # None header
+    assert not TekHSIConnect._is_header_value(None)  # type: ignore[arg-type]
+
+    # Case: zero samples
+    h = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=True)
+    assert not TekHSIConnect._is_header_value(h)
+
+    # invalid sourcewidth
+    h = WaveformHeader(noofsamples=1, sourcewidth=8, hasdata=True)
+    assert not TekHSIConnect._is_header_value(h)
+
+    # hasdata False
+    h = WaveformHeader(noofsamples=1, sourcewidth=1, hasdata=False)
+    assert not TekHSIConnect._is_header_value(h)
