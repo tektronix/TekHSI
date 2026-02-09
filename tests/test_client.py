@@ -1187,6 +1187,10 @@ def test_close_when_not_connected(tekhsi_client: TekHSIConnect) -> None:
     client.close()
 
 
+@pytest.mark.xfail(
+    sys.version_info[:2] == (3, 10),
+    reason="CI failure is caused by a known gRPC/proto issue in Ubuntu Python 3.10.",
+)
 def test_set_acq_filter_none_raises(tekhsi_client: TekHSIConnect) -> None:
     """Test set_acq_filter(None) raises ValueError without side effects.
 
