@@ -13,7 +13,7 @@ import uuid
 from atexit import register
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
-from typing import Callable, ClassVar, Dict, List, Type, TYPE_CHECKING, TypeVar
+from typing import ClassVar, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
@@ -35,6 +35,7 @@ from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
 from tekhsi.helpers.logging import configure_logging
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
     from typing_extensions import Self
@@ -100,15 +101,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     - This API is intended to aid in retrieving data from instruments as fast as possible.
     """
 
-    _connections: ClassVar[Dict[str, "TekHSIConnect"]] = {}
+    _connections: ClassVar[dict[str, "TekHSIConnect"]] = {}
 
     ################################################################################################
     # Magic Methods
     ################################################################################################
-    def __init__(
+    def __init__(  # noqa: PLR0915
         self,
         url: str,
-        activesymbols: List[str] | None = None,
+        activesymbols: list[str] | None = None,
         callback: Callable | None = None,
         data_filter: Callable | None = None,
     ) -> None:
@@ -219,7 +220,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
@@ -249,7 +250,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Properties - Private and Public
     ################################################################################################
     @property
-    def available_symbols(self) -> List[str]:
+    def available_symbols(self) -> list[str]:
         """Returns the list of available symbols on the instrument.
 
         "Available" means the channel is on. What data type is returned will depend upon the probe
@@ -300,7 +301,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._instrument = value
 
     @property
-    def source_names(self) -> List[str]:
+    def source_names(self) -> list[str]:
         """Returns the list of names of sources on the instrument.
 
         Returns:
@@ -375,8 +376,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_acq(
-        previous_header: Dict[str, WaveformHeader],  # noqa: ARG004
-        current_header: Dict[str, WaveformHeader],  # noqa: ARG004
+        previous_header: dict[str, WaveformHeader],  # noqa: ARG004
+        current_header: dict[str, WaveformHeader],  # noqa: ARG004
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts all new acqs.
 
@@ -393,8 +394,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     # --8<-- [start:any_horizontal_change]
     def any_horizontal_change(
-        previous_header: Dict[str, WaveformHeader],
-        current_header: Dict[str, WaveformHeader],
+        previous_header: dict[str, WaveformHeader],
+        current_header: dict[str, WaveformHeader],
     ) -> bool:
         """Acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
@@ -424,8 +425,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_vertical_change(
-        previous_header: Dict[str, WaveformHeader],
-        current_header: Dict[str, WaveformHeader],
+        previous_header: dict[str, WaveformHeader],
+        current_header: dict[str, WaveformHeader],
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
@@ -449,11 +450,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 return True
         return False
 
-    def active_symbols(self, symbols: List[str]) -> None:
+    def active_symbols(self, symbols: list[str]) -> None:
         """Sets symbols to consider moving from instrument into data cache.
 
         Args:
-            symbols (List[str]): list of symbols to be moved
+            symbols (list[str]): list of symbols to be moved
         """
         self.activesymbols = symbols
 
@@ -517,8 +518,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                         if self._sequential_read_count > 0
                         else 0,
                     )
-            except Exception as e:
-                _logger.warning("Error shutting down read executor: %s", e)
+            except Exception:
+                _logger.exception("Error shutting down read executor")
             finally:
                 self._read_executor = None
 
@@ -526,13 +527,13 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._disconnect()
 
     @staticmethod
-    def data_arrival(waveforms: List[AnyWaveform]) -> None:  # noqa: ARG004
+    def data_arrival(waveforms: list[AnyWaveform]) -> None:  # noqa: ARG004
         """Available to be overridden if user wants to create a derived class.
 
         This method will be called on every accepted acq.
 
         Args:
-            waveforms: List of waveforms.
+            waveforms: list of waveforms.
         """
         return
 
@@ -634,11 +635,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Private Methods
     ################################################################################################
     @staticmethod
-    def _acq_id(headers: List[WaveformHeader]) -> int | None:
+    def _acq_id(headers: list[WaveformHeader]) -> int | None:
         """Retrieve the data ID from the first header in the list.
 
         Args:
-            headers: List of waveform headers.
+            headers: list of waveform headers.
 
         Returns:
             The data ID of the first header, or None if the list is empty.
@@ -647,11 +648,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             return header.dataid
         return None
 
-    def _available_symbols(self) -> List[str]:
+    def _available_symbols(self) -> list[str]:
         """Returns the list of available channels.
 
         Returns:
-            List of available channels.
+            list of available channels.
         """
         request = ConnectRequest(name=self.clientname)
         response = self.connection.RequestAvailableNames(request)
@@ -679,12 +680,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 "Error during disconnect: %s",
                 rpc_error,
             )
-        except Exception as error:
-            # Handle any other unexpected errors during disconnect
+        with contextlib.suppress(Exception):
             _logger.log(
                 logging.WARNING if self.verbose else logging.DEBUG,
-                "Unexpected error during disconnect: %s",
-                error,
+                "Unexpected error during disconnect",
             )
 
     def _done_with_data_release_lock(self) -> None:
@@ -761,7 +760,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return response.headerordata.header
 
     def _read_headers(
-        self, headers: List[WaveformHeader], header_dict: Dict[str, WaveformHeader]
+        self, headers: list[WaveformHeader], header_dict: dict[str, WaveformHeader]
     ) -> None:
         """Reads headers for the active symbols.
 
@@ -779,7 +778,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 header_dict[header.sourcename] = header
 
     # pylint: disable= too-many-locals
-    def _read_waveform(self, header: WaveformHeader) -> Waveform:
+    def _read_waveform(  # noqa: PLR0915, PLR0912, C901
+        self, header: WaveformHeader
+    ) -> Waveform:
         """Reads the analog waveform associated with the passed header.
 
         Args:
@@ -904,7 +905,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     if dt is not None:
                         sum_of_chunks += len(dt)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Exception: %s", e)
 
         return waveform
@@ -921,7 +922,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         # Python 3.8-3.12: Enable for I/O-bound gRPC calls
         # (gRPC releases GIL during I/O, so parallel reads can theoretically help)
-        if sys.version_info < (3, 8):
+        if sys.version_info < (3, 11):
             return False
 
         # Python 3.13+: Free-threaded mode available but experimental
@@ -931,12 +932,14 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         # The problem is more likely gRPC/server-side serialization
 
         # Check environment variable for explicit disable
-        if os.getenv("TEKHSI_DISABLE_PARALLEL_READS", "").lower() in ("1", "true", "yes"):
-            return False
+        disabled = os.getenv("TEKHSI_DISABLE_PARALLEL_READS", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        return not disabled
 
-        return True
-
-    def _read_waveforms(self, headers: List[WaveformHeader], waveforms: List[Waveform]) -> int:
+    def _read_waveforms(self, headers: list[WaveformHeader], waveforms: list[Waveform]) -> int:
         """Reads the waveforms for the headers.
 
         Automatically chooses between sequential and parallel reads based on:
@@ -963,7 +966,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return self._read_waveforms_sequential(headers, waveforms)
 
     def _read_waveforms_sequential(
-        self, headers: List[WaveformHeader], waveforms: List[Waveform]
+        self, headers: list[WaveformHeader], waveforms: list[Waveform]
     ) -> int:
         """Reads the waveforms sequentially (original implementation).
 
@@ -1010,7 +1013,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         return datasize
 
-    def _read_waveform_with_stub(
+    def _read_waveform_with_stub(  # noqa: C901, PLR0912, PLR0915
         self, header: WaveformHeader, native_stub: NativeDataStub
     ) -> Waveform:
         """Reads a waveform using a provided stub (thread-safe version).
@@ -1144,16 +1147,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                         sum_of_chunks += len(dt)
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
-                raise ValueError(msg)
+                raise ValueError(msg)  # noqa: TRY301
 
             waveform.record_length = header.noofsamples
-            return waveform
+            return waveform  # noqa: TRY300
         except Exception as e:
-            _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)
+            _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)  # noqa: TRY400
             raise
 
-    def _read_waveforms_parallel(
-        self, headers: List[WaveformHeader], waveforms: List[Waveform]
+    def _read_waveforms_parallel(  # noqa: PLR0912, C901
+        self, headers: list[WaveformHeader], waveforms: list[Waveform]
     ) -> int:
         """Reads waveforms in parallel using ThreadPoolExecutor.
 
@@ -1208,10 +1211,14 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     waveform = future.result(timeout=1.0)  # Individual read timeout
                     header = futures[future]
                     results[header] = waveform
-                except Exception as e:
+                except (RuntimeError, ValueError, grpc.RpcError):
                     header = futures.get(future)
                     header_name = header.sourcename if header else "unknown"
-                    _logger.warning("Error reading waveform %s: %s", header_name, e)
+
+                    _logger.exception(
+                        "Error reading waveform %s; continuing with remaining reads",
+                        header_name,
+                    )
                     # Continue with other reads even if one fails
 
             # Process results in original order
@@ -1227,8 +1234,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                                 self._datacache[header.sourcename.lower()] = waveform
 
                         waveforms.append(waveform)
-        except Exception as e:
-            _logger.error("Error in parallel read, falling back to sequential: %s", e)
+        except Exception:
+            _logger.exception("Error in parallel read, falling back to sequential: %s")
             # Cancel all futures and fall back
             for f in futures:
                 if not f.done():
@@ -1270,8 +1277,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     self._finished_with_data_access()
                     self._lock_filter.release()
                     self._holding_scope_open = False
-            except grpc.RpcError as rpc_error:
-                # Server went away or connection reset; exit thread cleanly
+            except grpc.RpcError as rpc_error:  # Server went away or connection reset;
+                # exit thread cleanly
                 _logger.log(
                     logging.DEBUG if not self.verbose else logging.INFO,
                     "Background thread exiting (connection closed): %s",
@@ -1279,19 +1286,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 )
                 # Ensure we release lock if we bailed before releasing
                 if self._holding_scope_open:
-                    try:
+                    with contextlib.suppress(Exception):
                         self._finished_with_data_access()
-                    except Exception:  # noqa: S110
-                        pass
-                    try:
+                    with contextlib.suppress(Exception):
                         self._lock_filter.release()
-                    except Exception:  # noqa: S110
-                        pass
                     self._holding_scope_open = False
+
                 return
 
-    def _run_inner(
-        self, headers: List[WaveformHeader], waveforms: List[Waveform], startwait: float
+    def _run_inner(  # noqa: C901, PLR0912
+        self, headers: list[WaveformHeader], waveforms: list[Waveform], startwait: float
     ) -> None:
         """Background thread for participating in the instruments sequence.
 
@@ -1334,7 +1338,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._headers = header_dict
             datasize += self._read_waveforms(headers, waveforms)
             duration = time.perf_counter() - start
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             _logger.log(
                 logging.ERROR if self.verbose else logging.DEBUG, "exception:_run_inner:%s", ex
             )
@@ -1353,7 +1357,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 if self._callback is not None:
                     self._callback(waveforms)
 
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             _logger.log(
                 logging.ERROR if self.verbose else logging.DEBUG, "exception:_run_inner:%s", ex
             )

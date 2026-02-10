@@ -10,7 +10,7 @@ from collections.abc import Generator
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, List, Type, Union
+from typing import Union
 
 import grpc
 import psutil
@@ -67,7 +67,7 @@ class DerivedWaveformHandler:  # pylint: disable=too-few-public-methods
     """A derived waveform handler class for testing purposes."""
 
     @staticmethod
-    def data_arrival(waveforms: List[DerivedWaveform]) -> None:
+    def data_arrival(waveforms: list[DerivedWaveform]) -> None:
         """Override the data_arrival method to process waveforms."""
         for _ in waveforms:
             print("Processing waveform")
@@ -118,7 +118,7 @@ class TestServerManager:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
@@ -148,7 +148,7 @@ def derived_waveform_handler() -> DerivedWaveformHandler:
 
 
 @pytest.fixture
-def expected_header() -> Dict[str, Union[int, bool, float, str]]:
+def expected_header() -> dict[str, Union[int, bool, float, str]]:
     """Fixture to provide a sample waveform header.
 
     Returns:

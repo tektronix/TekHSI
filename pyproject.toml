@@ -60,8 +60,8 @@ version = "1.0.0"
 
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"
-grpcio = ">=1.66.2,<2.0"
-grpcio-tools = ">=1.66.2,<2.0"
+grpcio = "^1.66.2"
+grpcio-tools = "^1.66.2"
 numpy = [
   # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
   {python = ">=3.10,<3.13", version = "^1.24"},
@@ -208,7 +208,7 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
-  "too-many-positional-arguments",  # R0917
+  "too-many-positional-arguments",  # caught by ruff
   "too-many-statements",  # R0915
   "unexpected-keyword-arg",  # E1123
   "unnecessary-default-type-args",  # R6007
@@ -294,10 +294,7 @@ ignore = [
   "UP006",  # Use {to} instead of {from} for type annotation (allowed in this package)
   "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
-  "UP035",  # Use `X | Y` for type annotations
-  "UP036",  # Use `X | Y` for type annotations
   "UP037",  # Remove quotes from type annotation (allowed in this package)
-  "UP045",  # Use `X | None` for type annotations
 ]
 pydocstyle = {convention = "google"}
 pylint = {max-args = 7}
@@ -329,17 +326,6 @@ order-by-type = false
 ]
 "src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
   "ALL",
-]
-"src/tekhsi/tek_hsi_connect.py" = [
-  "BLE001",  # Do not catch blind exception: Exception
-  "C901",  # Function too complex
-  "PLR0912",  # Too many branches
-  "PLR0915",  # Too many statements
-  "SIM103",  # Return the negated condition directly
-  "SIM105",  # Use contextlib.suppress
-  "TRY300",  # Move statement to else block
-  "TRY301",  # Abstract raise to inner function
-  "TRY400",  # Use logging.exception instead of logging.error
 ]
 "tests/**" = [
   "D104",  # Missing docstring in public package
