@@ -1164,8 +1164,7 @@ def test_close_executor_metrics_logging(
     tekhsi_client._sequential_read_count = 1
     tekhsi_client._sequential_read_time = 0.1
 
-    with caplog.at_level(logging.INFO):
-        tekhsi_client.close()
+    tekhsi_client.close()
 
     assert "Read performance:" in caplog.text
 
