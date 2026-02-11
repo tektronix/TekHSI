@@ -1,0 +1,44 @@
+---
+# TekHSI Environment Variable Reference
+# --------------------------------------
+# This file documents optional environment variables used to control
+# experimental parallel waveform read behavior in TekHSI.
+#
+# NOTE:
+# TekHSI does NOT automatically load this file.
+# Configuration is currently controlled via environment variables only.
+experimental_parallel_reads:
+  description: Experimental parallel waveform read configuration
+  enabled_by_default: false
+  environment_variables:
+    TEKHSI_USE_PARALLEL_READS:
+      type: boolean
+      accepted_values: ['1', 'true', yes]
+      default: false
+      description: Enable experimental parallel waveform reads
+    TEKHSI_PARALLEL_THRESHOLD:
+      type: integer
+      default: 2
+      description: Minimum number of waveforms required before parallelization is
+        used
+    TEKHSI_PARALLEL_WORKERS:
+      type: integer
+      default: 4
+      description: Number of worker threads used for parallel reads
+    TEKHSI_DISABLE_PARALLEL_READS:
+      type: boolean
+      accepted_values: ['1', 'true', yes]
+      default: false
+      description: Force parallel reads to be disabled even if otherwise enabled
+usage_examples:
+  linux_macos:
+    - export TEKHSI_USE_PARALLEL_READS=1
+    - export TEKHSI_PARALLEL_THRESHOLD=3
+  windows_powershell:
+    - setx TEKHSI_USE_PARALLEL_READS 1
+    - setx TEKHSI_PARALLEL_THRESHOLD 3
+notes:
+  - These settings are intended for advanced users and testing purposes.
+  - Parallel reads may not be compatible with all gRPC server configurations.
+  - If parallel reads become a stable feature, configuration may move to explicit
+    constructor parameters.
