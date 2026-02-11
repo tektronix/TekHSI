@@ -383,7 +383,7 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKERS
+envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =
   basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKER
