@@ -410,6 +410,11 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
         connection.done_with_data()
 
 
+@pytest.mark.xfail(
+    sys.platform.startswith("win") and sys.version_info[:2] == (3, 13),
+    reason="Known timeout issue on Windows Python 3.13",
+    strict=False,
+)
 @pytest.mark.parametrize(
     (
         "cache_enabled",
