@@ -32,6 +32,7 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WaveformRequest,
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
+from tekhsi.helpers.enum import WaveformType  # Added for enum-based waveform type checks
 from tekhsi.helpers.logging import configure_logging
 
 if TYPE_CHECKING:
@@ -821,7 +822,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     if dt is not None:
                         sum_of_chunks += len(dt)
 
-            elif header.wfmtype in {7, 6}:  # WFMTYPE_ANALOG_IQ
+            elif header.wfmtype in {
+                WaveformType.ANALOG_IQ,
+                WaveformType.ANALOG_16_IQ,
+            }:  # WFMTYPE_ANALOG_IQ
                 waveform = IQWaveform()
                 waveform.source_name = header.sourcename
                 waveform.iq_axis_spacing = header.verticalspacing
@@ -876,7 +880,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     ] = dt
                     if dt is not None:
                         sample_index += sample_count
-            elif header.wfmtype in {4, 5}:  # Digital
+            elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
                 waveform = DigitalWaveform()
                 waveform.source_name = header.sourcename
                 waveform.y_axis_units = header.verticalunits
@@ -1062,7 +1066,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     if dt is not None:
                         sum_of_chunks += len(dt)
 
-            elif header.wfmtype in {7, 6}:  # WFMTYPE_ANALOG_IQ
+            elif header.wfmtype in {
+                WaveformType.ANALOG_IQ,
+                WaveformType.ANALOG_16_IQ,
+            }:  # WFMTYPE_ANALOG_IQ
                 waveform = IQWaveform()
                 waveform.source_name = header.sourcename
                 waveform.iq_axis_spacing = header.verticalspacing
@@ -1117,7 +1124,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     ] = dt
                     if dt is not None:
                         sample_index += sample_count
-            elif header.wfmtype in {4, 5}:  # Digital
+            elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
                 waveform = DigitalWaveform()
                 waveform.source_name = header.sourcename
                 waveform.y_axis_units = header.verticalunits

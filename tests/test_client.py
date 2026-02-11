@@ -1121,25 +1121,23 @@ def test_close_normal(tekhsi_client: TekHSIConnect) -> None:
 
     Ensures that the client is properly disconnected and the thread is joined.
     """
-    client = tekhsi_client
+    tekhsi_client._connected = True
+    tekhsi_client.thread_active = True
 
-    client._connected = True
-    client.thread_active = True
-
-    client.force_sequence = MagicMock()
-    client._disconnect = MagicMock()
+    tekhsi_client.force_sequence = MagicMock()
+    tekhsi_client._disconnect = MagicMock()
 
     mock_thread = MagicMock()
-    client.thread = mock_thread
+    tekhsi_client.thread = mock_thread
 
-    client._read_executor = None
+    tekhsi_client._read_executor = None
 
-    client.close()
+    tekhsi_client.close()
 
-    client.force_sequence.assert_called_once()
+    tekhsi_client.force_sequence.assert_called_once()
     mock_thread.join.assert_called_once()
-    client._disconnect.assert_called_once()
-    assert client.thread_active is False
+    tekhsi_client._disconnect.assert_called_once()
+    assert tekhsi_client.thread_active is False
 
 
 def test_close_executor_metrics_logging(
@@ -1149,27 +1147,25 @@ def test_close_executor_metrics_logging(
 
     Ensures performance metrics are logged when verbose is enabled.
     """
-    client = tekhsi_client
+    tekhsi_client._connected = True
+    tekhsi_client.thread_active = True
+    tekhsi_client.verbose = True
 
-    client._connected = True
-    client.thread_active = True
-    client.verbose = True
-
-    client.force_sequence = MagicMock()
-    client._disconnect = MagicMock()
-
-    client.thread = MagicMock()
+    tekhsi_client.force_sequence = MagicMock()
+    tekhsi_client._disconnect = MagicMock()
+    tekhsi_client.thread = MagicMock()
 
     mock_executor = MagicMock()
-    client._read_executor = mock_executor
+    tekhsi_client._read_executor = mock_executor
 
     # Force metrics logging branch
-    client._parallel_read_count = 2
-    client._parallel_read_time = 0.2
-    client._sequential_read_count = 1
-    client._sequential_read_time = 0.1
+    tekhsi_client._parallel_read_count = 2
+    tekhsi_client._parallel_read_time = 0.2
+    tekhsi_client._sequential_read_count = 1
+    tekhsi_client._sequential_read_time = 0.1
 
-    client.close()
+    with caplog.at_level(logging.INFO):
+        tekhsi_client.close()
 
     assert "Read performance:" in caplog.text
 
@@ -1179,11 +1175,10 @@ def test_close_when_not_connected(tekhsi_client: TekHSIConnect) -> None:
 
     Should return immediately and not raise.
     """
-    client = tekhsi_client
-    client._connected = False
+    tekhsi_client._connected = False
 
     # Should return immediately and not raise
-    client.close()
+    tekhsi_client.close()
 
 
 @pytest.mark.skipif(
@@ -1195,8 +1190,8 @@ def test_set_acq_filter_none_raises(tekhsi_client: TekHSIConnect) -> None:
 
     Ensures no background thread is running and not connected.
     """
+    # Remove unnecessary assignments and ensure no background thread
     tekhsi_client.thread_active = False
-    tekhsi_client.thread = None
     tekhsi_client._connected = False
 
     with pytest.raises(ValueError, match="Filter cannot be None"):

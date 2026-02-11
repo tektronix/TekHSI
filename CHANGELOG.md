@@ -29,6 +29,9 @@ Things to be included in the next release go here.
 
 ### Changed
 
+- Updated project dependencies to ensure compatibility with supported Python versions.
+- Updated CI configuration to reflect the supported Python version matrix (Python 3.10–3.13).
+- Improved exception handling in `tek_hsi_client.py` to provide clearer handling of gRPC errors.
 - Updated the documentation by moving portions from the Basic Usage page to the API docs.
 - Switched from using standard `print()` calls to using the `logging` module for all logging in the `tekhsi` package.
     - A configuration function provides the ability to set different logging levels for stdout and file logging.

@@ -208,15 +208,13 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
-  "too-many-positional-arguments",  # caught by ruff
-  "too-many-statements",  # R0915
-  "unexpected-keyword-arg",  # E1123
-  "unnecessary-default-type-args",  # R6007
-  "unused-argument",  # W0613
-  "use-set-for-membership",  # R6201
-  "useless-suppression",  # I0021
-  "while-used",  # W0149
-  "wrong-import-order",  # C0411
+  "too-many-statements",  # caught by ruff
+  "unexpected-keyword-arg",  # caught by ruff
+  "unused-argument",  # caught by ruff
+  "use-set-for-membership",  # caught by ruff
+  "useless-suppression",  # caught by ruff
+  "while-used",  # caught by ruff
+  "wrong-import-order",  # caught by ruff
 ]
 
 [tool.pylint.reports]
@@ -403,7 +401,7 @@ deps =
     poetry
 setenv =
     COVERAGE_FILE = .coverage_{envname}
-    DOC_PYTHON_VERSION = python3.10  # Keep this in sync with .readthedocs.yml and any CI scripts
+    DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
     # Skip pre-commit checks that are not needed
     SKIP = file-contents-sorter
 commands_pre =
