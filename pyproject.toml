@@ -386,7 +386,7 @@ isolated_build = True
 envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKERS
 skip_missing_interpreters = True
 labels =
-  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKERS
+  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKER
   documentation = docs,doctests
 
 [gh-actions]
