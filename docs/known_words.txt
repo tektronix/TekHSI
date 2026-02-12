@@ -21,6 +21,7 @@ licensor
 linting
 matplotlib
 opensource
+parallelization
 pre
 readthedocs
 repo
