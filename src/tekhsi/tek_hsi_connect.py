@@ -32,7 +32,7 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WaveformRequest,
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
-from tekhsi.helpers.enum import WaveformType  # Added for enum-based waveform type checks
+from tekhsi.helpers.enums import WaveformType  # Added for enum-based waveform type checks
 from tekhsi.helpers.logging import configure_logging
 
 if TYPE_CHECKING:
