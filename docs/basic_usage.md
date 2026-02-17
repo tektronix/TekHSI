@@ -6,6 +6,7 @@ This example shows how to use `TekHSI` and `tm_data_types` to pull analog wavefo
 Tektronix oscilloscope and save them to a csv file very easily.
 
 !!! important
+
     Matching the type of waveform with the channel type is critical. See the
     [supported data types section](#supported-data-types) for more information.
 
@@ -145,4 +146,38 @@ explicitly configured, the default logging settings will be used (as defined by 
 ```python
 # fmt: off
 --8<-- "examples/customize_logging.py"
+```
+
+## Experimental Parallel Waveform Reads
+
+!!! warning
+
+    This feature is experimental and disabled by default.
+
+`TekHSI` includes optional experimental support for parallel waveform reads.
+This behavior can be controlled using environment variables.
+
+### Environment Variables
+
+| Variable                        | Type                         | Default | Description                                                         |
+| ------------------------------- | ---------------------------- | ------- | ------------------------------------------------------------------- |
+| `TEKHSI_USE_PARALLEL_READS`     | Boolean (`1`, `true`, `yes`) | `false` | Enables experimental parallel waveform reads                        |
+| `TEKHSI_PARALLEL_THRESHOLD`     | Integer                      | `2`     | Minimum number of waveforms required before parallelization is used |
+| `TEKHSI_PARALLEL_WORKERS`       | Integer                      | `4`     | Number of worker threads used for parallel reads                    |
+| `TEKHSI_DISABLE_PARALLEL_READS` | Boolean (`1`, `true`, `yes`) | `false` | Forces parallel reads to be disabled even if otherwise enabled      |
+
+### Usage Examples
+
+**Linux / macOS**
+
+```bash
+export TEKHSI_USE_PARALLEL_READS=1
+export TEKHSI_PARALLEL_THRESHOLD=3
+```
+
+**Windows (PowerShell)**
+
+```powershell
+setx TEKHSI_USE_PARALLEL_READS 1
+setx TEKHSI_PARALLEL_THRESHOLD 3
 ```

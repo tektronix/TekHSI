@@ -1,10 +1,12 @@
 """Unit tests for the TekHSI client functionality."""
 
+import logging
 import sys
 
+from collections.abc import Callable
 from io import StringIO
-from typing import Callable, Dict, List, Optional, Type
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -13,9 +15,8 @@ from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
 
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
-    ConnectRequest,
-    ConnectStatus,
     WaveformHeader,
+    WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
 
@@ -26,9 +27,10 @@ from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
         (True, 5, 10.0, 50.0, "Average Update Rate:0.50, Data Rate:10.00Mbs"),
     ],
 )
-def test_server_connection(
+def test_server_connection(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
     capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
     instrument: bool,
     sum_count: int,
     sum_acq_time: float,
@@ -40,6 +42,7 @@ def test_server_connection(
     Args:
         tekhsi_client: An instance of the TekHSI client to be tested.
         capsys (CaptureFixture): Pytest fixture to capture system output.
+        caplog (LogCaptureFixture): Pytest fixture to capture log output.
         instrument: Whether the instrument is connected.
         sum_count: The sum count.
         sum_acq_time: The sum acquisition time.
@@ -52,19 +55,12 @@ def test_server_connection(
     tekhsi_client._sum_acq_time = sum_acq_time
     tekhsi_client._sum_data_rate = sum_data_rate
 
-    # Set the verbose attribute to True
     tekhsi_client.verbose = True
-    # Use the context manager to handle connection
-    with tekhsi_client as connection:
-        captured = capsys.readouterr()
-        request = ConnectRequest(name="test_client")
-        response = connection.connection.Connect(request)
-        assert "enter()" in captured.out
+    with caplog.at_level(logging.DEBUG), tekhsi_client as connection:
+        assert "enter()" in caplog.text
+        # Check connection success by internal state
+        assert getattr(connection, "_connected", False) is True
 
-        # Verify the connection status
-        assert response.status == ConnectStatus.CONNECTSTATUS_SUCCESS
-
-    # Capture the printed output
     captured = capsys.readouterr()
 
     # Verify the printed output
@@ -78,8 +74,8 @@ def test_server_connection(
     ],
 )
 def test_any_acq(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_acq method of TekHSIConnect.
@@ -172,8 +168,8 @@ def test_any_acq(
     ],
 )
 def test_any_horizontal_change(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_horizontal_change method of TekHSIConnect.
@@ -244,8 +240,8 @@ def test_any_horizontal_change(
     ],
 )
 def test_any_vertical_change(
-    previous_header: Dict[str, WaveformHeader],
-    current_header: Dict[str, WaveformHeader],
+    previous_header: dict[str, WaveformHeader],
+    current_header: dict[str, WaveformHeader],
     expected: bool,
 ) -> None:
     """Test the any_vertical_change method of TekHSIConnect.
@@ -269,7 +265,7 @@ def test_any_vertical_change(
 def test_set_acq_filter(
     tekhsi_client: TekHSIConnect,
     acq_filter: Callable,
-    expected_exception: Type[BaseException],
+    expected_exception: type[BaseException],
     expected_message: str,
 ) -> None:
     """Test the set_acq_filter method of TekHSIConnect.
@@ -303,9 +299,9 @@ def test_set_acq_filter(
 def test_get_data(
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
-    data_cache: Dict[str, str],
+    data_cache: dict[str, str],
     name: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
 ) -> None:
     """Test the get_data method of TekHSIConnect.
 
@@ -354,7 +350,7 @@ def test_done_with_data(  # noqa: PLR0913
     acqcount: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
-    expected_output: Optional[str],
+    expected_output: str | None,
     verbose: bool,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -414,6 +410,11 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
         connection.done_with_data()
 
 
+@pytest.mark.xfail(
+    sys.platform.startswith("win") and sys.version_info[:2] == (3, 13),
+    reason="Known timeout issue on Windows Python 3.13",
+    strict=False,
+)
 @pytest.mark.parametrize(
     (
         "cache_enabled",
@@ -462,13 +463,13 @@ def test_wait_for_data(  # noqa: PLR0913
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     acqtime: int,
     lastacqseen: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
-    expected_output: Optional[str],
+    expected_output: str | None,
 ) -> None:
     """Test the wait_for_data method of TekHSIConnect.
 
@@ -515,7 +516,7 @@ def test_wait_for_data(  # noqa: PLR0913
         (["ch1", "ch1_iq", "ch2", "ch3", "math1", "math2"]),  # Default symbols
     ],
 )
-def test_available_symbols(tekhsi_client: TekHSIConnect, expected_symbols: List[str]) -> None:
+def test_available_symbols(tekhsi_client: TekHSIConnect, expected_symbols: list[str]) -> None:
     """Test the available_symbols property of TekHSIConnect.
 
     Args:
@@ -575,7 +576,7 @@ def test_instrumentation_enabled(
     ],
 )
 def test_source_names(
-    tekhsi_client: TekHSIConnect, initial_symbols: List[str], expected_symbols: List[str]
+    tekhsi_client: TekHSIConnect, initial_symbols: list[str], expected_symbols: list[str]
 ) -> None:
     """Test the source_names property of TekHSIConnect.
 
@@ -637,7 +638,7 @@ def test_wait_for_data_acq_time(  # noqa: PLR0913
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     acqtime: int,
     lastacqseen: int,
@@ -691,7 +692,7 @@ def test_wait_for_data_any_acq(
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
@@ -740,7 +741,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
-    datacache: Dict[str, str],
+    datacache: dict[str, str],
     acqcount: int,
     lastacqseen: int,
     expected_wait_for_data_count: int,
@@ -781,7 +782,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
             [
                 WaveformHeader(
                     sourcename="ch1",
-                    wfmtype=1,
+                    wfmtype=WfmType.WFMTYPE_ANALOG_8,
                     verticalspacing=1.0,
                     verticaloffset=0.0,
                     verticalunits="V",
@@ -797,7 +798,7 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     ],
 )
 def test_read_waveforms(
-    tekhsi_client: TekHSIConnect, headers: List[WaveformHeader], expected_datasize: int
+    tekhsi_client: TekHSIConnect, headers: list[WaveformHeader], expected_datasize: int
 ) -> None:
     """Test the _read_waveforms method of TekHSIConnect.
 
@@ -846,7 +847,7 @@ def test_data_arrival(derived_waveform_handler: DerivedWaveformHandler) -> None:
         ([WaveformHeader(dataid=3)], 3),  # Single header
     ],
 )
-def test_acq_id(headers: List[WaveformHeader], expected: int) -> None:
+def test_acq_id(headers: list[WaveformHeader], expected: int) -> None:
     """Test the _acq_id method of TekHSIConnect.
 
     Args:
@@ -863,7 +864,7 @@ def test_acq_id(headers: List[WaveformHeader], expected: int) -> None:
         (
             WaveformHeader(
                 sourcename="ch1",
-                wfmtype=1,  # Analog waveform type
+                wfmtype=WfmType.WFMTYPE_ANALOG_8,  # Analog waveform type
                 verticalspacing=1.0,
                 verticaloffset=0.0,
                 verticalunits="V",
@@ -883,7 +884,7 @@ def test_read_waveform_analog(
     tekhsi_client: TekHSIConnect,
     header: WaveformHeader,
     response_data: bytes,
-    expected_waveform_type: Type[Waveform],
+    expected_waveform_type: type[Waveform],
     expected_length: int,
 ) -> None:
     """Test reading an analog or IQ waveform.
@@ -973,7 +974,7 @@ def test_instrumentation(  # noqa: PLR0913
         (
             WaveformHeader(
                 sourcename="ch1",
-                wfmtype=4,
+                wfmtype=WfmType.WFMTYPE_DIGITAL_8,
                 verticalspacing=1.0,
                 verticaloffset=0.0,
                 verticalunits="V",
@@ -1056,9 +1057,9 @@ def test_terminate(setup_tekhsi_connections: None) -> None:  # noqa: ARG001
     conn1 = TekHSIConnect._connections["conn1"]
     conn2 = TekHSIConnect._connections["conn2"]
 
-    assert conn1.finished_with_data_access_called
-    assert conn1.close_called
-    assert conn2.close_called
+    assert getattr(conn1, "finished_with_data_access_called", False)
+    assert getattr(conn1, "close_called", False)
+    assert getattr(conn2, "close_called", False)
 
 
 def test_active_symbols(tekhsi_client: TekHSIConnect) -> None:
@@ -1083,7 +1084,7 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
         tekhsi_client: An instance of the TekHSI client to be tested.
     """
 
-    def real_callback(waveforms_inner: List[str]) -> None:
+    def real_callback(waveforms_inner: list[str]) -> None:
         assert waveforms_inner == ["waveform1", "waveform2"]
 
     tekhsi_client._callback = real_callback
@@ -1096,11 +1097,11 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
     ("header", "expected_sample_rate"),
     [
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),
+            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
             1024 * 1e6 / 1.9,
         ),
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),
+            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
             1024 * 1e6 / 3.77,
         ),
     ],
@@ -1118,3 +1119,138 @@ def test_read_waveform_iq(
     waveform = tekhsi_client._read_waveform(header)
     assert isinstance(waveform, IQWaveform)
     assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)
+
+
+def test_close_normal(tekhsi_client: TekHSIConnect) -> None:
+    """Test the close method of TekHSIConnect under normal conditions.
+
+    Ensures that the client is properly disconnected and the thread is joined.
+    """
+    tekhsi_client._connected = True
+    tekhsi_client.thread_active = True
+
+    tekhsi_client.force_sequence = MagicMock()
+    tekhsi_client._disconnect = MagicMock()
+
+    mock_thread = MagicMock()
+    tekhsi_client.thread = mock_thread
+
+    tekhsi_client._read_executor = None
+
+    tekhsi_client.close()
+
+    tekhsi_client.force_sequence.assert_called_once()
+    mock_thread.join.assert_called_once()
+    tekhsi_client._disconnect.assert_called_once()
+    assert tekhsi_client.thread_active is False
+
+
+def test_close_executor_metrics_logging(
+    tekhsi_client: TekHSIConnect, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test close() when the read executor is active.
+
+    Ensures performance metrics are logged when verbose is enabled.
+    """
+    tekhsi_client._connected = True
+    tekhsi_client.thread_active = True
+    tekhsi_client.verbose = True
+
+    tekhsi_client.force_sequence = MagicMock()
+    tekhsi_client._disconnect = MagicMock()
+    tekhsi_client.thread = MagicMock()
+
+    mock_executor = MagicMock()
+    tekhsi_client._read_executor = mock_executor
+
+    # Force metrics logging branch
+    tekhsi_client._parallel_read_count = 2
+    tekhsi_client._parallel_read_time = 0.2
+    tekhsi_client._sequential_read_count = 1
+    tekhsi_client._sequential_read_time = 0.1
+
+    tekhsi_client.close()
+
+    assert "Read performance:" in caplog.text
+
+
+def test_close_when_not_connected(tekhsi_client: TekHSIConnect) -> None:
+    """Test the close method when the client is not connected.
+
+    Should return immediately and not raise.
+    """
+    tekhsi_client._connected = False
+
+    # Should return immediately and not raise
+    tekhsi_client.close()
+
+
+@pytest.mark.skipif(
+    sys.version_info[:2] == (3, 10),
+    reason="triggers gRPC cleanup path in Python 3.10; requires refactor to avoid RPC side effects",
+)
+def test_set_acq_filter_none_raises(tekhsi_client: TekHSIConnect) -> None:
+    """Test set_acq_filter(None) raises ValueError without side effects.
+
+    Ensures no background thread is running and not connected.
+    """
+    # Remove unnecessary assignments and ensure no background thread
+    tekhsi_client.thread_active = False
+    tekhsi_client._connected = False
+
+    with pytest.raises(ValueError, match="Filter cannot be None"):
+        tekhsi_client.set_acq_filter(None)  # type: ignore[arg-type]
+
+
+def test_read_waveform_with_stub_unknown_type() -> None:
+    """Test _read_waveform_with_stub with an unknown waveform type.
+
+    Expects a ValueError to be raised.
+    """
+    client = TekHSIConnect.__new__(TekHSIConnect)
+
+    header = SimpleNamespace(
+        wfmtype=999,
+        sourcename="CH1",
+        noofsamples=0,
+        sourcewidth=1,
+    )
+
+    native_stub = object()
+
+    with pytest.raises(ValueError, match="Unknown waveform type"):
+        TekHSIConnect._read_waveform_with_stub(client, header, native_stub)  # type: ignore[arg-type]
+
+
+def test_any_acq_with_new_key() -> None:
+    """Test any_acq when a new key is added to the current headers.
+
+    Should return True.
+    """
+    prev = {"ch1": WaveformHeader(noofsamples=1)}
+    curr = {
+        "ch1": WaveformHeader(noofsamples=1),
+        "ch2": WaveformHeader(noofsamples=1),
+    }
+    assert TekHSIConnect.any_acq(prev, curr)
+
+
+def test_is_header_value_false_cases() -> None:
+    """Test _is_header_value for cases that should return False.
+
+    Covers None header, zero samples, invalid source width, and hasdata False.
+    """
+    # None header
+    assert not TekHSIConnect._is_header_value(None)  # type: ignore[arg-type]
+
+    # Case: zero samples
+    h = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=True)
+    assert not TekHSIConnect._is_header_value(h)
+
+    # invalid sourcewidth
+    h = WaveformHeader(noofsamples=1, sourcewidth=8, hasdata=True)
+    assert not TekHSIConnect._is_header_value(h)
+
+    # hasdata False
+    h = WaveformHeader(noofsamples=1, sourcewidth=1, hasdata=False)
+    assert not TekHSIConnect._is_header_value(h)

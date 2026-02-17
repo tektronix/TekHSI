@@ -6,8 +6,9 @@ import os
 import pathlib
 import re
 
+from collections.abc import Generator
 from importlib import import_module
-from typing import Any, Generator, Optional, Set, Tuple
+from typing import Any
 
 import tomli
 
@@ -56,6 +57,9 @@ def convert_gfm_alerts_to_admonitions(content: str) -> str:
         text = match.group(2).strip()
         # Replace initial '>' from subsequent lines
         text = text.replace("\n>", "\n")
+        # Check if the alert type "tip" should be converted to "hint"
+        if alert_type == "tip":
+            alert_type = "hint"
         # Replace with admonition format
         return f"!!! {alert_type}\n    " + text.replace("\n", "\n    ")
 
@@ -128,7 +132,7 @@ def class_diagram(  # noqa: C901  # pylint: disable=too-many-locals
     *cls_or_modules: str,
     full: bool = False,
     strict: bool = False,
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
     tree_direction: str = "up",
     chart_direction: str = "LR",
     highlight_family_base_classes: bool = False,
@@ -148,7 +152,7 @@ def class_diagram(  # noqa: C901  # pylint: disable=too-many-locals
             "LR" (left to right), "RL" (right to left),
             "TB" (top to bottom), or "BT" (bottom to top).
         highlight_family_base_classes: Indicate to highlight the family base classes in cyan.
-        highlight_device_drivers: Indicate to highlight the device drivers in lightgreen.
+        highlight_device_drivers: Indicate to highlight the device drivers in lawngreen.
 
     Returns:
         The mermaid code block with complete syntax for the classDiagram.
@@ -156,9 +160,9 @@ def class_diagram(  # noqa: C901  # pylint: disable=too-many-locals
     Raises:
         ValueError: If no classDiagram can be created.
     """
-    inheritances: Set[Tuple[str, str]] = set()
-    family_base_classes: Set[str] = set()
-    device_drivers: Set[str] = set()
+    inheritances: set[tuple[str, str]] = set()
+    family_base_classes: set[str] = set()
+    device_drivers: set[str] = set()
 
     def get_tree_upwards(cls: Any) -> None:
         if getattr(cls, "_product_family_base_class", None) == cls:
@@ -205,7 +209,7 @@ def class_diagram(  # noqa: C901  # pylint: disable=too-many-locals
             mermaid_code_block += f"\n  style {family_base_class} stroke:orangered,stroke-width:4px"
     if highlight_device_drivers:
         for device_driver in sorted(device_drivers):
-            mermaid_code_block += f"\n  style {device_driver} fill:lightgreen"
+            mermaid_code_block += f"\n  style {device_driver} fill:lawngreen"
     mermaid_code_block += "\n```"
 
     return mermaid_code_block

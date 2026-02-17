@@ -20,8 +20,6 @@ from threading import Lock, Thread
 import grpc
 import numpy as np
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform
-
 import tekhsi._tek_highspeed_server_pb2 as tekhsi_pb2
 import tekhsi._tek_highspeed_server_pb2_grpc as tekhsi_pb2_grpc
 
@@ -317,11 +315,11 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                     reply.headerordata.header.sourcename = request.sourcename
                     reply.headerordata.header.sourcewidth = 4
 
-                    if isinstance(data, AnalogWaveform):  # noqa: F821
+                    if wfm.encoding in (WfmEncoding.Sine, WfmEncoding.Square):
                         reply.headerordata.header.wfmtype = 3
-                    elif isinstance(data, IQWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.IQ:
                         reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.Digital:
                         reply.headerordata.header.wfmtype = 4
 
                     reply.headerordata.header.pairtype = 1
@@ -424,7 +422,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     reply.headerordata.header.noofsamples = wfm.length
                     reply.headerordata.header.sourcename = request.sourcename
 
-                    if isinstance(data, AnalogWaveform):  # noqa: F821
+                    if wfm.encoding in (WfmEncoding.Sine, WfmEncoding.Square):
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
@@ -437,7 +435,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 1
-                    elif isinstance(data, IQWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.IQ:
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
@@ -447,7 +445,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                         else:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 6
-                    elif isinstance(data, DigitalWaveform):  # noqa: F821
+                    elif wfm.encoding == WfmEncoding.Digital:
                         if wfm.type == WfmDataType.Int8:
                             reply.headerordata.header.sourcewidth = 1
                             reply.headerordata.header.wfmtype = 4
@@ -581,25 +579,38 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 
     def RequestNewSequence(self, request, context):
         try:
-            if verbose:
-                if self._connections.get(request.name):
-                    print(f'RequestNewSequence Success "{request.name}"')
-                else:
+            # Validate connection exists before proceeding
+            if not self._connections.get(request.name):
+                if verbose:
                     print(f'RequestNewSequence Failed - No Connection "{request.name}"')
+                # Return OK status but with UNSPECIFIED to indicate the operation didn't proceed
+                # This is more graceful than FAILED_PRECONDITION for cleanup scenarios
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_UNSPECIFIED")
+                )
+
+            if verbose:
+                print(f'RequestNewSequence Success "{request.name}"')
 
             global connect_server
-            mutex.acquire()
-            if verbose:
-                print("mutex-acquired: RequestNewSequence")
-            self._channels = make_new_data()
-            self._new_data = True
-            mutex.release()
-            if verbose:
-                print("mutex-released: RequestNewSequence")
-            context.set_code(grpc.StatusCode.OK)
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
-            )
+            mutex_acquired = False
+            try:
+                mutex.acquire()
+                mutex_acquired = True
+                if verbose:
+                    print("mutex-acquired: RequestNewSequence")
+                self._channels = make_new_data()
+                self._new_data = True
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                )
+            finally:
+                if mutex_acquired:
+                    mutex.release()
+                    if verbose:
+                        print("mutex-released: RequestNewSequence")
         except Exception as e:
             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
             if verbose:
@@ -644,13 +655,17 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
                 time.sleep(0.001)
 
             mutex.acquire()
-            if verbose:
-                print("mutex-acquired: WaitForDataAccess")
-            self._dataaccess_allowed = True
-            context.set_code(grpc.StatusCode.OK)
-            return tekhsi_pb2.ConnectReply(
-                status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
-            )
+            try:
+                if verbose:
+                    print("mutex-acquired: WaitForDataAccess")
+                self._dataaccess_allowed = True
+                context.set_code(grpc.StatusCode.OK)
+                return tekhsi_pb2.ConnectReply(
+                    status=tekhsi_pb2.ConnectStatus.Value("CONNECTSTATUS_SUCCESS")
+                )
+            except Exception:
+                mutex.release()
+                raise
         except Exception as e:
             if verbose:
                 print(e)
@@ -694,8 +709,8 @@ class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
 def periodic_data_creation():
     """This is a background task that periodically creates new data.
 
-    This coordinates with the Connect server so that WaitForDataAccess
-    only returns when new data has arrived.
+    This coordinates with the Connect server so that WaitForDataAccess only returns when new data
+    has arrived.
 
     If you want to change the named sets of data returned you should modify 'make_new_data()'
     """
@@ -704,10 +719,12 @@ def periodic_data_creation():
         global acq_id
         try:
             mutex.acquire()
-            acq_id = acq_id + 1
-            connect_server._channels = make_new_data()
-            connect_server._new_data = True
-            mutex.release()
+            try:
+                acq_id = acq_id + 1
+                connect_server._channels = make_new_data()
+                connect_server._new_data = True
+            finally:
+                mutex.release()
             time.sleep(2)  # Wait for 2 seconds
         except Exception as e:
             print(f"periodic_data_creation:{e}")

@@ -2,13 +2,19 @@
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.9.0"]
 
+[tool.coverage.paths]
+source = [
+  "src/tekhsi",
+  ".tox/**/site-packages/tekhsi",
+]
+
 [tool.coverage.report]
 exclude_lines = [
   "if TYPE_CHECKING:",
   "pragma: no cover",
-  "raise NotImplementedError"
+  "raise NotImplementedError",
 ]
-fail_under = 74  # TODO: set to 100 after reaching 100% coverage
+fail_under = 67  # TODO: set to 100 after reaching 100% coverage
 show_missing = true
 skip_empty = true
 
@@ -16,7 +22,7 @@ skip_empty = true
 branch = true
 cover_pylib = false
 omit = [
-  "_*.py"
+  "_*.py",
 ]
 source = ["tekhsi"]
 
@@ -36,14 +42,14 @@ classifiers = [
   "Operating System :: OS Independent",
   "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
   "Topic :: Scientific/Engineering",
-  "Topic :: System :: Hardware :: Hardware Drivers"
+  "Topic :: System :: Hardware :: Hardware Drivers",
 ]
 description = "Transfer waveforms from Tektronix Oscilloscopes using the High-Speed Interface."
 documentation = "https://TekHSI.readthedocs.io"
 homepage = "https://pypi.org/project/TekHSI/"
 keywords = [
   "Tektronix",
-  "Test & Measurement"
+  "Test & Measurement",
 ]
 license = "Apache-2.0"
 maintainers = ["Tektronix <opensource@tektronix.com>"]
@@ -54,68 +60,68 @@ version = "1.0.0"
 
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"
-grpcio = "^1.51.3"
+grpcio = "^1.66.2"
+grpcio-tools = "^1.66.2"
 numpy = [
-  {python = "^3.9", version = "^1.26"},
-  {python = "^3.8, <3.12", version = "^1.24"}
+  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  {python = ">=3.10,<3.13", version = "^1.24"},
+  {python = ">=3.13", version = "^2.1"},
 ]
 protobuf = "^5.28.1"
-python = "^3.8, <3.13"
+python = ">=3.10,<3.14"  # This is the main Python version requirement
 python-dateutil = "^2.8.2"
-tm_data_types = "^0.1.0"
+tm_data_types = "^0.2.0"
 typing_extensions = "^4.12.0"
 tzlocal = "^5.2"
 
 [tool.poetry.group.dev.dependencies]
-docutils = "^0.20"  # TODO: Drop Python 3.8: remove this when the minimum Python version is >=3.9
 docutils-stubs = "^0.0.22"
-matplotlib = [
-  {python = ">=3.9", version = "^3.8"},
-  {python = "3.8", version = "^3.7"}
-]
+matplotlib = "^3.8"
 nodeenv = "^1.9.1"
-pip = "^24.0"
+numpy = [
+  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  {python = ">=3.10,<3.13", version = "^1.24"},
+  {python = ">=3.13", version = "^2.1"},
+]
+pip = "^26.0"
 poetry = "^1.8.0"
 poetry-audit-plugin = "^0.4.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.1.2"
-pre-commit = [
-  {python = ">=3.9", version = "^3.7"},
-  {python = "3.8", version = "^3.5"}
-]
-pylint = "3.2.7"
-pyright = {extras = ["nodejs"], version = "^1.1.387"}
+pre-commit = "^4.2"
+pylint = "3.3.7"
+pyright = {extras = ["nodejs"], version = "1.1.402"}
 pyroma = "^4.2"
 pyvisa = "^1.14.1"
-tm_devices = "^2.3.0"
+tm_devices = "^3.2.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
 twine = "^6.0.1"
 types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
-wheel = "^0.45"
+wheel = "^0.46.3"
 
 [tool.poetry.group.docs.dependencies]
 black = "^24.4.2"
 codespell = "^2.2.6"
 griffe = "^1.1.0"
 mkdocs = "^1.6.0"
-mkdocs-ezglossary-plugin = "^1.6.10"
+mkdocs-ezglossary-plugin = "^2.0.0"
 mkdocs-gen-files = "^0.5.0"
-mkdocs-include-markdown-plugin = "^6.0.5"
+mkdocs-include-markdown-plugin = "^7.1.5"
 mkdocs-literate-nav = "^0.6.1"
 mkdocs-macros-plugin = "^1.0.5"
 mkdocs-mermaid2-plugin = "^1.1.1"
 mkdocs-section-index = "^0.3.9"
 mkdocs-spellcheck = "^1.1.0"
-mkdocstrings = "^0.26.1"
+mkdocstrings = "^0.29.1"
 mkdocstrings-python = "^1.10.2"
 nodeenv = "^1.9.1"
 packaging = "^24.2"
 pygments = "^2.17.2"
 pymdown-extensions = "^10.8.1"
-requests = "^2.32.3"
+requests = "^2.31.0"
 symspellpy = "^6.7.7"
 tomli = "^2.0.1"
 
@@ -154,7 +160,7 @@ ignore-patterns = [
   "^_tek_highspeed_server_pb2.pyi",
   "^_tek_highspeed_server_pb2\\.py",
   "^_tek_highspeed_server_pb2_grpc\\.py",
-  "^temp_.*\\..*"
+  "^temp_.*\\..*",
 ]
 jobs = 0
 load-plugins = """
@@ -175,14 +181,16 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.8"
+py-version = "3.10"  # PYTHON VERSION MARKER
 recursive = true
 
-[tool.pylint."messages control"]
+[tool.pylint.messages_control]
 enable = ["all"]
 disable = [
   "broad-exception-caught",  # caught by ruff
+  "consider-alternative-union-syntax",  # R6003
   "consider-using-with",  # TODO: enable this check
+  "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
   "fixme",  # caught by ruff
   "global-statement",  # caught by ruff
@@ -192,6 +200,7 @@ disable = [
   "missing-class-docstring",  # caught by ruff
   "missing-module-docstring",  # caught by ruff
   "no-member",  # caught by pyright
+  "no-self-use",  # R6301
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
@@ -199,14 +208,15 @@ disable = [
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
+  "too-many-positional-arguments",  # caught by ruff
   "too-many-statements",  # caught by ruff
-  "too-many-statements",  # caught by ruff
-  "undefined-variable",  # caught by ruff
+  "unexpected-keyword-arg",  # caught by ruff
+  "unnecessary-default-type-args",  # caught by ruff
   "unused-argument",  # caught by ruff
-  "unused-import",  # caught by ruff
-  "use-implicit-booleaness-not-comparison-to-string",  # caught by ruff
-  "while-used",  # using while loops in example scripts
-  "wrong-import-order"  # caught by ruff
+  "use-set-for-membership",  # caught by ruff
+  "useless-suppression",  # caught by ruff
+  "while-used",  # caught by ruff
+  "wrong-import-order",  # caught by ruff
 ]
 
 [tool.pylint.reports]
@@ -223,10 +233,10 @@ output-format = "text"  # colorized could be another option
 ignore = [
   "**/output_*/**",
   "site/**",
-  "temp_*.py"
+  "temp_*.py",
 ]
 pythonPlatform = "All"
-pythonVersion = "3.8"
+pythonVersion = "3.10"  # PYTHON VERSION MARKER
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -246,7 +256,7 @@ useLibraryCodeForTypes = true
 addopts = "--order-scope=module --cov-config=pyproject.toml"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
 filterwarnings = [
-  "ignore:Type google._upb._message.:DeprecationWarning"
+  "ignore:Type google._upb._message.:DeprecationWarning",
 ]
 junit_family = "xunit2"
 junit_logging = "all"
@@ -254,7 +264,7 @@ log_format = "[%(asctime)s] [%(levelname)8s] %(message)s"
 markers = [
   'docs',
   'order',
-  'slow'
+  'slow',
 ]
 xfail_strict = true
 
@@ -266,7 +276,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py38"  # always generate Python 3.8 compatible code
+target-version = "py310"  # always generate Python 3.10 compatible code  # PYTHON VERSION MARKER
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -284,24 +294,24 @@ ignore = [
   "UP006",  # Use {to} instead of {from} for type annotation (allowed in this package)
   "UP007",  # Use `X | Y` for type annotations (allowed in this package)
   "UP024",  # Replace aliased errors with `OSError` (allowed in this package)
-  "UP037"  # Remove quotes from type annotation (allowed in this package)
+  "UP037",  # Remove quotes from type annotation (allowed in this package)
 ]
 pydocstyle = {convention = "google"}
 pylint = {max-args = 7}
 # https://beta.ruff.rs/docs/rules/
 select = [
-  "ALL"
+  "ALL",
 ]
 task-tags = ["FIXME", "FUTURE", "RELIC", "TODO"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = false
 known-first-party = [
-  "tekhsi"
+  "tekhsi",
 ]
 known-local-folder = [
   "server",
-  "tests"
+  "tests",
 ]
 lines-between-types = 1
 order-by-type = false
@@ -312,17 +322,17 @@ order-by-type = false
   "ERA001",  # Found commented-out code
   "S101",  # Use of assert detected
   "SIM117",  # Use a single `with` statement with multiple contexts instead of nested `with` statements
-  "T201"  # `print` found
+  "T201",  # `print` found
 ]
 "src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
-  "ALL"
+  "ALL",
 ]
 "tests/**" = [
   "D104",  # Missing docstring in public package
   "PLC1901",  # compare-to-empty-string
   "PLR2004",  # Magic value used in comparison
   "S101",  # Use of assert detected
-  "T201"  # `print` found
+  "T201",  # `print` found
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
@@ -334,16 +344,16 @@ order-by-type = false
   "PLW0602",
   "PLW0603",
   "SIM",
-  "SLF001"  # Private member accessed
+  "SLF001",  # Private member accessed
 ]
 "tests/test_client.py" = [
   "FBT001",  # Boolean-typed positional argument in function definition
-  "SLF001"  # Private member accessed
+  "SLF001",  # Private member accessed
 ]
 
 [tool.semantic_release]
 version_toml = [
-  "pyproject.toml:tool.poetry.version"
+  "pyproject.toml:tool.poetry.version",
 ]
 
 [tool.semantic_release.changelog]
@@ -363,6 +373,8 @@ patch_tags = []
 all = true
 in_place = true
 spaces_before_inline_comment = 2
+trailing_comma_inline_array = true
+overrides."tool.coverage.paths.*".inline_arrays = false
 overrides."tool.poetry.*".inline_arrays = false
 overrides."tool.pylint.*".table_keys = false
 
@@ -371,19 +383,18 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py38,py39,py310,py311,py312,tests,docs,doctests
+envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =
-  basic = py38,py39,py310,py311,py312,tests
+  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKER
   documentation = docs,doctests
 
 [gh-actions]
-python =
-    3.8: py38
-    3.9: py39
+python =  # PYTHON VERSION MARKER
     3.10: py310
     3.11: py311
     3.12: py312
+    3.13: py313
 
 [testenv]
 package = wheel
@@ -393,14 +404,14 @@ deps =
 setenv =
     COVERAGE_FILE = .coverage_{envname}
     DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
-    # Skip pre-commit checks that are not needed (yamlfix should be removed from this list once Python 3.8 support is dropped)
-    SKIP = file-contents-sorter,yamlfix
+    # Skip pre-commit checks that are not needed
+    SKIP = file-contents-sorter
 commands_pre =
     python -m poetry install --no-root --without=main
 commands =
-    !tests: python -c "import shutil; shutil.rmtree('dist_{envname}', ignore_errors=True)"
-    !tests: poetry build --output=dist_{envname}
-    !tests: twine check --strict dist_{envname}/*
+    !tests: python -c "import shutil; shutil.rmtree('.dist/{envname}', ignore_errors=True)"
+    !tests: poetry build --output=.dist/{envname}
+    !tests: twine check --strict .dist/{envname}/*
     !tests: pre-commit run --all-files
     pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 

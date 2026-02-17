@@ -6,10 +6,11 @@ import sys
 import time
 
 from abc import ABC
+from collections.abc import Generator
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Type, Union
+from typing import Union
 
 import grpc
 import psutil
@@ -66,7 +67,7 @@ class DerivedWaveformHandler:  # pylint: disable=too-few-public-methods
     """A derived waveform handler class for testing purposes."""
 
     @staticmethod
-    def data_arrival(waveforms: List[DerivedWaveform]) -> None:
+    def data_arrival(waveforms: list[DerivedWaveform]) -> None:
         """Override the data_arrival method to process waveforms."""
         for _ in waveforms:
             print("Processing waveform")
@@ -80,11 +81,11 @@ class TestServerManager:
         self.server_process = None
         self.port = port
 
-    def is_port_in_use(self) -> Optional[int]:
+    def is_port_in_use(self) -> int | None:
         """Check if the port is currently in use."""
         for proc in psutil.process_iter(["pid", "name"]):
             try:
-                for conn in proc.connections(kind="inet"):
+                for conn in proc.net_connections(kind="inet"):
                     if conn.laddr.port == self.port:
                         return proc.pid
             except (psutil.AccessDenied, psutil.NoSuchProcess):  # noqa: PERF203
@@ -117,9 +118,9 @@ class TestServerManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Terminate the dummy server process."""
         if self.server_process:
@@ -147,7 +148,7 @@ def derived_waveform_handler() -> DerivedWaveformHandler:
 
 
 @pytest.fixture
-def expected_header() -> Dict[str, Union[int, bool, float, str]]:
+def expected_header() -> dict[str, Union[int, bool, float, str]]:
     """Fixture to provide a sample waveform header.
 
     Returns:

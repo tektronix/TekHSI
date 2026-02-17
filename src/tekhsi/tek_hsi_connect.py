@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
+import sys
 import threading
 import time
 import uuid
 
 from atexit import register
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
-from typing import Callable, ClassVar, Dict, List, Optional, Type, TYPE_CHECKING, TypeVar
+from typing import ClassVar, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
@@ -29,9 +32,11 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WaveformRequest,
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
+from tekhsi.helpers.enums import WaveformType  # Added for enum-based waveform type checks
 from tekhsi.helpers.logging import configure_logging
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
     from typing_extensions import Self
@@ -97,17 +102,17 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     - This API is intended to aid in retrieving data from instruments as fast as possible.
     """
 
-    _connections: ClassVar[Dict[str, "TekHSIConnect"]] = {}
+    _connections: ClassVar[dict[str, "TekHSIConnect"]] = {}
 
     ################################################################################################
     # Magic Methods
     ################################################################################################
-    def __init__(
+    def __init__(  # noqa: PLR0915
         self,
         url: str,
-        activesymbols: Optional[List[str]] = None,
-        callback: Optional[Callable] = None,
-        data_filter: Optional[Callable] = None,
+        activesymbols: list[str] | None = None,
+        callback: Callable | None = None,
+        data_filter: Callable | None = None,
     ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
 
@@ -168,6 +173,31 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._is_exiting = False
         self._prev_data_id = -1
 
+        # Parallel read support for A/B testing (DISABLED BY DEFAULT - experimental)
+        self._parallel_reads_enabled = self._should_enable_parallel_reads()
+        self._parallel_reads_threshold = int(
+            os.getenv("TEKHSI_PARALLEL_THRESHOLD", "2")
+        )  # Min waveforms to parallelize
+        self._read_executor: ThreadPoolExecutor | None = None
+        # Only enable if explicitly requested (not "auto" - too risky)
+        self._use_parallel_reads = os.getenv("TEKHSI_USE_PARALLEL_READS", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._parallel_read_time = 0.0
+        self._sequential_read_time = 0.0
+        self._parallel_read_count = 0
+        self._sequential_read_count = 0
+
+        if self._parallel_reads_enabled and self._use_parallel_reads:
+            # Use max_workers based on typical number of channels (2-4 is optimal for I/O-bound)
+            max_workers = int(os.getenv("TEKHSI_PARALLEL_WORKERS", "4"))
+            self._read_executor = ThreadPoolExecutor(
+                max_workers=max_workers, thread_name_prefix=f"tekhsi-read-{self.clientname}"
+            )
+            _logger.warning("Parallel reads enabled (EXPERIMENTAL) with %d workers", max_workers)
+
         TekHSIConnect._connections[self.clientname] = self
 
         if not activesymbols:
@@ -191,9 +221,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit the runtime context related to this object.
 
@@ -221,7 +251,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Properties - Private and Public
     ################################################################################################
     @property
-    def available_symbols(self) -> List[str]:
+    def available_symbols(self) -> list[str]:
         """Returns the list of available symbols on the instrument.
 
         "Available" means the channel is on. What data type is returned will depend upon the probe
@@ -272,7 +302,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._instrument = value
 
     @property
-    def source_names(self) -> List[str]:
+    def source_names(self) -> list[str]:
         """Returns the list of names of sources on the instrument.
 
         Returns:
@@ -347,8 +377,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_acq(
-        previous_header: Dict[str, WaveformHeader],  # noqa: ARG004
-        current_header: Dict[str, WaveformHeader],  # noqa: ARG004
+        previous_header: dict[str, WaveformHeader],  # noqa: ARG004
+        current_header: dict[str, WaveformHeader],  # noqa: ARG004
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts all new acqs.
 
@@ -365,8 +395,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     # --8<-- [start:any_horizontal_change]
     def any_horizontal_change(
-        previous_header: Dict[str, WaveformHeader],
-        current_header: Dict[str, WaveformHeader],
+        previous_header: dict[str, WaveformHeader],
+        current_header: dict[str, WaveformHeader],
     ) -> bool:
         """Acq acceptance filter that accepts only acqs with changes to horizontal settings.
 
@@ -396,8 +426,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # TODO: Investigate moving this to a separate module as a standalone function
     @staticmethod
     def any_vertical_change(
-        previous_header: Dict[str, WaveformHeader],
-        current_header: Dict[str, WaveformHeader],
+        previous_header: dict[str, WaveformHeader],
+        current_header: dict[str, WaveformHeader],
     ) -> bool:
         """Prebuilt acq acceptance filter that accepts only acqs with changes to vertical settings.
 
@@ -421,11 +451,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 return True
         return False
 
-    def active_symbols(self, symbols: List[str]) -> None:
+    def active_symbols(self, symbols: list[str]) -> None:
         """Sets symbols to consider moving from instrument into data cache.
 
         Args:
-            symbols (List[str]): list of symbols to be moved
+            symbols (list[str]): list of symbols to be moved
         """
         self.activesymbols = symbols
 
@@ -436,11 +466,24 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         _logger.debug("close")
 
-        # This will force the scope to give the background
-        # thread access to data. That should cause it to exit.
+        # Call force_sequence while still connected so it can run. This asks the
+        # server to provide new data and unblocks the background thread's
+        # WaitForDataAccess so it can exit. Do this before setting _connected=False.
         try:
-            self.thread_active = False
             self.force_sequence()
+        except grpc.RpcError as rpc_error:
+            # Handle gRPC errors gracefully during cleanup (e.g. server already down)
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "Error during force_sequence in close: %s",
+                rpc_error,
+            )
+
+        # Mark as disconnected and stop the background thread
+        self._connected = False
+        self.thread_active = False
+
+        try:
             # Wait for thread to exit
             self.thread.join(20.0)
         except RuntimeError as error:
@@ -458,17 +501,40 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         _logger.debug("disconnect")
 
+        # Shutdown parallel read executor if it exists
+        if self._read_executor:
+            try:
+                self._read_executor.shutdown(wait=True, timeout=5.0)
+                if self.verbose and (
+                    self._parallel_read_count > 0 or self._sequential_read_count > 0
+                ):
+                    _logger.info(
+                        "Read performance: Parallel=%d (avg %.3f ms), Sequential=%d (avg %.3f ms)",
+                        self._parallel_read_count,
+                        (self._parallel_read_time / self._parallel_read_count) * 1000
+                        if self._parallel_read_count > 0
+                        else 0,
+                        self._sequential_read_count,
+                        (self._sequential_read_time / self._sequential_read_count) * 1000
+                        if self._sequential_read_count > 0
+                        else 0,
+                    )
+            except Exception:
+                _logger.exception("Error shutting down read executor")
+            finally:
+                self._read_executor = None
+
         # disconnect from the instrument
         self._disconnect()
 
     @staticmethod
-    def data_arrival(waveforms: List[AnyWaveform]) -> None:  # noqa: ARG004
+    def data_arrival(waveforms: list[AnyWaveform]) -> None:  # noqa: ARG004
         """Available to be overridden if user wants to create a derived class.
 
         This method will be called on every accepted acq.
 
         Args:
-            waveforms: List of waveforms.
+            waveforms: list of waveforms.
         """
         return
 
@@ -495,11 +561,15 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         get access to the currently available data. Otherwise, the API will wait until the next
         acquisition.
         """
+        if not self._connected:
+            _logger.debug("force_sequence skipped - not connected")
+            return
+
         _logger.debug("force_sequence")
         request = ConnectRequest(name=self.clientname)
         self.connection.RequestNewSequence(request)
 
-    def get_data(self, name: str) -> Optional[AnyWaveform]:
+    def get_data(self, name: str) -> AnyWaveform | None:
         """Gets the saved data of the previous acquisition with the data item of the requested name.
 
         The provided `name` parameter must correspond to the names returned from the
@@ -566,11 +636,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     # Private Methods
     ################################################################################################
     @staticmethod
-    def _acq_id(headers: List[WaveformHeader]) -> Optional[int]:
+    def _acq_id(headers: list[WaveformHeader]) -> int | None:
         """Retrieve the data ID from the first header in the list.
 
         Args:
-            headers: List of waveform headers.
+            headers: list of waveform headers.
 
         Returns:
             The data ID of the first header, or None if the list is empty.
@@ -579,11 +649,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             return header.dataid
         return None
 
-    def _available_symbols(self) -> List[str]:
+    def _available_symbols(self) -> list[str]:
         """Returns the list of available channels.
 
         Returns:
-            List of available channels.
+            list of available channels.
         """
         request = ConnectRequest(name=self.clientname)
         response = self.connection.RequestAvailableNames(request)
@@ -597,12 +667,25 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     def _disconnect(self) -> None:
         """Disconnect from gRPC server."""
-        if not self._connected:
-            return
-        self._connected = False
+        # Note: _connected may already be False if called from close()
+        # but we still want to attempt the disconnect RPC call for cleanup
         _logger.debug("disconnect")
-        request = ConnectRequest(name=self.clientname)
-        self.connection.Disconnect(request)
+        try:
+            request = ConnectRequest(name=self.clientname)
+            self.connection.Disconnect(request)
+        except grpc.RpcError as rpc_error:
+            # Handle gRPC errors gracefully during disconnect
+            # This can happen if the server is already shutting down or connection is in a bad state
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "Error during disconnect: %s",
+                rpc_error,
+            )
+        with contextlib.suppress(Exception):
+            _logger.log(
+                logging.WARNING if self.verbose else logging.DEBUG,
+                "Unexpected error during disconnect",
+            )
 
     def _done_with_data_release_lock(self) -> None:
         """Releases the lock after accessing the required data."""
@@ -678,7 +761,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return response.headerordata.header
 
     def _read_headers(
-        self, headers: List[WaveformHeader], header_dict: Dict[str, WaveformHeader]
+        self, headers: list[WaveformHeader], header_dict: dict[str, WaveformHeader]
     ) -> None:
         """Reads headers for the active symbols.
 
@@ -696,7 +779,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 header_dict[header.sourcename] = header
 
     # pylint: disable= too-many-locals
-    def _read_waveform(self, header: WaveformHeader) -> Waveform:  # noqa: C901,PLR0912,PLR0915
+    def _read_waveform(  # noqa: PLR0915, PLR0912, C901
+        self, header: WaveformHeader
+    ) -> Waveform:
         """Reads the analog waveform associated with the passed header.
 
         Args:
@@ -737,7 +822,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     if dt is not None:
                         sum_of_chunks += len(dt)
 
-            elif header.wfmtype in {7, 6}:  # WFMTYPE_ANALOG_IQ
+            elif header.wfmtype in {
+                WaveformType.ANALOG_IQ,
+                WaveformType.ANALOG_16_IQ,
+            }:  # WFMTYPE_ANALOG_IQ
                 waveform = IQWaveform()
                 waveform.source_name = header.sourcename
                 waveform.iq_axis_spacing = header.verticalspacing
@@ -792,7 +880,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     ] = dt
                     if dt is not None:
                         sample_index += sample_count
-            elif header.wfmtype in {4, 5}:  # Digital
+            elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
                 waveform = DigitalWaveform()
                 waveform.source_name = header.sourcename
                 waveform.y_axis_units = header.verticalunits
@@ -826,13 +914,71 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         return waveform
 
-    def _read_waveforms(self, headers: List[WaveformHeader], waveforms: List[Waveform]) -> int:
+    def _should_enable_parallel_reads(self) -> bool:
+        """Determine if parallel reads should be enabled based on Python version.
+
+        Note: Python version is unlikely to be the limiting factor - the issue is
+        more likely gRPC/server-side behavior. All Python 3.x versions release
+        the GIL during I/O operations (including gRPC calls).
+
+        Returns:
+            True if parallel reads are supported, False otherwise.
+        """
+        # Python 3.8-3.12: Enable for I/O-bound gRPC calls
+        # (gRPC releases GIL during I/O, so parallel reads can theoretically help)
+        if sys.version_info < (3, 11):
+            return False
+
+        # Python 3.13+: Free-threaded mode available but experimental
+        # Note: Free-threaded mode helps CPU-bound work, not I/O-bound
+        # Since gRPC is I/O-bound and already releases GIL, free-threaded mode
+        # is unlikely to help with the current hanging issues
+        # The problem is more likely gRPC/server-side serialization
+
+        # Check environment variable for explicit disable
+        disabled = os.getenv("TEKHSI_DISABLE_PARALLEL_READS", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        return not disabled
+
+    def _read_waveforms(self, headers: list[WaveformHeader], waveforms: list[Waveform]) -> int:
         """Reads the waveforms for the headers.
+
+        Automatically chooses between sequential and parallel reads based on:
+        - Number of waveforms (threshold-based)
+        - Configuration settings
+        - Whether parallel reads are enabled
 
         Args:
             headers: list of headers
             waveforms: list of waveforms
         """
+        n = len(headers)
+
+        # Decide whether to use parallel reads
+        use_parallel = (
+            self._parallel_reads_enabled
+            and self._use_parallel_reads
+            and self._read_executor is not None
+            and n >= self._parallel_reads_threshold
+        )
+
+        if use_parallel:
+            return self._read_waveforms_parallel(headers, waveforms)
+        return self._read_waveforms_sequential(headers, waveforms)
+
+    def _read_waveforms_sequential(
+        self, headers: list[WaveformHeader], waveforms: list[Waveform]
+    ) -> int:
+        """Reads the waveforms sequentially (original implementation).
+
+        Args:
+            headers: list of headers
+            waveforms: list of waveforms
+        """
+        start_time = time.perf_counter()
         n = len(headers)
         datasize = 0
         for index in range(n):
@@ -854,6 +1000,270 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 self._lock_getdata.release()
             if self._recordlength > 0:
                 waveforms.append(waveform)
+
+        elapsed = time.perf_counter() - start_time
+        self._sequential_read_time += elapsed
+        self._sequential_read_count += 1
+
+        if self.verbose:
+            _logger.info(
+                "Sequential read: %d waveforms in %.3f ms (avg: %.3f ms)",
+                n,
+                elapsed * 1000,
+                (self._sequential_read_time / self._sequential_read_count) * 1000
+                if self._sequential_read_count > 0
+                else 0,
+            )
+
+        return datasize
+
+    def _read_waveform_with_stub(  # noqa: C901, PLR0912, PLR0915
+        self, header: WaveformHeader, native_stub: NativeDataStub
+    ) -> Waveform:
+        """Reads a waveform using a provided stub (thread-safe version).
+
+        This creates a thread-local stub to avoid thread-safety issues with shared stubs.
+
+        Args:
+            header: Waveform header to read
+            native_stub: NativeDataStub instance for this thread
+
+        Returns:
+            Waveform: The read waveform
+        """
+        # Create a temporary method that uses the provided stub instead of self.native
+        # We'll need to replicate _read_waveform logic but with the stub parameter
+        # For now, let's use a wrapper that creates a new stub per call
+        try:
+            if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
+                waveform = AnalogWaveform()
+                waveform.source_name = header.sourcename
+                waveform.y_axis_spacing = header.verticalspacing
+                waveform.y_axis_offset = header.verticaloffset
+                waveform.y_axis_units = header.verticalunits
+                waveform.x_axis_spacing = header.horizontalspacing
+                waveform.x_axis_units = header.horizontalUnits
+                waveform.trigger_index = header.horizontalzeroindex
+
+                sum_of_chunks = 0
+                data_size = header.sourcewidth
+                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
+                response_iterator = native_stub.GetWaveform(request)
+                dt = None
+                sum_chunk_size = 0
+                dt_type = self.v_datatypes[header.sourcewidth]
+
+                waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
+                for response in response_iterator:
+                    if not self.thread_active:
+                        return waveform
+                    chunk_size = len(response.headerordata.chunk.data)
+                    sum_chunk_size += chunk_size
+                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
+                    waveform.y_axis_values[
+                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
+                    ] = dt
+                    if dt is not None:
+                        sum_of_chunks += len(dt)
+
+            elif header.wfmtype in {
+                WaveformType.ANALOG_IQ,
+                WaveformType.ANALOG_16_IQ,
+            }:  # WFMTYPE_ANALOG_IQ
+                waveform = IQWaveform()
+                waveform.source_name = header.sourcename
+                waveform.iq_axis_spacing = header.verticalspacing
+                waveform.iq_axis_offset = header.verticaloffset
+                waveform.iq_axis_units = header.verticalunits
+                waveform.x_axis_spacing = header.horizontalspacing
+                waveform.x_axis_units = header.horizontalUnits
+                waveform.trigger_index = header.horizontalzeroindex
+
+                if header.iq_windowType == "Blackharris":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 1.9
+                elif header.iq_windowType == "Flattop2":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 3.77
+                elif header.iq_windowType == "Hanning":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 1.44
+                elif header.iq_windowType == "Hamming":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 1.3
+                elif header.iq_windowType == "Rectangle":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 0.89
+                elif header.iq_windowType == "Kaiserbessel":
+                    sample_rate = (header.iq_fftLength * header.iq_rbw) / 2.23
+                else:
+                    sample_rate = header.iq_span
+
+                waveform.meta_info = IQWaveformMetaInfo(
+                    iq_center_frequency=header.iq_centerFrequency,
+                    iq_fft_length=header.iq_fftLength,
+                    iq_resolution_bandwidth=header.iq_rbw,
+                    iq_span=header.iq_span,
+                    iq_window_type=header.iq_windowType,
+                    iq_sample_rate=sample_rate,
+                )
+
+                sample_index = 0
+                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
+                response_iterator = native_stub.GetWaveform(request)
+                dt = None
+                sum_chunk_size = 0
+                dt_type = self.iq_datatypes[header.sourcewidth]
+
+                waveform.interleaved_iq_axis_values = np.empty(header.noofsamples, dtype=dt_type)
+                for response in response_iterator:
+                    if not self.thread_active:
+                        return waveform
+
+                    chunk_size = len(response.headerordata.chunk.data)
+                    sum_chunk_size += chunk_size
+                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
+                    sample_count = len(dt)
+                    waveform.interleaved_iq_axis_values[
+                        sample_index : sample_index + sample_count
+                    ] = dt
+                    if dt is not None:
+                        sample_index += sample_count
+            elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
+                waveform = DigitalWaveform()
+                waveform.source_name = header.sourcename
+                waveform.y_axis_units = header.verticalunits
+                waveform.x_axis_spacing = header.horizontalspacing
+                waveform.x_axis_units = header.horizontalUnits
+                waveform.trigger_index = header.horizontalzeroindex
+
+                sum_of_chunks = 0
+                data_size = header.sourcewidth
+                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
+                response_iterator = native_stub.GetWaveform(request)
+                dt = None
+                sum_chunk_size = 0
+                dt_type = self.d_datatypes[header.sourcewidth]
+
+                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
+                for response in response_iterator:
+                    if not self.thread_active:
+                        return waveform
+                    chunk_size = len(response.headerordata.chunk.data)
+                    sum_chunk_size += chunk_size
+                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
+                    waveform.y_axis_byte_values[
+                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
+                    ] = dt
+                    if dt is not None:
+                        sum_of_chunks += len(dt)
+            else:
+                msg = f"Unknown waveform type: {header.wfmtype}"
+                raise ValueError(msg)  # noqa: TRY301
+
+            waveform.record_length = header.noofsamples
+            return waveform  # noqa: TRY300
+        except Exception as e:
+            _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)  # noqa: TRY400
+            raise
+
+    def _read_waveforms_parallel(  # noqa: PLR0912, C901
+        self, headers: list[WaveformHeader], waveforms: list[Waveform]
+    ) -> int:
+        """Reads waveforms in parallel using ThreadPoolExecutor.
+
+        EXPERIMENTAL: This may cause issues with some gRPC servers or configurations.
+        Only used when parallel reads are explicitly enabled and beneficial.
+        Creates a new stub per thread to avoid thread-safety issues.
+
+        Args:
+            headers: list of headers
+            waveforms: list of waveforms
+        """
+        if not self._read_executor:
+            # Fall back to sequential if executor not available
+            return self._read_waveforms_sequential(headers, waveforms)
+
+        start_time = time.perf_counter()
+        n = len(headers)
+        datasize = 0
+        futures = {}
+
+        try:
+            # Submit all read tasks - each thread gets its own stub to avoid thread-safety issues
+            for header in headers:
+                if not self.thread_active:
+                    break
+                # Create a new stub for each thread (gRPC channels are thread-safe,
+                # but stubs may not be)
+                native_stub = NativeDataStub(self.channel)
+                future = self._read_executor.submit(
+                    self._read_waveform_with_stub, header, native_stub
+                )
+                futures[future] = header
+
+            # Collect results as they complete with timeout protection
+            results = {}
+            timeout_seconds = 30.0  # Maximum time to wait for all reads
+            deadline = time.perf_counter() + timeout_seconds
+
+            for future in as_completed(futures, timeout=timeout_seconds):
+                if time.perf_counter() > deadline:
+                    _logger.warning("Parallel read timeout - cancelling remaining reads")
+                    break
+
+                if not self.thread_active:
+                    # Cancel remaining if thread is stopping
+                    for f in futures:
+                        if not f.done():
+                            f.cancel()
+                    break
+
+                try:
+                    waveform = future.result(timeout=1.0)  # Individual read timeout
+                    header = futures[future]
+                    results[header] = waveform
+                except (RuntimeError, ValueError, grpc.RpcError):
+                    header = futures.get(future)
+                    header_name = header.sourcename if header else "unknown"
+
+                    _logger.exception(
+                        "Error reading waveform %s; continuing with remaining reads",
+                        header_name,
+                    )
+                    # Continue with other reads even if one fails
+
+            # Process results in original order
+            for header in headers:
+                if header in results:
+                    waveform = results[header]
+                    if waveform.record_length > 0:
+                        self._recordlength = waveform.record_length
+                        datasize += waveform.record_length * header.sourcewidth
+
+                        if self._cachedataenabled:
+                            with self._lock_getdata:
+                                self._datacache[header.sourcename.lower()] = waveform
+
+                        waveforms.append(waveform)
+        except Exception:
+            _logger.exception("Error in parallel read, falling back to sequential: %s")
+            # Cancel all futures and fall back
+            for f in futures:
+                if not f.done():
+                    f.cancel()
+            # Fall back to sequential for remaining headers
+            return self._read_waveforms_sequential(headers, waveforms)
+
+        elapsed = time.perf_counter() - start_time
+        self._parallel_read_time += elapsed
+        self._parallel_read_count += 1
+
+        if self.verbose:
+            _logger.info(
+                "Parallel read: %d waveforms in %.3f ms (avg: %.3f ms)",
+                n,
+                elapsed * 1000,
+                (self._parallel_read_time / self._parallel_read_count) * 1000
+                if self._parallel_read_count > 0
+                else 0,
+            )
+
         return datasize
 
     def _run(self) -> None:
@@ -863,19 +1273,36 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             headers = []
 
             startwait = time.perf_counter()
-            self._wait_for_data_access()
-            self._holding_scope_open = True
-            self._lock_filter.acquire()
-
             try:
-                self._run_inner(headers, waveforms, startwait)
-            finally:
-                self._finished_with_data_access()
-                self._lock_filter.release()
-                self._holding_scope_open = False
+                self._wait_for_data_access()
+                self._holding_scope_open = True
+                self._lock_filter.acquire()
 
-    def _run_inner(  # noqa: C901,PLR0912
-        self, headers: List[WaveformHeader], waveforms: List[Waveform], startwait: float
+                try:
+                    self._run_inner(headers, waveforms, startwait)
+                finally:
+                    self._finished_with_data_access()
+                    self._lock_filter.release()
+                    self._holding_scope_open = False
+            except grpc.RpcError as rpc_error:  # Server went away or connection reset;
+                # exit thread cleanly
+                _logger.log(
+                    logging.DEBUG if not self.verbose else logging.INFO,
+                    "Background thread exiting (connection closed): %s",
+                    rpc_error,
+                )
+                # Ensure we release lock if we bailed before releasing
+                if self._holding_scope_open:
+                    with contextlib.suppress(Exception):
+                        self._finished_with_data_access()
+                    with contextlib.suppress(Exception):
+                        self._lock_filter.release()
+                    self._holding_scope_open = False
+
+                return
+
+    def _run_inner(  # noqa: C901, PLR0912
+        self, headers: list[WaveformHeader], waveforms: list[Waveform], startwait: float
     ) -> None:
         """Background thread for participating in the instruments sequence.
 
