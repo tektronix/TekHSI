@@ -154,6 +154,11 @@ explicitly configured, the default logging settings will be used (as defined by 
 
     This feature is experimental and disabled by default.
 
+!!! note
+
+    A Python example demonstrating the parallel waveform reading will be added once those
+    functions are thoroughly validated and benchmarked.
+
 `TekHSI` includes optional experimental support for parallel waveform reads.
 This behavior can be controlled using environment variables.
 
