@@ -5,6 +5,7 @@ any_horizontal_change
 any_vertical_change
 artifact
 behaviors
+benchmarked
 bitstream
 changelog
 csv
