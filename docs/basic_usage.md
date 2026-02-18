@@ -81,21 +81,21 @@ An acquisition filter allows custom rules to be applied that can be used to filt
 the acquisitions that are accepted for processing by the client. Normally the filter is set to `None`,
 which lets all acquisitions through. However, there are several predefined filters that can be used:
 
-- [`any_acq`][tekhsi.TekHSIConnect.any_acq] - This is equivalent to setting the acquisition filter
+- [`any_acq`][tekhsi.tek_hsi_connect.TekHSIConnect.any_acq] - This is equivalent to setting the acquisition filter
     to `None`, and it allows all acquisitions to be processed.
-- [`any_vertical_change`][tekhsi.TekHSIConnect.any_vertical_change] - This looks at the previous and
+- [`any_vertical_change`][tekhsi.tek_hsi_connect.TekHSIConnect.any_vertical_change] - This looks at the previous and
     current acquisition and checks to see if any of the channels have seen any vertical change. If
     so, that acquisition is processed, otherwise it is skipped.
-- [`any_horizontal_change`][tekhsi.TekHSIConnect.any_horizontal_change] - This looks at the previous
+- [`any_horizontal_change`][tekhsi.tek_hsi_connect.TekHSIConnect.any_horizontal_change] - This looks at the previous
     and current acquisition and checks to see if any of the channels have seen any horizontal
     change. If so, that acquisition is processed, otherwise it is skipped.
 
 Custom rules can also be created by the user.
 
 These filters (pre-defined or user-defined) are either set during `TekHSIConnect`
-instantiation or by using the [`set_acq_filter()`][tekhsi.TekHSIConnect.set_acq_filter] method.
+instantiation or by using the [`set_acq_filter()`][tekhsi.tek_hsi_connect.TekHSIConnect.set_acq_filter] method.
 
-Below is the source code of [`any_horizontal_change()`][tekhsi.TekHSIConnect.any_horizontal_change].
+Below is the source code of [`any_horizontal_change()`][tekhsi.tek_hsi_connect.TekHSIConnect.any_horizontal_change].
 The arguments are the previous header and the current header. This allows you to compare changes
 from the current headers against the previous header. If this returns `True` the acquisition is
 passed on, otherwise it is ignored. This provides an easy way to only consider the changes which are
