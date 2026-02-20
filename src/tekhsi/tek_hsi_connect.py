@@ -68,7 +68,7 @@ class AcqWaitOn(Enum):
     acquisition. The typical usage of this is if you are using multiple instruments and PyVISA. If
     you are turning on an AFG you need some time for the instrument to be set up and the data to
     arrive. This process is approximately the same as sleeping for half a second then calling
-    [`access_data(AcqWaitOn.NextAcq)`][tekhsi.TekHSIConnect.access_data].
+    [`access_data(AcqWaitOn.NextAcq)`][tekhsi.tek_hsi_connect.TekHSIConnect.access_data].
 
     Examples:
         >>> from tekhsi import AcqWaitOn, TekHSIConnect
@@ -82,10 +82,12 @@ class AcqWaitOn(Enum):
     """Wait for new data.
 
     Using the `NewData` criterion for data acceptance will continue when the current data from the
-    stored acquisition has not been read by [`get_data()`][tekhsi.TekHSIConnect.get_data]. This is
+    stored acquisition has not been read by
+    [`get_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.get_data]. This is
     import since the underlying data is buffered because it's stored as data on the instrument is
     available. If you have seen the underlying data since the last
-    [`get_data()`][tekhsi.TekHSIConnect.get_data] call, it will return the buffered data. If you
+    [`get_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.get_data] call,
+    it will return the buffered data. If you
     haven't seen the data, it will block until the next new piece of data arrives.
 
     Examples:
@@ -573,8 +575,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Gets the saved data of the previous acquisition with the data item of the requested name.
 
         The provided `name` parameter must correspond to the names returned from the
-        [`available_symbols`][tekhsi.TekHSIConnect.available_symbols] property, however, the names
-        are case-insensitive.
+        [`available_symbols`][tekhsi.tek_hsi_connect.TekHSIConnect.available_symbols] property,
+        however, the names are case-insensitive.
 
         Args:
             name: Name of the data item.
