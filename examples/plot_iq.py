@@ -13,8 +13,8 @@ decimate_count = 150
 
 with TekHSIConnect(f"{address}:5000", [source]) as connection:
     # connection.instrumentation_enabled = True
-    # Get one data set to setup plot
-    with connection.access_data(AcqWaitOn.AnyAcq):
+    # Get one data set to set up plot
+    with connection.access_data(AcqWaitOn.NewData):
         waveform: IQWaveform = connection.get_data(source)
 
     iq_data = waveform.normalized_vertical_values
