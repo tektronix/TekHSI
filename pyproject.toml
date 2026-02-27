@@ -56,7 +56,7 @@ maintainers = ["Tektronix <opensource@tektronix.com>"]
 name = "TekHSI"
 readme = "README.md"
 repository = "https://github.com/tektronix/TekHSI"
-version = "1.0.0"
+version = "1.1.0"
 
 [tool.poetry.dependencies]
 colorlog = "^6.9.0"

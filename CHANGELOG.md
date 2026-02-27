@@ -18,6 +18,36 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+---
+
+## v1.1.0 (2026-02-27)
+
+### Merged Pull Requests
+
+- fix: update access_data() attributes to use AcqWaitOn.NewData ([#126](https://github.com/tektronix/TekHSI/pull/126))
+- chore: Update documentation dependencies ([#123](https://github.com/tektronix/TekHSI/pull/123))
+- chore: Update Mermaid library source to use CDN ([#99](https://github.com/tektronix/TekHSI/pull/99))
+- Drop support for Python 3.8 and 3.9, add support for Python 3.13, and improve handling of gRPC errors ([#85](https://github.com/tektronix/TekHSI/pull/85))
+- gh-actions(deps): bump tektronix/python-package-ci-cd ([#32](https://github.com/tektronix/TekHSI/pull/32))
+- fix: removed serial keyword from mkdocs.yml file. ([#55](https://github.com/tektronix/TekHSI/pull/55))
+- python-deps(deps-dev): update twine requirement from ^5.0.0 to ^6.0.1 in the python-dependencies group ([#49](https://github.com/tektronix/TekHSI/pull/49))
+- docs: Remove section of contribution guide that duplicates a later section ([#50](https://github.com/tektronix/TekHSI/pull/50))
+- feat: Add insiders documentation features. ([#48](https://github.com/tektronix/TekHSI/pull/48))
+- Switch from print to logging ([#46](https://github.com/tektronix/TekHSI/pull/46))
+- python-deps(deps-dev): update wheel requirement from ^0.44 to ^0.45 in the python-dependencies group ([#44](https://github.com/tektronix/TekHSI/pull/44))
+- chore: Update pyright dependency and use more reliable method of installing local nodejs for it ([#43](https://github.com/tektronix/TekHSI/pull/43))
+- python-deps(deps-dev): update pyright requirement from 1.1.386 to 1.1.387 in the python-dependencies group ([#42](https://github.com/tektronix/TekHSI/pull/42))
+- python-deps(deps-dev): update pyright requirement from 1.1.383 to 1.1.386 in the python-dependencies group across 1 directory ([#41](https://github.com/tektronix/TekHSI/pull/41))
+- ci: Skip updating the mdformat repo during the dependency updater workflow ([#40](https://github.com/tektronix/TekHSI/pull/40))
+- docs: Update documentation templates and macros ([#38](https://github.com/tektronix/TekHSI/pull/38))
+- ci: Remove pre-commit hook that no longer works on Python 3.8 and replace with one that does ([#35](https://github.com/tektronix/TekHSI/pull/35))
+- python-deps(deps-dev): update pyright requirement from 1.1.382.post1 to 1.1.383 in the python-dependencies group ([#33](https://github.com/tektronix/TekHSI/pull/33))
+- docs: Update basic usage documentation page ([#31](https://github.com/tektronix/TekHSI/pull/31))
+- python-deps(deps-dev): update pyright requirement from 1.1.381 to 1.1.382.post1 in the python-dependencies group ([#29](https://github.com/tektronix/TekHSI/pull/29))
+- test: Ignore googletagmanager links during doctests ([#27](https://github.com/tektronix/TekHSI/pull/27))
+- python-deps(deps-dev): update pyright requirement from 1.1.380 to 1.1.381 in the python-dependencies group ([#26](https://github.com/tektronix/TekHSI/pull/26))
+- docs: updated development status in toml file. ([#25](https://github.com/tektronix/TekHSI/pull/25))
+
 ### Removed
 
 - Python 3.8 and 3.9 support has been removed from the package. The minimum supported version is now Python 3.10.
