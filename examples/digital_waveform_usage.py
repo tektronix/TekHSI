@@ -5,11 +5,11 @@ import numpy as np
 
 from tm_data_types import DigitalWaveform
 
-from tekhsi import TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 with TekHSIConnect("192.168.0.1:5000") as connection:
-    # Get one data set to setup plot
-    with connection.access_data():
+    # Get one data set to set up plot
+    with connection.access_data(AcqWaitOn.NewData):
         waveform: DigitalWaveform = connection.get_data("ch4_DAll")
 
     # Digital retrieval of bit 3 in the digital array

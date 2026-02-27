@@ -2,7 +2,7 @@
 
 from tm_data_types import AnalogWaveform, write_file
 
-from tekhsi import TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
@@ -10,7 +10,8 @@ addr = "192.168.0.1"  # Replace with the IP address of your instrument
 with TekHSIConnect(f"{addr}:5000", ["ch1"]) as connect:
     # Save data from 10 acquisitions as a set of CSV files
     for i in range(10):
-        with connect.access_data():
+        # Use AcqWaitOn.NextAcq to wait for the next new acquisition
+        with connect.access_data(AcqWaitOn.NextAcq):
             wfm: AnalogWaveform = connect.get_data("ch1")
 
         # Save the waveform to a file
