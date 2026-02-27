@@ -557,11 +557,24 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._done_with_data_release_lock()
 
     def force_sequence(self) -> None:
-        """force_sequence asks the instrument to please give us access.
+        """Ask the instrument to give us access to the already acquired data. 
 
-        to the current acquisition data. This is useful when connecting to a stopped instrument to
+        This is useful when connecting to a stopped instrument to
         get access to the currently available data. Otherwise, the API will wait until the next
         acquisition.
+
+        Examples:
+            >>> from tm_data_types import AnalogWaveform, write_file
+            >>> from tekhsi import TekHSIConnect
+
+            >>> addr = "192.168.0.1"  # Replace with the IP address of your instrument
+            >>> with TekHSIConnect(f"{addr}:5000") as connect:
+            ...     # Save a single acquisition that was made prior to connecting
+            ...     connect.force_sequence()
+            ...     with connect.access_data():
+            ...         wfm: AnalogWaveform = connect.get_data("ch1")
+            ...     write_file(f"{wfm.source_name}.csv", wfm)
+
         """
         if not self._connected:
             _logger.debug("force_sequence skipped - not connected")
