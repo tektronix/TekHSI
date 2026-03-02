@@ -40,7 +40,7 @@ repos:
       - id: remove-tabs
       - id: forbid-tabs
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: ccf21790019848af3eb4464be2a9d5efed6358f3  # frozen: 0.36.1
+    rev: 8db279a37c552206d2df62269ff6f9d31125815a  # frozen: 0.37.0
     hooks:
       - id: check-readthedocs
       - id: check-dependabot
@@ -48,12 +48,12 @@ repos:
       - id: check-github-workflows
         args: [--verbose]
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: 85c37735ea69e5baf0681530e57e63deee0ce733  # frozen: v1.7.10.24
+    rev: 694e2c0dfb4253d51f3c6c54b8f9fec0a16764dc  # frozen: v1.7.11.24
     hooks:
       - id: actionlint
         additional_dependencies: [pyflakes, shellcheck-py]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: c130da3a9454538d22d589d0f3a8f09765ef5fe7  # frozen: v4.13.6
+    rev: 4fbeae7861663ecf4b4989211eba41c1a3fb1227  # frozen: v4.13.9
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -141,7 +141,7 @@ repos:
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
 #        args: [--strict]  # TODO: enable this when poetry can be updated to v2+
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 0470f7c8a653e950f7cc5a653204ceb3fde4c02a  # frozen: v0.15.0
+    rev: a27a2e47c7751b639d2b5badf0ef6ff11fee893f  # frozen: v0.15.4
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
