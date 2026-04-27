@@ -1246,7 +1246,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
                         waveforms.append(waveform)
         except Exception:
-            _logger.exception("Error in parallel read, falling back to sequential: %s")
+            _logger.exception("Error in parallel read, falling back to sequential")
             # Cancel all futures and fall back
             for f in futures:
                 if not f.done():
