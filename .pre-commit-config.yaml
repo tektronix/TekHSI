@@ -40,7 +40,7 @@ repos:
       - id: remove-tabs
       - id: forbid-tabs
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: ccf21790019848af3eb4464be2a9d5efed6358f3  # frozen: 0.36.1
+    rev: ed81924a8b1cecdaa570b072528fa80c9c4d6ccd  # frozen: 0.37.1
     hooks:
       - id: check-readthedocs
       - id: check-dependabot
@@ -48,12 +48,12 @@ repos:
       - id: check-github-workflows
         args: [--verbose]
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: 85c37735ea69e5baf0681530e57e63deee0ce733  # frozen: v1.7.10.24
+    rev: c04ed26e40637cab1aa9879c693832a9c120fb20  # frozen: v1.7.12.24
     hooks:
       - id: actionlint
         additional_dependencies: [pyflakes, shellcheck-py]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: c130da3a9454538d22d589d0f3a8f09765ef5fe7  # frozen: v4.13.6
+    rev: 2ca29f9297911f8f5a4e8f97100b7832f045e8d3  # frozen: v4.13.10
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -85,7 +85,7 @@ repos:
           - mdformat-web
           - mdformat-wikilink
   - repo: https://github.com/pappasam/toml-sort
-    rev: 8c5db1c8081310adb476e1661c4d5d1fb6dbd96e  # frozen: v0.24.3
+    rev: 2970ae9bb7124fe5117a27e10c10d2da051ce05a  # frozen: v0.24.4
     hooks:
       - id: toml-sort-fix
   - repo: local
@@ -141,13 +141,13 @@ repos:
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
 #        args: [--strict]  # TODO: enable this when poetry can be updated to v2+
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 0470f7c8a653e950f7cc5a653204ceb3fde4c02a  # frozen: v0.15.0
+    rev: 6fec9b7edb08fd9989088709d864a7826dc74e80  # frozen: v0.15.12
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/PyCQA/docformatter
-    rev: e73b8ba0c1316be565983236c72e653ad44e6b66  # frozen: v1.7.7
+    rev: 0032269a0e65c068af9cd86c9a8859a0ddd568d6  # frozen: v1.7.8
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]

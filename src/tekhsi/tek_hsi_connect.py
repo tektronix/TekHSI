@@ -61,6 +61,7 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.NextAcq):
         ...         ...
     """
+
     Time = 2
     """Wait for a specific time.
 
@@ -76,6 +77,7 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.Time, after=0.5):
         ...         ...
     """
+
     AnyAcq = 3
     """Wait for any acquisition."""
     NewData = 4

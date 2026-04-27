@@ -468,12 +468,12 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
 
 
 class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):
-    """Presents the connect service. This synchronized access to the data.
+    """Presents the connect service.
 
-    Generally, you must Connect, then accessing the data means calling WaitForDataAccess, you can
-    ask what the set of names of available items are by calling RequestAvailableName. Then the
-    Native or Normalized services are available. Either may be used to access the data items header
-    and data.
+    This synchronized access to the data.     Generally, you must Connect, then accessing the data
+    means calling WaitForDataAccess, you can     ask what the set of names of available items are by
+    calling RequestAvailableName. Then the     Native or Normalized services are available. Either
+    may be used to access the data items header     and data.
 
     When done accessing the data, FinishedWithDataAccess must be called. Acquistions are held off in
     a scope while waiting for FinishedWithDataAccess. To keep the update rate up, it's best to get

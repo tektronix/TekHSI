@@ -27,17 +27,19 @@ class LoggingLevels(Enum):
 
     DEBUG = "DEBUG"
     """An enum member representing the DEBUG logging level."""
+
     INFO = "INFO"
     """An enum member representing the INFO logging level."""
+
     WARNING = "WARNING"
     """An enum member representing the WARNING logging level."""
     ERROR = "ERROR"
     """An enum member representing the ERROR logging level."""
     CRITICAL = "CRITICAL"
     """An enum member representing the CRITICAL logging level."""
+
     NONE = "NONE"
     """An enum member indicating no logging messages should be captured."""
-
 
 # pylint: disable=import-outside-toplevel
 def configure_logging(
