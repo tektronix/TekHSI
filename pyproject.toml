@@ -93,7 +93,12 @@ numpy = [
 ]
 pip = "^26.0"
 poetry = "^2.3.0"
-poetry-audit-plugin = "^1.0.0"
+# NOTE: `poetry-audit-plugin` was intentionally removed -- its 1.x line is
+# broken against `safety>=3.2`, and even pinning `safety<3.2` triggered
+# a Windows DLL-init failure (STATUS_DLL_INIT_FAILED / 0xC0000142) inside
+# the subprocess Poetry spawns when the plugin is loaded. The `poetry-audit`
+# pre-commit hook is gated to `stages: [manual]` so this is a no-op for
+# normal commits; reinstall the plugin manually if you want to run it.
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"

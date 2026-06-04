@@ -61,7 +61,6 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.NextAcq):
         ...         ...
     """
-
     Time = 2
     """Wait for a specific time.
 
@@ -77,7 +76,6 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.Time, after=0.5):
         ...         ...
     """
-
     AnyAcq = 3
     """Wait for any acquisition."""
     NewData = 4
@@ -898,23 +896,84 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 response_iterator = self.native.GetWaveform(request)
                 dt = None
                 sum_chunk_size = 0
-                dt_type = self.d_datatypes[header.sourcewidth]
 
-                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
+                # Normalize every probe variant down to 1 byte/sample (D0..D7)
+                # so the downstream tm_data_types pipeline always sees an
+                # int8 array of shape (noofsamples,).
+                #
+                # For MSO5/6 DIGITAL_16 (sourcewidth=2) each on-the-wire
+                # sample is a little-endian uint16 that encodes 8 channels
+                # using *2 bits per channel*:
+                #
+                #     bit 2*ch + 0  -> D<ch> validity / channel-enable flag
+                #     bit 2*ch + 1  -> D<ch> logic value (0/1)
+                #
+                # i.e. D0 = bits 0..1, D1 = bits 2..3, ..., D7 = bits 14..15.
+                # Earlier attempts that extracted bit 2*ch+0 produced
+                # constant garbage matching the per-channel enable mask
+                # (e.g. 20 = 0x14 when only D2 & D4 were enabled). The
+                # high bit of each 2-bit field is the actual logic value
+                # (matching the scope's native CSV export, e.g. raw byte
+                # 54 = 0x36).
+                #
+                # We extract the value bit of each channel and pack them
+                # into a single byte with D0 in bit 0 and D7 in bit 7,
+                # so existing consumers (get_nth_bitstream, CSV writer)
+                # work unchanged.
+                if data_size == 1:
+                    wire_dtype = np.int8
+                elif data_size == 2:  # noqa: PLR2004
+                    wire_dtype = np.uint16
+                else:
+                    msg = (
+                        f"Unsupported digital sourcewidth={data_size} for "
+                        f"{header.sourcename} (wfmtype={header.wfmtype})"
+                    )
+                    raise ValueError(msg)  # noqa: TRY301
+
+                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=np.int8)
                 for response in response_iterator:
                     if not self.thread_active:
                         return waveform
                     chunk_size = len(response.headerordata.chunk.data)
                     sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    waveform.y_axis_byte_values[
-                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
-                    ] = dt
+                    raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
+                    if data_size == 2:  # noqa: PLR2004
+                        # Wire format for MSO5/6 DIGITAL_16 is a
+                        # little-endian uint16 per sample where:
+                        #   low byte  = per-channel ENABLE mask
+                        #               (bit n = D<n> enable, 1 bit/ch)
+                        #   high byte = per-channel VALUE  bits
+                        #               (bit n = D<n> logic value, 1 bit/ch)
+                        # We only need the value byte. Earlier code
+                        # mis-assumed a 2-bits-per-channel interleaved
+                        # layout, which produced bit-reversed / scrambled
+                        # output that didn't line up with the scope CSV.
+                        v = raw.astype(np.uint16)
+                        packed = ((v >> 8) & 0xFF).astype(np.uint8)
+                        # View (no-copy) as int8 -- tm_data_types stores
+                        # y_axis_byte_values as int8. The byte pattern is
+                        # preserved so get_nth_bitstream() / DigitalWaveform
+                        # CSV (columns D0..D7) decode correctly.
+                        dt = packed.view(np.int8)
+                    else:
+                        dt = raw
+                    n_samples = len(dt)
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
                     if dt is not None:
-                        sum_of_chunks += len(dt)
+                        sum_of_chunks += n_samples
 
-        except Exception as e:  # noqa: BLE001
-            _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Exception: %s", e)
+        except Exception:
+            # Log with traceback so failures inside the per-wfmtype branches
+            # (e.g. missing dtype in self.d_datatypes for DIGITAL_16) are not
+            # silently swallowed -- previously this left the caller with an
+            # empty y_axis_byte_values and only the header metadata populated.
+            _logger.exception(
+                "Failed to read waveform for %s (wfmtype=%s, sourcewidth=%s)",
+                getattr(header, "sourcename", "?"),
+                getattr(header, "wfmtype", "?"),
+                getattr(header, "sourcewidth", "?"),
+            )
 
         return waveform
 
@@ -1142,20 +1201,48 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 response_iterator = native_stub.GetWaveform(request)
                 dt = None
                 sum_chunk_size = 0
-                dt_type = self.d_datatypes[header.sourcewidth]
 
-                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
+                # See _read_waveform DIGITAL branch: for sourcewidth=2 the
+                # wire format is a little-endian uint16 that encodes 8
+                # channels using 2 bits per channel:
+                #   bit 2*ch + 0 -> D<ch> enable / validity flag (ignored)
+                #   bit 2*ch + 1 -> D<ch> logic value (0/1)
+                # We gather the value bits into a single byte with D0 in
+                # bit 0 and D7 in bit 7 so the stored buffer is always
+                # int8 and matches the layout produced by the sequential
+                # read path.
+                if data_size == 1:
+                    wire_dtype = np.int8
+                elif data_size == 2:  # noqa: PLR2004
+                    wire_dtype = np.uint16
+                else:
+                    msg = (
+                        f"Unsupported digital sourcewidth={data_size} for "
+                        f"{header.sourcename} (wfmtype={header.wfmtype})"
+                    )
+                    raise ValueError(msg)  # noqa: TRY301
+
+                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=np.int8)
                 for response in response_iterator:
                     if not self.thread_active:
                         return waveform
                     chunk_size = len(response.headerordata.chunk.data)
                     sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    waveform.y_axis_byte_values[
-                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
-                    ] = dt
+                    raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
+                    if data_size == 2:  # noqa: PLR2004
+                        # See sibling branch in `_read_waveform`: the wire
+                        # uint16 is `(value_byte << 8) | enable_byte`,
+                        # where bit n of the value byte == D<n>. Just
+                        # extract the high byte.
+                        v = raw.astype(np.uint16)
+                        packed = ((v >> 8) & 0xFF).astype(np.uint8)
+                        dt = packed.view(np.int8)
+                    else:
+                        dt = raw
+                    n_samples = len(dt)
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
                     if dt is not None:
-                        sum_of_chunks += len(dt)
+                        sum_of_chunks += n_samples
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
                 raise ValueError(msg)  # noqa: TRY301
