@@ -46,21 +46,6 @@ _logger = logging.getLogger(__name__)
 AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
 
 
-# Lookup table for reversing the bits of a byte. Used by the digital
-# DIGITAL_16 (sourcewidth=2) read path: the wire format stores the
-# per-channel value byte with bit n == D(7-n), but the downstream CSV
-# writer / get_nth_bitstream() helper assume bit n == D(n). Reversing
-# each byte before we hand it to DigitalWaveform makes the produced
-# CSV (columns D7..D0) match the scope's native export byte-for-byte.
-#
-# Empirically verified against Tek009.csv:
-#   wire low byte 0x7C (0111 1100) -> scope row 0,0,1,1,1,1,1,0 (= 0x3E)
-#   wire low byte 0xFC (1111 1100) -> scope row 0,0,1,1,1,1,1,1 (= 0x3F)
-# i.e. the byte we read off the wire is the bit-mirror of what the
-# scope CSV displays.
-_BIT_REVERSE_LUT = np.array([int(f"{i:08b}"[::-1], 2) for i in range(256)], dtype=np.uint8)
-
-
 def _compute_trigger_index(header: "WaveformHeader") -> float:
     """Combine the integer and fractional zero-index reported by the server.
 
@@ -1003,24 +988,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     dt = value_byte.view(np.int8)
                     n_samples = len(dt)
 
-                    # The downstream DigitalWaveform CSV writer in
-                    # tm_data_types emits the 8 columns D7..D0 using
-                    # LSB-first ordering: it puts bit[0] of the stored
-                    # byte into the D7 column and bit[7] into D0.
-                    # That is the OPPOSITE of the scope's native CSV
-                    # export (MSB-first columns). To make the produced
-                    # Digital_data_*.csv match Tek009.csv byte-for-byte
-                    # we therefore store the BIT-REVERSED value byte;
-                    # after the writer's LSB-first re-ordering it
-                    # comes back out as the correct MSB-first row.
-                    #
-                    # Verified empirically:
-                    #   dt = 0x3F (63)  -> store 0xFC (252)
-                    #     writer emits  0,0,1,1,1,1,1,1  (matches scope)
-                    #   dt = 0x36 (54)  -> store 0x6C (108)
-                    #     writer emits  0,0,1,1,0,1,1,0  (matches scope)
-                    stored = _BIT_REVERSE_LUT[value_byte].view(np.int8)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = stored
+                    # Store the value byte unchanged. Bit n of the
+                    # stored byte == channel D<n>, which is exactly
+                    # what tm_data_types' DigitalWaveform CSV writer
+                    # expects: it emits the 8 columns D7..D0 by
+                    # reading the byte MSB-first (column D7 = bit 7,
+                    # ..., column D0 = bit 0). The produced
+                    # Digital_data_*.csv then matches both this raw
+                    # debug dump and the scope's native CSV export
+                    # (e.g. Tek003.csv) byte-for-byte.
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
 
         except Exception:
             # Log with traceback so failures inside the per-wfmtype branches
@@ -1298,12 +1275,13 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                         value_byte = raw.view(np.uint8)
                     dt = value_byte.view(np.int8)
                     n_samples = len(dt)
-                    # See sibling branch: tm_data_types' DigitalWaveform
-                    # CSV writer uses LSB-first column ordering, so we
-                    # bit-reverse before storage to make the output
-                    # match the scope CSV byte-for-byte.
-                    stored = _BIT_REVERSE_LUT[value_byte].view(np.int8)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = stored
+                    # Store the value byte unchanged: bit n of the
+                    # stored byte == channel D<n>, which matches the
+                    # MSB-first column ordering (D7..D0) used by
+                    # tm_data_types' DigitalWaveform CSV writer.
+                    # See the sibling branch in `_read_waveform` for
+                    # the full rationale.
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
                     sum_of_chunks += n_samples
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
