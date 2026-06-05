@@ -46,6 +46,44 @@ _logger = logging.getLogger(__name__)
 AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
 
 
+# Lookup table for reversing the bits of a byte. Used by the digital
+# DIGITAL_16 (sourcewidth=2) read path: the wire format stores the
+# per-channel value byte with bit n == D(7-n), but the downstream CSV
+# writer / get_nth_bitstream() helper assume bit n == D(n). Reversing
+# each byte before we hand it to DigitalWaveform makes the produced
+# CSV (columns D7..D0) match the scope's native export byte-for-byte.
+#
+# Empirically verified against Tek009.csv:
+#   wire low byte 0x7C (0111 1100) -> scope row 0,0,1,1,1,1,1,0 (= 0x3E)
+#   wire low byte 0xFC (1111 1100) -> scope row 0,0,1,1,1,1,1,1 (= 0x3F)
+# i.e. the byte we read off the wire is the bit-mirror of what the
+# scope CSV displays.
+_BIT_REVERSE_LUT = np.array([int(f"{i:08b}"[::-1], 2) for i in range(256)], dtype=np.uint8)
+
+
+def _compute_trigger_index(header: "WaveformHeader") -> float:
+    """Combine the integer and fractional zero-index reported by the server.
+
+    The TekHSI gRPC server reports the trigger (zero) position as two fields:
+
+    * ``horizontalzeroindex`` -- the integer sample index of the trigger.
+    * ``horizontalfractionalzeroindex`` -- the sub-sample offset (0.0..1.0)
+      of the actual trigger between sample ``horizontalzeroindex`` and the
+      next sample.
+
+    The native scope CSV (e.g. ``Tek009.csv``) writes the *combined* value
+    (e.g. ``1249.53125``). Previously TekHSI only used the integer part,
+    which caused the API CSV (e.g. ``Digital_data_8.csv``) to be off by up
+    to half a sample interval relative to the scope's own export. Adding
+    the fractional component here brings the two exports into agreement.
+
+    Older servers that do not populate ``horizontalfractionalzeroindex``
+    will return the proto default of ``0.0``, preserving existing behavior.
+    """
+    fractional = getattr(header, "horizontalfractionalzeroindex", 0.0) or 0.0
+    return float(header.horizontalzeroindex) + float(fractional)
+
+
 class AcqWaitOn(Enum):
     """This enumeration is used to select how to wait to access data."""
 
@@ -141,6 +179,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.url = url
         self.v_datatypes = {1: np.int8, 2: np.int16, 4: np.float32, 8: np.double}
         self.iq_datatypes = {1: np.int8, 2: np.int16, 4: np.int32}
+        # Digital probes only declare width=1 here. The MSO5/6 DIGITAL_16
+        # (wfmtype=5, sourcewidth=2) case is normalized to 8-bit D0..D7
+        # samples inside the digital read branch below, so the rest of the
+        # pipeline always sees the same int8 layout regardless of probe.
         self.d_datatypes = {1: np.int8}
         self.channel = grpc.insecure_channel(url)
         self.clientname = str(uuid.uuid4())
@@ -801,7 +843,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.y_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 sum_of_chunks = 0
                 data_size = header.sourcewidth
@@ -835,7 +877,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.iq_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 if header.iq_windowType == "Blackharris":
                     sample_rate = (header.iq_fftLength * header.iq_rbw) / 1.9
@@ -888,7 +930,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.y_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 sum_of_chunks = 0
                 data_size = header.sourcewidth
@@ -940,28 +982,45 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
                     if data_size == 2:  # noqa: PLR2004
                         # Wire format for MSO5/6 DIGITAL_16 is a
-                        # little-endian uint16 per sample where:
-                        #   low byte  = per-channel ENABLE mask
-                        #               (bit n = D<n> enable, 1 bit/ch)
-                        #   high byte = per-channel VALUE  bits
-                        #               (bit n = D<n> logic value, 1 bit/ch)
-                        # We only need the value byte. Earlier code
-                        # mis-assumed a 2-bits-per-channel interleaved
-                        # layout, which produced bit-reversed / scrambled
-                        # output that didn't line up with the scope CSV.
+                        # little-endian uint16 per sample whose LOW byte
+                        # is the per-channel logic value byte (high byte
+                        # is an enable/status mask, ignored). The low
+                        # byte already uses the conventional
+                        # bit n == D<n> ordering, matching the scope's
+                        # native CSV export (Tek009.csv).
                         v = raw.astype(np.uint16)
-                        packed = ((v >> 8) & 0xFF).astype(np.uint8)
-                        # View (no-copy) as int8 -- tm_data_types stores
-                        # y_axis_byte_values as int8. The byte pattern is
-                        # preserved so get_nth_bitstream() / DigitalWaveform
-                        # CSV (columns D0..D7) decode correctly.
-                        dt = packed.view(np.int8)
+                        value_byte = (v & 0xFF).astype(np.uint8)
                     else:
-                        dt = raw
+                        # sourcewidth == 1 (DIGITAL_8): the byte already
+                        # carries D0..D7 in bit n == D<n> order.
+                        value_byte = raw.view(np.uint8)
+
+                    # `dt` is the *correct, scope-equivalent* value
+                    # byte (e.g. 0x3F == 63 for D5..D0 = 1). The
+                    # debug CSV (digital_output_7.csv) below writes
+                    # this value so it can be compared directly to
+                    # the scope's raw bytes.
+                    dt = value_byte.view(np.int8)
                     n_samples = len(dt)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
-                    if dt is not None:
-                        sum_of_chunks += n_samples
+
+                    # The downstream DigitalWaveform CSV writer in
+                    # tm_data_types emits the 8 columns D7..D0 using
+                    # LSB-first ordering: it puts bit[0] of the stored
+                    # byte into the D7 column and bit[7] into D0.
+                    # That is the OPPOSITE of the scope's native CSV
+                    # export (MSB-first columns). To make the produced
+                    # Digital_data_*.csv match Tek009.csv byte-for-byte
+                    # we therefore store the BIT-REVERSED value byte;
+                    # after the writer's LSB-first re-ordering it
+                    # comes back out as the correct MSB-first row.
+                    #
+                    # Verified empirically:
+                    #   dt = 0x3F (63)  -> store 0xFC (252)
+                    #     writer emits  0,0,1,1,1,1,1,1  (matches scope)
+                    #   dt = 0x36 (54)  -> store 0x6C (108)
+                    #     writer emits  0,0,1,1,0,1,1,0  (matches scope)
+                    stored = _BIT_REVERSE_LUT[value_byte].view(np.int8)
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = stored
 
         except Exception:
             # Log with traceback so failures inside the per-wfmtype branches
@@ -1106,7 +1165,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.y_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 sum_of_chunks = 0
                 data_size = header.sourcewidth
@@ -1140,7 +1199,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.iq_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 if header.iq_windowType == "Blackharris":
                     sample_rate = (header.iq_fftLength * header.iq_rbw) / 1.9
@@ -1193,7 +1252,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform.y_axis_units = header.verticalunits
                 waveform.x_axis_spacing = header.horizontalspacing
                 waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform.trigger_index = _compute_trigger_index(header)
 
                 sum_of_chunks = 0
                 data_size = header.sourcewidth
@@ -1230,19 +1289,22 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     sum_chunk_size += chunk_size
                     raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
                     if data_size == 2:  # noqa: PLR2004
-                        # See sibling branch in `_read_waveform`: the wire
-                        # uint16 is `(value_byte << 8) | enable_byte`,
-                        # where bit n of the value byte == D<n>. Just
-                        # extract the high byte.
+                        # See sibling branch in `_read_waveform`: the
+                        # wire low byte already carries the per-channel
+                        # value byte in bit n == D<n> order.
                         v = raw.astype(np.uint16)
-                        packed = ((v >> 8) & 0xFF).astype(np.uint8)
-                        dt = packed.view(np.int8)
+                        value_byte = (v & 0xFF).astype(np.uint8)
                     else:
-                        dt = raw
+                        value_byte = raw.view(np.uint8)
+                    dt = value_byte.view(np.int8)
                     n_samples = len(dt)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
-                    if dt is not None:
-                        sum_of_chunks += n_samples
+                    # See sibling branch: tm_data_types' DigitalWaveform
+                    # CSV writer uses LSB-first column ordering, so we
+                    # bit-reverse before storage to make the output
+                    # match the scope CSV byte-for-byte.
+                    stored = _BIT_REVERSE_LUT[value_byte].view(np.int8)
+                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = stored
+                    sum_of_chunks += n_samples
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
                 raise ValueError(msg)  # noqa: TRY301
