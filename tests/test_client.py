@@ -1000,8 +1000,12 @@ def test_read_waveform_digital(
         response_data: The response data for the waveform.
         expected_length: The expected length of the waveform data.
     """
+    # Stop bg thread to avoid shape-mismatch noise from concurrent ch1 reads on shared chunksize.
+    tekhsi_client.thread_active = False
+    if tekhsi_client.thread.is_alive():
+        tekhsi_client.thread.join(timeout=2.0)
+
     tekhsi_client.chunksize = 1024
-    tekhsi_client.thread_active = True
     tekhsi_client.verbose = True
     tekhsi_client.d_datatypes = {1: np.uint8, 2: np.uint16}
     # Directly set the response data in the client
@@ -1097,11 +1101,24 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
     ("header", "expected_sample_rate"),
     [
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
+            # sourcewidth=2 keeps the IQ branch valid (iq_datatypes lookup); avoids KeyError(0).
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Blackharris",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
             1024 * 1e6 / 1.9,
         ),
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Flattop2",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
             1024 * 1e6 / 3.77,
         ),
     ],
