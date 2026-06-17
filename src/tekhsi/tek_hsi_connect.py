@@ -472,8 +472,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         _logger.debug("close")
 
-        # Call force_sequence while still connected to unblock the background thread's WaitForDataAccess
-        # so it can exit. Do this before setting _connected=False.
+        # Call force_sequence while still connected to unblock the background thread's
+        # WaitForDataAccess so it can exit. Do this before setting _connected=False.
         try:
             self.force_sequence()
         except grpc.RpcError as rpc_error:
@@ -687,8 +687,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 rpc_error,
             )
         except Exception:  # noqa: BLE001
-            # Catch-all for non-RpcError transport issues during interpreter shutdown; logged inside except
-            # to avoid noise on every clean teardown.
+            # Catch-all for non-RpcError transport issues during interpreter shutdown;
+            # logged inside except to avoid noise on every clean teardown.
             _logger.log(
                 logging.WARNING if self.verbose else logging.DEBUG,
                 "Unexpected error during disconnect",
@@ -955,8 +955,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
 
         except Exception as ex:  # noqa: BLE001
-            # Log per-branch failures (shape mismatch, unsupported sourcewidth) as a concise WARNING/DEBUG line;
-            # caller still gets the partial waveform so record_length==0 -> skip cache is preserved.
+            # Log per-branch failures (shape mismatch, unsupported sourcewidth) as a concise
+            # WARNING/DEBUG line; caller still gets the partial waveform so record_length==0
+            # -> skip cache is preserved.
             _logger.log(
                 logging.WARNING if self._verbose else logging.DEBUG,
                 "Failed to read waveform for %s (wfmtype=%s, sourcewidth=%s): %s",
@@ -1236,8 +1237,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             waveform.record_length = header.noofsamples
             return waveform  # noqa: TRY300
         except Exception as e:
-            # Re-raise so _read_waveforms_parallel can decide; log only at DEBUG to avoid duplicate ERROR
-            # noise (parallel reader already logs at its catch site).
+            # Re-raise so _read_waveforms_parallel can decide; log only at DEBUG to avoid
+            # duplicate ERROR noise (parallel reader already logs at its catch site).
             _logger.debug(
                 "_read_waveform_with_stub for %s raised %s: %s",
                 getattr(header, "sourcename", "?"),
@@ -1369,8 +1370,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     self._lock_filter.release()
                     self._holding_scope_open = False
             except grpc.RpcError as rpc_error:
-                # Server went away or connection reset; exit thread cleanly. Only log if this wasn't a graceful
-                # shutdown (close() flips _connected/thread_active, __exit__ flips _is_exiting first).
+                # Server went away or connection reset; exit thread cleanly. Only log if this
+                # wasn't a graceful shutdown (close() flips _connected/thread_active,
+                # __exit__ flips _is_exiting first).
                 if not self._is_exiting and self.thread_active and self._connected:
                     _logger.log(
                         logging.DEBUG if not self.verbose else logging.INFO,

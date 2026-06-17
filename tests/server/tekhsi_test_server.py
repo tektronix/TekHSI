@@ -330,8 +330,8 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        # WfmReplyStatus has no generic FAILURE value; using an invalid name causes a confusing client-side
-        # _InactiveRpcError. Use SOURCENAME_MISSING_FAILURE for both reachable failure paths.
+        # WfmReplyStatus has no generic FAILURE value; using an invalid name causes a confusing
+        # client-side _InactiveRpcError. Use SOURCENAME_MISSING_FAILURE for both failure paths.
         return tekhsi_pb2.NormalizedReply(
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
@@ -388,8 +388,8 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a valid enum value to
-        # avoid a confusing _InactiveRpcError on the client.
+        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a
+        # valid enum value to avoid a confusing _InactiveRpcError on the client.
         return tekhsi_pb2.RawReply(
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
@@ -470,8 +470,8 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a valid enum value to
-        # avoid a confusing _InactiveRpcError on the client.
+        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a
+        # valid enum value to avoid a confusing _InactiveRpcError on the client.
         return tekhsi_pb2.RawReply(
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
