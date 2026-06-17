@@ -205,4 +205,3 @@ def tekhsi_client() -> Generator[TekHSIConnect, None, None]:
                 client.close()
         except Exception:  # noqa: BLE001
             pass
-

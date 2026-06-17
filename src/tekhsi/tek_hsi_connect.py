@@ -1371,11 +1371,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             except grpc.RpcError as rpc_error:
                 # Server went away or connection reset; exit thread cleanly. Only log if this wasn't a graceful
                 # shutdown (close() flips _connected/thread_active, __exit__ flips _is_exiting first).
-                if (
-                    not self._is_exiting
-                    and self.thread_active
-                    and self._connected
-                ):
+                if not self._is_exiting and self.thread_active and self._connected:
                     _logger.log(
                         logging.DEBUG if not self.verbose else logging.INFO,
                         "Background thread exiting (connection closed): %s",
