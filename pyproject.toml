@@ -83,27 +83,21 @@ classifiers = [
 version = "1.1.0"
 
 [tool.poetry.group.dev.dependencies]
-# Pinned to >=48.0.1 to address GHSA-537c-gmf6-5ccf (HIGH severity OpenSSL vulnerability
-# bundled in cryptography wheels <48.0.1). Pulled in transitively via twine -> keyring
-# -> secretstorage. The explicit pin keeps CI's Grype SBOM scan green even though
-# poetry.lock is gitignored and re-resolved on every CI run.
-cryptography = ">=48.0.1"
+cryptography = ">=48.0.1"  # security pin: GHSA-537c-gmf6-5ccf (see CHANGELOG)
 docutils-stubs = "^0.0.22"
+idna = ">=3.15"  # security pin: GHSA-65pc-fj4g-8rjx (see CHANGELOG)
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"
 numpy = [
-  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  # Duplicated in "main" and "dev" groups so the correct version resolves in both
   {python = ">=3.10,<3.13", version = "^1.24"},
   {python = ">=3.13", version = "^2.1"},
 ]
 pip = "^26.0"
 poetry = "^2.3.0"
-# NOTE: `poetry-audit-plugin` was intentionally removed -- its 1.x line is
-# broken against `safety>=3.2`, and even pinning `safety<3.2` triggered
-# a Windows DLL-init failure (STATUS_DLL_INIT_FAILED / 0xC0000142) inside
-# the subprocess Poetry spawns when the plugin is loaded. The `poetry-audit`
-# pre-commit hook is gated to `stages: [manual]` so this is a no-op for
-# normal commits; reinstall the plugin manually if you want to run it.
+# poetry-audit-plugin removed: 1.x broken vs safety>=3.2, and pinning safety<3.2 caused
+# a Windows STATUS_DLL_INIT_FAILED in the spawned subprocess. The poetry-audit hook is
+# gated to stages=[manual]; reinstall the plugin manually to run it.
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
@@ -118,6 +112,7 @@ twine = "^6.0.1"
 types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
+urllib3 = ">=2.7.0"  # security pin: GHSA-qccp-gfcp-xxvc, GHSA-mf9v-mfxr-j63j (see CHANGELOG)
 wheel = "^0.47.0"
 
 [tool.poetry.group.docs.dependencies]
@@ -139,7 +134,7 @@ nodeenv = "^1.9.1"
 packaging = "^26.2"
 pydantic = "^2.7.4"
 pygments = "^2.17.2"
-pymdown-extensions = "^10.8.1"
+pymdown-extensions = "^10.21.3"  # security pin: GHSA-62q4-447f-wv8h (see CHANGELOG)
 requests = "^2.31.0"
 symspellpy = "^6.7.7"
 tomli = "^2.0.1"

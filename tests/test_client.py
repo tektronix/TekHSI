@@ -8,6 +8,7 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import grpc
 import numpy as np
 import pytest
 
@@ -1121,6 +1122,58 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
             ),
             1024 * 1e6 / 3.77,
         ),
+        (
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Hanning",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
+            1024 * 1e6 / 1.44,
+        ),
+        (
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Hamming",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
+            1024 * 1e6 / 1.3,
+        ),
+        (
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Rectangle",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
+            1024 * 1e6 / 0.89,
+        ),
+        (
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="Kaiserbessel",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
+            1024 * 1e6 / 2.23,
+        ),
+        (
+            # Unknown window type falls through to the iq_span default branch.
+            WaveformHeader(  # type: ignore[arg-type]
+                wfmtype=6,
+                sourcewidth=2,
+                iq_windowType="UnknownWindow",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+                iq_span=42.0,
+            ),
+            42.0,
+        ),
     ],
 )
 def test_read_waveform_iq(
@@ -1271,3 +1324,122 @@ def test_is_header_value_false_cases() -> None:
     # hasdata False
     h = WaveformHeader(noofsamples=1, sourcewidth=1, hasdata=False)
     assert not TekHSIConnect._is_header_value(h)
+
+
+def test_should_enable_parallel_reads_old_python() -> None:
+    """_should_enable_parallel_reads returns False on Python < 3.11."""
+    client = TekHSIConnect.__new__(TekHSIConnect)
+    with patch.object(sys, "version_info", (3, 10, 0)):
+        assert TekHSIConnect._should_enable_parallel_reads(client) is False
+
+
+def test_should_enable_parallel_reads_env_disable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_should_enable_parallel_reads returns False when TEKHSI_DISABLE_PARALLEL_READS is set."""
+    client = TekHSIConnect.__new__(TekHSIConnect)
+    with patch.object(sys, "version_info", (3, 13, 0)):
+        for value in ("1", "true", "yes"):
+            monkeypatch.setenv("TEKHSI_DISABLE_PARALLEL_READS", value)
+            assert TekHSIConnect._should_enable_parallel_reads(client) is False
+
+
+def test_should_enable_parallel_reads_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_should_enable_parallel_reads returns True on modern Python when env var is unset."""
+    client = TekHSIConnect.__new__(TekHSIConnect)
+    monkeypatch.delenv("TEKHSI_DISABLE_PARALLEL_READS", raising=False)
+    with patch.object(sys, "version_info", (3, 13, 0)):
+        assert TekHSIConnect._should_enable_parallel_reads(client) is True
+
+
+def test_force_sequence_skip_when_not_connected(tekhsi_client: TekHSIConnect) -> None:
+    """force_sequence returns early when the client is not connected."""
+    tekhsi_client._connected = False
+    # Should be a no-op (no exception, no RPC call)
+    tekhsi_client.force_sequence()
+
+
+def test_finished_with_data_access_skip_when_not_in_wait(
+    tekhsi_client: TekHSIConnect,
+) -> None:
+    """_finished_with_data_access returns early when not currently waiting for data."""
+    tekhsi_client._in_wait_for_data = False
+    # Should not issue any RPC; replace connection to ensure it isn't touched
+    tekhsi_client.connection = MagicMock()
+    tekhsi_client._finished_with_data_access()
+    tekhsi_client.connection.FinishedWithDataAccess.assert_not_called()
+
+
+def test_disconnect_rpc_error_logs_and_swallows(
+    tekhsi_client: TekHSIConnect, caplog: pytest.LogCaptureFixture
+) -> None:
+    """_disconnect handles gRPC errors gracefully and logs them."""
+    mock_conn = MagicMock()
+    mock_conn.Disconnect.side_effect = grpc.RpcError("boom")
+    tekhsi_client.connection = mock_conn
+    tekhsi_client.verbose = True
+
+    with caplog.at_level(logging.DEBUG):
+        # Should not raise even though Disconnect blew up
+        tekhsi_client._disconnect()
+
+    assert "Error during disconnect" in caplog.text
+
+
+def test_disconnect_general_exception_logs_and_swallows(
+    tekhsi_client: TekHSIConnect, caplog: pytest.LogCaptureFixture
+) -> None:
+    """_disconnect catches non-RpcError exceptions during interpreter shutdown."""
+    mock_conn = MagicMock()
+    mock_conn.Disconnect.side_effect = RuntimeError("transport gone")
+    tekhsi_client.connection = mock_conn
+    tekhsi_client.verbose = True
+
+    with caplog.at_level(logging.DEBUG):
+        tekhsi_client._disconnect()
+
+    assert "Unexpected error during disconnect" in caplog.text
+
+
+def test_close_thread_join_runtime_error(
+    tekhsi_client: TekHSIConnect, caplog: pytest.LogCaptureFixture
+) -> None:
+    """close() logs and continues when thread.join() raises RuntimeError."""
+    tekhsi_client._connected = True
+    tekhsi_client.thread_active = True
+    tekhsi_client.verbose = True
+    tekhsi_client.force_sequence = MagicMock()
+    tekhsi_client._disconnect = MagicMock()
+
+    mock_thread = MagicMock()
+    mock_thread.join.side_effect = RuntimeError("cannot join current thread")
+    tekhsi_client.thread = mock_thread
+    tekhsi_client._read_executor = None
+
+    with caplog.at_level(logging.DEBUG):
+        tekhsi_client.close()
+
+    assert "Thread error" in caplog.text
+    tekhsi_client._disconnect.assert_called_once()
+
+
+def test_access_data_context_manager(tekhsi_client: TekHSIConnect) -> None:
+    """access_data() yields self and always calls done_with_data on exit."""
+    tekhsi_client.wait_for_data = MagicMock()
+    tekhsi_client.done_with_data = MagicMock()
+
+    with tekhsi_client.access_data() as ctx:
+        assert ctx is tekhsi_client
+
+    tekhsi_client.wait_for_data.assert_called_once()
+    tekhsi_client.done_with_data.assert_called_once()
+
+
+def test_access_data_done_called_on_exception(tekhsi_client: TekHSIConnect) -> None:
+    """access_data() still invokes done_with_data when the body raises."""
+    tekhsi_client.wait_for_data = MagicMock()
+    tekhsi_client.done_with_data = MagicMock()
+
+    err = "body failure"
+    with pytest.raises(RuntimeError, match=err), tekhsi_client.access_data():
+        raise RuntimeError(err)
+
+    tekhsi_client.done_with_data.assert_called_once()
