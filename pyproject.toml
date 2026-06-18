@@ -83,6 +83,11 @@ classifiers = [
 version = "1.1.0"
 
 [tool.poetry.group.dev.dependencies]
+# Pinned to >=48.0.1 to address GHSA-537c-gmf6-5ccf (HIGH severity OpenSSL vulnerability
+# bundled in cryptography wheels <48.0.1). Pulled in transitively via twine -> keyring
+# -> secretstorage. The explicit pin keeps CI's Grype SBOM scan green even though
+# poetry.lock is gitignored and re-resolved on every CI run.
+cryptography = ">=48.0.1"
 docutils-stubs = "^0.0.22"
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"

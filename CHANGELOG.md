@@ -24,6 +24,10 @@ Things to be included in the next release go here.
 - Fixed test suite failures in `test_client.py` related to digital waveform handling, parallel read testing, and graceful shutdown scenarios.
 - Fixed log message handling in `tekhsi_test_server.py` to avoid duplicate logs during test runs.
 
+### Security
+
+- Pinned `cryptography >= 48.0.1` in the dev dependency group to address [GHSA-537c-gmf6-5ccf](https://github.com/advisories/GHSA-537c-gmf6-5ccf) (HIGH severity OpenSSL vulnerability in `cryptography` wheels \<48.0.1). The package is pulled in transitively via `twine` → `keyring` → `secretstorage`; the explicit pin ensures the Grype SBOM scan resolves a non-vulnerable version on every CI run.
+
 ---
 
 ## v1.1.0 (2026-02-27)
