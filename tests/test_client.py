@@ -1437,8 +1437,8 @@ def test_access_data_done_called_on_exception(tekhsi_client: TekHSIConnect) -> N
     """access_data() still invokes done_with_data when the body raises."""
     tekhsi_client.wait_for_data = MagicMock()
     tekhsi_client.done_with_data = MagicMock()
-
     err = "body failure"
+
     with pytest.raises(RuntimeError, match=err), tekhsi_client.access_data():
         raise RuntimeError(err)
 
