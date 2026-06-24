@@ -1439,7 +1439,7 @@ def test_access_data_done_called_on_exception(tekhsi_client: TekHSIConnect) -> N
     tekhsi_client.done_with_data = MagicMock()
     err = "body failure"
 
-    with pytest.raises(RuntimeError, match=err), tekhsi_client.access_data():
+    with tekhsi_client.access_data(), pytest.raises(RuntimeError, match=err):
         raise RuntimeError(err)
 
     tekhsi_client.done_with_data.assert_called_once()
