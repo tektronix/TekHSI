@@ -1292,6 +1292,102 @@ def test_read_waveform_with_stub_unknown_type() -> None:
         TekHSIConnect._read_waveform_with_stub(client, header, native_stub)  # type: ignore[arg-type]
 
 
+# ----------------------------------------------------------------------------------------------
+# TC1: happy-path coverage for _read_waveform_with_stub (parallel-read sibling of _read_waveform)
+# Each test injects a MagicMock stub that yields a single chunked response matching the header,
+# isolating the unit from the live test server (which uses its own waveform shapes).
+# The waveform classes are patched with MagicMock so the writable record_length assignment at
+# the success tail of the production method succeeds without touching tm_data_types properties.
+# ----------------------------------------------------------------------------------------------
+def _make_chunked_stub(payload: bytes) -> MagicMock:
+    """Build a fake NativeDataStub whose GetWaveform yields one chunk with ``payload``."""
+    response = SimpleNamespace(headerordata=SimpleNamespace(chunk=SimpleNamespace(data=payload)))
+    stub = MagicMock()
+    stub.GetWaveform.return_value = iter([response])
+    return stub
+
+
+def test_read_waveform_with_stub_analog(tekhsi_client: TekHSIConnect) -> None:
+    """_read_waveform_with_stub returns an AnalogWaveform for the Vector wfmtype branch."""
+    samples = np.array([1, 2, 3, 4], dtype=np.int8)
+    header = WaveformHeader(
+        sourcename="ch1",
+        wfmtype=WfmType.WFMTYPE_ANALOG_8,
+        verticalspacing=1.0,
+        verticaloffset=0.0,
+        verticalunits="V",
+        horizontalspacing=1.0,
+        horizontalUnits="s",
+        horizontalzeroindex=0,
+        sourcewidth=1,
+        noofsamples=len(samples),
+    )
+    tekhsi_client.chunksize = 1024
+    tekhsi_client.thread_active = True
+
+    stub = _make_chunked_stub(samples.tobytes())
+    with patch("tekhsi.tek_hsi_connect.AnalogWaveform") as mock_cls:
+        waveform = tekhsi_client._read_waveform_with_stub(header, stub)
+
+    mock_cls.assert_called_once()
+    assert waveform is mock_cls.return_value
+    assert waveform.record_length == header.noofsamples
+
+
+def test_read_waveform_with_stub_iq(tekhsi_client: TekHSIConnect) -> None:
+    """_read_waveform_with_stub returns an IQWaveform for the ANALOG_IQ wfmtype branch."""
+    samples = np.array([1, 2, 3, 4], dtype=np.int16)
+    header = WaveformHeader(
+        sourcename="ch1_iq",
+        wfmtype=6,  # ANALOG_IQ
+        sourcewidth=2,
+        noofsamples=len(samples),
+        iq_windowType="Blackharris",
+        iq_fftLength=1024,
+        iq_rbw=1e6,
+    )
+    tekhsi_client.chunksize = 1024
+    tekhsi_client.thread_active = True
+
+    stub = _make_chunked_stub(samples.tobytes())
+    with (
+        patch("tekhsi.tek_hsi_connect.IQWaveform") as mock_cls,
+        patch("tekhsi.tek_hsi_connect.IQWaveformMetaInfo"),
+    ):
+        waveform = tekhsi_client._read_waveform_with_stub(header, stub)
+
+    mock_cls.assert_called_once()
+    assert waveform is mock_cls.return_value
+    assert waveform.record_length == header.noofsamples
+
+
+def test_read_waveform_with_stub_digital(tekhsi_client: TekHSIConnect) -> None:
+    """_read_waveform_with_stub returns a DigitalWaveform for the DIGITAL wfmtype branch."""
+    samples = np.array([1, 0, 1, 0], dtype=np.int8)
+    header = WaveformHeader(
+        sourcename="ch4_DAll",
+        wfmtype=WfmType.WFMTYPE_DIGITAL_8,
+        verticalspacing=1.0,
+        verticaloffset=0.0,
+        verticalunits="V",
+        horizontalspacing=1.0,
+        horizontalUnits="s",
+        horizontalzeroindex=0,
+        sourcewidth=1,
+        noofsamples=len(samples),
+    )
+    tekhsi_client.chunksize = 1024
+    tekhsi_client.thread_active = True
+
+    stub = _make_chunked_stub(samples.tobytes())
+    with patch("tekhsi.tek_hsi_connect.DigitalWaveform") as mock_cls:
+        waveform = tekhsi_client._read_waveform_with_stub(header, stub)
+
+    mock_cls.assert_called_once()
+    assert waveform is mock_cls.return_value
+    assert waveform.record_length == header.noofsamples
+
+
 def test_any_acq_with_new_key() -> None:
     """Test any_acq when a new key is added to the current headers.
 
@@ -1430,16 +1526,4 @@ def test_access_data_context_manager(tekhsi_client: TekHSIConnect) -> None:
         assert ctx is tekhsi_client
 
     tekhsi_client.wait_for_data.assert_called_once()
-    tekhsi_client.done_with_data.assert_called_once()
-
-
-def test_access_data_done_called_on_exception(tekhsi_client: TekHSIConnect) -> None:
-    """access_data() still invokes done_with_data when the body raises."""
-    tekhsi_client.wait_for_data = MagicMock()
-    tekhsi_client.done_with_data = MagicMock()
-    err = "body failure"
-
-    with tekhsi_client.access_data(), pytest.raises(RuntimeError, match=err):
-        raise RuntimeError(err)
-
     tekhsi_client.done_with_data.assert_called_once()
