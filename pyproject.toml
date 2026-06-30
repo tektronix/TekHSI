@@ -83,9 +83,7 @@ classifiers = [
 version = "1.1.0"
 
 [tool.poetry.group.dev.dependencies]
-cryptography = ">=48.0.1"  # security pin: GHSA-537c-gmf6-5ccf (see CHANGELOG)
 docutils-stubs = "^0.0.22"
-idna = ">=3.15"  # security pin: GHSA-65pc-fj4g-8rjx (see CHANGELOG)
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"
 numpy = [
@@ -95,9 +93,7 @@ numpy = [
 ]
 pip = "^26.0"
 poetry = "^2.3.0"
-# poetry-audit-plugin removed: 1.x broken vs safety>=3.2, and pinning safety<3.2 caused
-# a Windows STATUS_DLL_INIT_FAILED in the spawned subprocess. The poetry-audit hook is
-# gated to stages=[manual]; reinstall the plugin manually to run it.
+poetry-audit-plugin = "^1.0.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
@@ -105,6 +101,7 @@ pylint = "4.0.5"
 pyright = {extras = ["nodejs"], version = "1.1.409"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
+safety = ">=2.3,<3.2"  # pinned for poetry-audit-plugin 1.x compatibility
 tm_devices = "^3.2.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -112,7 +109,6 @@ twine = "^6.0.1"
 types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
-urllib3 = ">=2.7.0"  # security pin: GHSA-qccp-gfcp-xxvc, GHSA-mf9v-mfxr-j63j (see CHANGELOG)
 wheel = "^0.47.0"
 
 [tool.poetry.group.docs.dependencies]

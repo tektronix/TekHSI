@@ -24,13 +24,6 @@ Things to be included in the next release go here.
 - Fixed test suite failures in `test_client.py` related to digital waveform handling, parallel read testing, and graceful shutdown scenarios.
 - Fixed log message handling in `tekhsi_test_server.py` to avoid duplicate logs during test runs.
 
-### Security
-
-- Pinned `cryptography >= 48.0.1` in the dev dependency group to address [GHSA-537c-gmf6-5ccf](https://github.com/advisories/GHSA-537c-gmf6-5ccf) (HIGH severity OpenSSL vulnerability in `cryptography` wheels \<48.0.1). The package is pulled in transitively via `twine` → `keyring` → `secretstorage`; the explicit pin ensures the Grype SBOM scan resolves a non-vulnerable version on every CI run.
-- Pinned `urllib3 >= 2.7.0` in the dev dependency group to address [GHSA-qccp-gfcp-xxvc](https://github.com/advisories/GHSA-qccp-gfcp-xxvc) (HIGH severity: sensitive headers forwarded across origins in proxied low-level redirects) and [GHSA-mf9v-mfxr-j63j](https://github.com/advisories/GHSA-mf9v-mfxr-j63j) (HIGH severity: decompression-bomb safeguards bypassed in parts of the streaming API). Pulled in transitively via `requests` / `twine`.
-- Pinned `idna >= 3.15` in the dev dependency group to address [GHSA-65pc-fj4g-8rjx](https://github.com/advisories/GHSA-65pc-fj4g-8rjx) (MEDIUM severity: crafted inputs to `idna.encode()` bypass the CVE-2024-3651 length check and can cause excessive CPU consumption). Pulled in transitively via `requests` → `urllib3`.
-- Bumped `pymdown-extensions` floor to `^10.21.3` in the docs dependency group to address [GHSA-62q4-447f-wv8h](https://github.com/advisories/GHSA-62q4-447f-wv8h) (MEDIUM severity: regression in `pymdownx.snippets` reintroduces sibling-prefix path traversal bypass despite `restrict_base_path`).
-
 ---
 
 ## v1.1.0 (2026-02-27)

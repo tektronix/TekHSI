@@ -132,9 +132,6 @@ repos:
         pass_filenames: false
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
         always_run: true
-        # Run on demand only (`pre-commit run poetry-audit --hook-stage manual`)
-        # because poetry-audit-plugin 1.x is broken against safety>=3.2.
-        stages: [manual]
         args: [--json]
       - id: poetry-check
         name: poetry-check
