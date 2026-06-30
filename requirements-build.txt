@@ -1,0 +1,9 @@
+# Build the wheel from source (use inside a fresh venv):
+#   python -m venv .venv
+#   .venv\Scripts\activate
+#   pip install -r requirements-build.txt
+#   python -m build --wheel
+#
+# Output: dist/tekhsi-1.1.0-py3-none-any.whl
+
+build>=1.2
