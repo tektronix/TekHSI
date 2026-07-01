@@ -330,8 +330,10 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
                     return reply
         except Exception as e:
             print(e)
+        # WfmReplyStatus has no generic FAILURE value; using an invalid name causes a confusing
+        # client-side _InactiveRpcError. Use SOURCENAME_MISSING_FAILURE for both failure paths.
         return tekhsi_pb2.NormalizedReply(
-            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE")
+            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
 
 
@@ -386,7 +388,11 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
+        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a
+        # valid enum value to avoid a confusing _InactiveRpcError on the client.
+        return tekhsi_pb2.RawReply(
+            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
+        )
 
     def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
@@ -464,7 +470,11 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
                     return reply
         except Exception as e:
             print(e)
-        return tekhsi_pb2.RawReply(status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_FAILURE"))
+        # See TekHSI_NormalizedDataServer.GetHeader: proto has no generic FAILURE, so use a
+        # valid enum value to avoid a confusing _InactiveRpcError on the client.
+        return tekhsi_pb2.RawReply(
+            status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
+        )
 
 
 class TekHSI_Connect(tekhsi_pb2_grpc.ConnectServicer):

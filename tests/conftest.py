@@ -1,5 +1,6 @@
 """Pytest configuration."""
 
+import contextlib
 import logging
 import subprocess
 import sys
@@ -193,6 +194,16 @@ def start_test_server() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def tekhsi_client() -> TekHSIConnect:
-    """Create a TekHSIConnect client."""
-    return TekHSIConnect(TEST_SERVER_ADDRESS)
+def tekhsi_client() -> Generator[TekHSIConnect, None, None]:
+    """Create a TekHSIConnect client for unit tests.
+
+    Closes best-effort on teardown to avoid atexit-path gRPC errors.
+    """
+    client = TekHSIConnect(TEST_SERVER_ADDRESS)
+    try:
+        yield client
+    finally:
+        # Best-effort teardown; ignore RpcError side-effects from already-closed clients.
+        with contextlib.suppress(Exception):
+            if getattr(client, "_connected", False):
+                client.close()

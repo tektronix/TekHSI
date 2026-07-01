@@ -18,6 +18,15 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+### Fixed
+
+- Fixed digital waveform sample decoding for MSO5/6 DIGITAL_16 probes (sourcewidth=2). The wire format uses 2 bits per channel (bit 2*ch for logic value, bit 2*ch+1 for validity flag), and the decoder now correctly extracts the value bits and packs them into a single D7..D0 byte for downstream processing.
+
+### Changed
+
+- Fixed test suite failures in `test_client.py` related to digital waveform handling, parallel read testing, and graceful shutdown scenarios.
+- Fixed log message handling in `tekhsi_test_server.py` to avoid duplicate logs during test runs.
+
 ---
 
 ## v1.1.0 (2026-02-27)
