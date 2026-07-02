@@ -18,6 +18,16 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+---
+
+## v1.1.1 (2026-07-02)
+
+### Merged Pull Requests
+
+- Fix: Digital samples handling for waveform data acquisition ([#159](https://github.com/tektronix/TekHSI/pull/159))
+- python-deps(deps): bump idna from 3.13 to 3.15 ([#153](https://github.com/tektronix/TekHSI/pull/153))
+- Update poetry dependencies ([#143](https://github.com/tektronix/TekHSI/pull/143))
+
 ### Fixed
 
 - Fixed digital waveform sample decoding for MSO5/6 DIGITAL_16 probes (sourcewidth=2). The wire format uses 2 bits per channel (bit 2*ch for logic value, bit 2*ch+1 for validity flag), and the decoder now correctly extracts the value bits and packs them into a single D7..D0 byte for downstream processing.
