@@ -12,7 +12,7 @@ dependencies = [
   "grpcio~=1.66",
   "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
   "numpy~=2.1; python_version >= '3.13'",
-  "protobuf~=6.33",
+  "protobuf~=7.35",
   "python-dateutil~=2.8",
   "tm_data_types~=0.4.0",
   "typing_extensions~=4.12",
@@ -98,11 +98,11 @@ poetry-audit-plugin = "^1.0.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
-pylint = "4.0.5"
-pyright = {extras = ["nodejs"], version = "1.1.409"}
+pylint = "4.0.6"
+pyright = {extras = ["nodejs"], version = "1.1.411"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
-safety = ">=2.3,<3.2"  # pinned for poetry-audit-plugin 1.x compatibility
+safety = ">=2.3,<3.9"  # pinned for poetry-audit-plugin 1.x compatibility
 tm_devices = "^3.2.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -131,7 +131,7 @@ nodeenv = "^1.9.1"
 packaging = "^26.2"
 pydantic = "^2.7.4"
 pygments = "^2.17.2"
-pymdown-extensions = "^10.21.3"
+pymdown-extensions = "^11.0.1"
 requests = "^2.31.0"
 symspellpy = "^6.7.7"
 tomli = "^2.0.1"
