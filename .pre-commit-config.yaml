@@ -40,7 +40,7 @@ repos:
       - id: remove-tabs
       - id: forbid-tabs
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 943377262562a12b57292fc98fabd7dbf81451fe  # frozen: 0.37.2
+    rev: 1a4bb160cab6417b3045e1b37b6b72449243e658  # frozen: 0.37.4
     hooks:
       - id: check-readthedocs
       - id: check-dependabot
@@ -53,7 +53,7 @@ repos:
       - id: actionlint
         additional_dependencies: [pyflakes, shellcheck-py]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 0fedbbe40de438359fdf74bb0ef645ed23063999  # frozen: v4.16.2
+    rev: a6859a7b8182086a5e013deab8fefc0597b502e9  # frozen: v4.16.4
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -141,7 +141,7 @@ repos:
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
         args: [--strict]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 5e2fb545eba1ea9dc051f6f962d52fe8f76a9794  # frozen: v0.15.13
+    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # frozen: v0.15.21
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]

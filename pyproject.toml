@@ -39,7 +39,6 @@ documentation = "https://TekHSI.readthedocs.io"
 homepage = "https://pypi.org/project/TekHSI/"
 repository = "https://github.com/tektronix/TekHSI"
 
-
 [tool.coverage.paths]
 source = [
   "src/tekhsi",
