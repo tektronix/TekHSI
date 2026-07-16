@@ -35,7 +35,7 @@ requires-python = ">=3.10,<3.14"  # This is the main Python version requirement
 
 [project.urls]
 "Bug Tracker" = "https://github.com/tektronix/TekHSI/issues"
-"Changelog" = "https://github.com/tektronix/TekHSI/blob/main/CHANGELOG.md"
+"Changelog" = "https://github.com/tektronix/TekHSI/blob/main/docs/CHANGELOG.md"
 documentation = "https://TekHSI.readthedocs.io"
 homepage = "https://pypi.org/project/TekHSI/"
 repository = "https://github.com/tektronix/TekHSI"

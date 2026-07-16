@@ -50,6 +50,8 @@ else:
     if summary is not None:
         summary_samples = waveform.frame_data(waveform.summary_frame_index)
         print(f"summary frame: raw[0]={int(summary_samples[0])}")
+    else:
+        print("summary frame: not present (disabled on scope or not declared in header)")
 
     if waveform.load_timing is not None:
         print(waveform.load_timing.format_summary())

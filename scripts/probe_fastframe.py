@@ -110,10 +110,14 @@ def main() -> int:
         print(f"type={type(waveform).__name__} source={waveform.source_name}")
         if isinstance(waveform, FastFrameAnalogWaveform):
             print(f"samples_per_frame={waveform.record_length}")
-            print(
-                f"{waveform.data_frame_count} data frames + 1 average frame "
-                f"= {waveform.num_frames} total"
-            )
+            if waveform.summary_frame_index is None:
+                print(f"{waveform.num_frames} data frames (no summary frame)")
+            else:
+                print(
+                    f"{waveform.data_frame_count} data frames + "
+                    f"{waveform.num_frames - waveform.data_frame_count} summary frame(s) "
+                    f"= {waveform.num_frames} total"
+                )
             print(f"current_frame_index={waveform.current_frame_index}")
             print(f"summary_frame_index={waveform.summary_frame_index}")
             _print_load_timing(waveform)
@@ -122,12 +126,12 @@ def main() -> int:
                     samples = waveform.frame_data(index)
                     print(f"  frame {index:3d} (data): raw[0]={int(samples[0])}")
                 summary_index = waveform.summary_frame_index
-                assert summary_index is not None
-                summary_samples = waveform.frame_data(summary_index)
-                print(
-                    f"  frame {summary_index:3d} (average/high-res): "
-                    f"raw[0]={int(summary_samples[0])} len={len(summary_samples)}"
-                )
+                if summary_index is not None:
+                    summary_samples = waveform.frame_data(summary_index)
+                    print(
+                        f"  frame {summary_index:3d} (summary): "
+                        f"raw[0]={int(summary_samples[0])} len={len(summary_samples)}"
+                    )
         else:
             print("Waveform is a plain AnalogWaveform (single frame or no FastFrame metadata).")
 

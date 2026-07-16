@@ -42,7 +42,11 @@ def main() -> int:
 
     data_count = wfm.data_frame_count
     avg_index = wfm.summary_frame_index
-    assert avg_index is not None
+    if avg_index is None:
+        print(f"samples_per_frame (header): {wfm.record_length}")
+        print(f"data frames: {data_count}, total: {wfm.num_frames}")
+        print("No summary frame in this capture (summary disabled on scope or not declared).")
+        return 0
 
     data_arrays = [np.asarray(wfm.frame_data(i)) for i in range(data_count)]
     avg_array = np.asarray(wfm.frame_data(avg_index))

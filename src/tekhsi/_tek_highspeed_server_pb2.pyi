@@ -94,27 +94,53 @@ class AvailableNamesReply(_message.Message):
     def __init__(self, status: _Optional[_Union[ConnectStatus, str]] = ..., symbolnames: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class WaveformRequest(_message.Message):
-    __slots__ = ("sourcename", "chunksize", "frame_index", "start_frame", "end_frame", "stream_all_frames", "omit_frame_metadata", "use_explicit_frame_index")
+    __slots__ = ("sourcename", "chunksize", "reply_content_mask", "frame_index", "start_frame", "end_frame", "stream_all_frames", "use_explicit_frame_index")
     SOURCENAME_FIELD_NUMBER: _ClassVar[int]
     CHUNKSIZE_FIELD_NUMBER: _ClassVar[int]
+    REPLY_CONTENT_MASK_FIELD_NUMBER: _ClassVar[int]
     FRAME_INDEX_FIELD_NUMBER: _ClassVar[int]
     START_FRAME_FIELD_NUMBER: _ClassVar[int]
     END_FRAME_FIELD_NUMBER: _ClassVar[int]
     STREAM_ALL_FRAMES_FIELD_NUMBER: _ClassVar[int]
-    OMIT_FRAME_METADATA_FIELD_NUMBER: _ClassVar[int]
     USE_EXPLICIT_FRAME_INDEX_FIELD_NUMBER: _ClassVar[int]
     sourcename: str
     chunksize: int
+    reply_content_mask: int
     frame_index: int
     start_frame: int
     end_frame: int
     stream_all_frames: bool
-    omit_frame_metadata: bool
     use_explicit_frame_index: bool
-    def __init__(self, sourcename: _Optional[str] = ..., chunksize: _Optional[int] = ..., frame_index: _Optional[int] = ..., start_frame: _Optional[int] = ..., end_frame: _Optional[int] = ..., stream_all_frames: bool = ..., omit_frame_metadata: bool = ..., use_explicit_frame_index: bool = ...) -> None: ...
+    def __init__(self, sourcename: _Optional[str] = ..., chunksize: _Optional[int] = ..., reply_content_mask: _Optional[int] = ..., frame_index: _Optional[int] = ..., start_frame: _Optional[int] = ..., end_frame: _Optional[int] = ..., stream_all_frames: bool = ..., use_explicit_frame_index: bool = ...) -> None: ...
+
+class SParam(_message.Message):
+    __slots__ = ("reference_impedance", "data", "frequencies", "ports")
+    REFERENCE_IMPEDANCE_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    FREQUENCIES_FIELD_NUMBER: _ClassVar[int]
+    PORTS_FIELD_NUMBER: _ClassVar[int]
+    reference_impedance: float
+    data: _containers.RepeatedScalarFieldContainer[float]
+    frequencies: _containers.RepeatedScalarFieldContainer[float]
+    ports: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, reference_impedance: _Optional[float] = ..., data: _Optional[_Iterable[float]] = ..., frequencies: _Optional[_Iterable[float]] = ..., ports: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class ProbeInfo(_message.Message):
+    __slots__ = ("probe_name", "probe_tip", "probe_attenuation", "probe_sparam", "filter")
+    PROBE_NAME_FIELD_NUMBER: _ClassVar[int]
+    PROBE_TIP_FIELD_NUMBER: _ClassVar[int]
+    PROBE_ATTENUATION_FIELD_NUMBER: _ClassVar[int]
+    PROBE_SPARAM_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    probe_name: str
+    probe_tip: str
+    probe_attenuation: float
+    probe_sparam: SParam
+    filter: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, probe_name: _Optional[str] = ..., probe_tip: _Optional[str] = ..., probe_attenuation: _Optional[float] = ..., probe_sparam: _Optional[_Union[SParam, _Mapping]] = ..., filter: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class WaveformHeader(_message.Message):
-    __slots__ = ("sourcename", "sourcewidth", "dataid", "transid", "horizontalUnits", "horizontalspacing", "horizontalzeroindex", "horizontalfractionalzeroindex", "noofsamples", "chunksize", "wfmtype", "bitmask", "pairtype", "verticalunits", "verticalspacing", "verticaloffset", "iq_centerFrequency", "iq_fftLength", "iq_rbw", "iq_span", "iq_windowType", "hasdata", "num_frames", "frame_info", "current_frame_index")
+    __slots__ = ("sourcename", "sourcewidth", "dataid", "transid", "horizontalUnits", "horizontalspacing", "horizontalzeroindex", "horizontalfractionalzeroindex", "noofsamples", "chunksize", "wfmtype", "bitmask", "pairtype", "verticalunits", "verticalspacing", "verticaloffset", "iq_centerFrequency", "iq_fftLength", "iq_rbw", "iq_span", "iq_windowType", "hasdata", "num_frames", "frame_info", "current_frame_index", "probe_details", "channel_sparam")
     SOURCENAME_FIELD_NUMBER: _ClassVar[int]
     SOURCEWIDTH_FIELD_NUMBER: _ClassVar[int]
     DATAID_FIELD_NUMBER: _ClassVar[int]
@@ -140,6 +166,8 @@ class WaveformHeader(_message.Message):
     NUM_FRAMES_FIELD_NUMBER: _ClassVar[int]
     FRAME_INFO_FIELD_NUMBER: _ClassVar[int]
     CURRENT_FRAME_INDEX_FIELD_NUMBER: _ClassVar[int]
+    PROBE_DETAILS_FIELD_NUMBER: _ClassVar[int]
+    CHANNEL_SPARAM_FIELD_NUMBER: _ClassVar[int]
     sourcename: str
     sourcewidth: int
     dataid: int
@@ -165,23 +193,27 @@ class WaveformHeader(_message.Message):
     num_frames: int
     frame_info: _containers.RepeatedCompositeFieldContainer[FrameInfo]
     current_frame_index: int
-    def __init__(self, sourcename: _Optional[str] = ..., sourcewidth: _Optional[int] = ..., dataid: _Optional[int] = ..., transid: _Optional[int] = ..., horizontalUnits: _Optional[str] = ..., horizontalspacing: _Optional[float] = ..., horizontalzeroindex: _Optional[float] = ..., horizontalfractionalzeroindex: _Optional[float] = ..., noofsamples: _Optional[int] = ..., chunksize: _Optional[int] = ..., wfmtype: _Optional[_Union[WfmType, str]] = ..., bitmask: _Optional[int] = ..., pairtype: _Optional[_Union[WfmPairType, str]] = ..., verticalunits: _Optional[str] = ..., verticalspacing: _Optional[float] = ..., verticaloffset: _Optional[float] = ..., iq_centerFrequency: _Optional[float] = ..., iq_fftLength: _Optional[float] = ..., iq_rbw: _Optional[float] = ..., iq_span: _Optional[float] = ..., iq_windowType: _Optional[str] = ..., hasdata: bool = ..., num_frames: _Optional[int] = ..., frame_info: _Optional[_Iterable[_Union[FrameInfo, _Mapping]]] = ..., current_frame_index: _Optional[int] = ...) -> None: ...
+    probe_details: ProbeInfo
+    channel_sparam: SParam
+    def __init__(self, sourcename: _Optional[str] = ..., sourcewidth: _Optional[int] = ..., dataid: _Optional[int] = ..., transid: _Optional[int] = ..., horizontalUnits: _Optional[str] = ..., horizontalspacing: _Optional[float] = ..., horizontalzeroindex: _Optional[float] = ..., horizontalfractionalzeroindex: _Optional[float] = ..., noofsamples: _Optional[int] = ..., chunksize: _Optional[int] = ..., wfmtype: _Optional[_Union[WfmType, str]] = ..., bitmask: _Optional[int] = ..., pairtype: _Optional[_Union[WfmPairType, str]] = ..., verticalunits: _Optional[str] = ..., verticalspacing: _Optional[float] = ..., verticaloffset: _Optional[float] = ..., iq_centerFrequency: _Optional[float] = ..., iq_fftLength: _Optional[float] = ..., iq_rbw: _Optional[float] = ..., iq_span: _Optional[float] = ..., iq_windowType: _Optional[str] = ..., hasdata: bool = ..., num_frames: _Optional[int] = ..., frame_info: _Optional[_Iterable[_Union[FrameInfo, _Mapping]]] = ..., current_frame_index: _Optional[int] = ..., probe_details: _Optional[_Union[ProbeInfo, _Mapping]] = ..., channel_sparam: _Optional[_Union[SParam, _Mapping]] = ...) -> None: ...
 
 class FrameInfo(_message.Message):
-    __slots__ = ("frame_index", "time_offset", "gmt_sec", "fract_sec", "real_point_offset", "frame_duration_sec")
+    __slots__ = ("frame_index", "time_offset", "gmt_sec", "fract_sec", "is_summary_frame", "real_point_offset", "frame_duration_sec")
     FRAME_INDEX_FIELD_NUMBER: _ClassVar[int]
     TIME_OFFSET_FIELD_NUMBER: _ClassVar[int]
     GMT_SEC_FIELD_NUMBER: _ClassVar[int]
     FRACT_SEC_FIELD_NUMBER: _ClassVar[int]
+    IS_SUMMARY_FRAME_FIELD_NUMBER: _ClassVar[int]
     REAL_POINT_OFFSET_FIELD_NUMBER: _ClassVar[int]
     FRAME_DURATION_SEC_FIELD_NUMBER: _ClassVar[int]
     frame_index: int
     time_offset: float
     gmt_sec: int
     fract_sec: float
+    is_summary_frame: bool
     real_point_offset: int
     frame_duration_sec: float
-    def __init__(self, frame_index: _Optional[int] = ..., time_offset: _Optional[float] = ..., gmt_sec: _Optional[int] = ..., fract_sec: _Optional[float] = ..., real_point_offset: _Optional[int] = ..., frame_duration_sec: _Optional[float] = ...) -> None: ...
+    def __init__(self, frame_index: _Optional[int] = ..., time_offset: _Optional[float] = ..., gmt_sec: _Optional[int] = ..., fract_sec: _Optional[float] = ..., is_summary_frame: bool = ..., real_point_offset: _Optional[int] = ..., frame_duration_sec: _Optional[float] = ...) -> None: ...
 
 class FrameBoundary(_message.Message):
     __slots__ = ("frame_info",)

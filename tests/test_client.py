@@ -1254,3 +1254,26 @@ def test_is_header_value_false_cases() -> None:
     # hasdata False
     h = WaveformHeader(noofsamples=1, sourcewidth=1, hasdata=False)
     assert not TekHSIConnect._is_header_value(h)
+
+
+@pytest.mark.parametrize(
+    ("name", "available", "expected", "alias_from"),
+    [
+        ("ch1", ["ch1", "ch2_dall"], "ch1", None),
+        ("ch2", ["ch1", "ch2_dall"], "ch2_dall", "ch2"),
+        ("CH2", ["ch1", "ch2_dall"], "ch2_dall", "ch2"),
+        ("ch2", ["ch1", "ch2", "ch2_dall"], "ch2", None),
+        ("ch2_dall", ["ch1", "ch2_dall"], "ch2_dall", None),
+        ("ref1", ["ref1_dall"], "ref1_dall", "ref1"),
+    ],
+)
+def test_resolve_symbol_name(
+    name: str,
+    available: list[str],
+    expected: str,
+    alias_from: str | None,
+) -> None:
+    """Digital-only channels often expose chN_DAll without plain chN."""
+    resolved, alias = TekHSIConnect._resolve_symbol_name(name, frozenset(available))
+    assert resolved == expected
+    assert alias == alias_from

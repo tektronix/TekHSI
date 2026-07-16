@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from tekhsi import FastFrameAnalogWaveform, TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
-from tm_data_types import AnalogWaveform
+from tm_data_types import AnalogWaveform, DigitalWaveform
 
 
 def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
@@ -36,13 +36,24 @@ def _describe_waveform(wfm) -> None:
             f"  current_frame_index={wfm.current_frame_index} "
             f"summary_frame_index={wfm.summary_frame_index}"
         )
+        if wfm.summary_frame_index is None:
+            print("  summary frame: disabled (all frames are data frames)")
         print(f"  all_frames_loaded={wfm.all_frames_loaded}")
+        bitmask = getattr(wfm, "digital_bitmask", None)
+        if bitmask is not None:
+            print(f"  digital_bitmask=0x{bitmask:08x}")
         samples = wfm.frame_data(0)
         print(f"  frame[0] raw[0]={int(samples[0])} len={len(samples)}")
         if wfm.load_timing:
             print(f"  {wfm.load_timing.format_summary()}")
     elif isinstance(wfm, AnalogWaveform):
         y = wfm.y_axis_values
+        n = len(y) if y is not None else 0
+        print(f"  samples={n} y_units={wfm.y_axis_units!r} x_spacing={wfm.x_axis_spacing}")
+        if n:
+            print(f"  raw[0]={int(y[0])} raw[-1]={int(y[-1])}")
+    elif isinstance(wfm, DigitalWaveform):
+        y = wfm.y_axis_byte_values
         n = len(y) if y is not None else 0
         print(f"  samples={n} y_units={wfm.y_axis_units!r} x_spacing={wfm.x_axis_spacing}")
         if n:
@@ -67,7 +78,9 @@ def main() -> int:
         callback=None,
         on_trust_prompt=_auto_trust_prompt,
         credential_store=TekHSICredentialStore(path=store_path),
+        background_thread=False,
     ) as conn:
+        conn.verbose = True
         print(
             f"protocol_version={conn.protocol_version} "
             f"capabilities=0x{conn.capabilities:04x} "
@@ -76,6 +89,7 @@ def main() -> int:
         print(f"activesymbols={conn.activesymbols}")
 
         with conn.access_stopped_data():
+            print(f"available_symbols={conn.available_symbols}", flush=True)
             for channel in channels:
                 print(f"\n--- {channel} ---", flush=True)
                 wfm = conn.get_data(channel)

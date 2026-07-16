@@ -4,7 +4,7 @@ This is a **demo build** of TekHSI (v1.1.0) paired with **tm_data_types 0.3.0**.
 **FastFrame** support on top of the v2 TekHSI protocol (`normalizedvector.proto`), using the
 `FastFrameAnalogWaveform` type from `tm_data_types` instead of a local duplicate.
 
-Use this README when installing from the local wheel files in this repository rather than from PyPI.
+Use this guide when installing the FastFrame demo build from a local wheel rather than PyPI.
 
 ## What's new in this demo
 
@@ -25,19 +25,13 @@ Use this README when installing from the local wheel files in this repository ra
 
 ## Installation
 
-Install both wheels from this repository root:
+Install `tm_data_types` 0.3.0, then build and install TekHSI from this repository:
 
 ```shell
-pip install tm_data_types-0.3.0-py3-none-any.whl
-pip install dist/tekhsi-1.1.0-py3-none-any.whl
-```
-
-Or build TekHSI yourself:
-
-```shell
+pip install "tm_data_types==0.3.0"
 python -m pip install build
 python -m build --wheel --outdir dist
-pip install dist/tekhsi-1.1.0-py3-none-any.whl
+pip install dist/tekhsi-*.whl
 ```
 
 Verify:

@@ -8,7 +8,7 @@ from importlib.metadata import version
 from tekhsi._tek_highspeed_server_pb2 import WaveformHeader  # pylint: disable= no-name-in-module
 from tekhsi.credential_store import CertInfo, TekCredentialStore, TekHSICredentialStore
 from tekhsi.helpers import configure_logging, LoggingLevels, PACKAGE_NAME
-from tekhsi.load_timing import CAPABILITY_FASTFRAME, FastFrameLoadTiming
+from tekhsi.load_timing import CAPABILITY_FASTFRAME, FastFrameLoadTiming, REPLY_CONTENT_MASK_FRAME_METADATA
 from tekhsi.security import (
     TekAuthenticationFailed,
     TekCertificateMismatch,
@@ -25,6 +25,7 @@ __version__ = version(PACKAGE_NAME)
 
 __all__ = [
     "CAPABILITY_FASTFRAME",
+    "REPLY_CONTENT_MASK_FRAME_METADATA",
     "PACKAGE_NAME",
     "AcqWaitOn",
     "CertInfo",

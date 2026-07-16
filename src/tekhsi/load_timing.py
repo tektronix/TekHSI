@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 PROTOCOL_VERSION_V2 = 200
 CAPABILITY_FASTFRAME = 0x0001
+REPLY_CONTENT_MASK_FRAME_METADATA = 0x0001
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class FastFrameLoadTiming:
     num_frames: int
     samples_per_frame: int
     bytes_per_sample: int
+    summary_frame_count: int = 0
 
     @property
     def total_samples(self) -> int:
@@ -37,10 +39,8 @@ class FastFrameLoadTiming:
 
     @property
     def data_frame_count(self) -> int:
-        """Individual acquisition frames (excludes the average frame)."""
-        if self.num_frames <= 1:
-            return self.num_frames
-        return self.num_frames - 1
+        """Individual acquisition frames (excludes summary frames when present)."""
+        return self.num_frames - self.summary_frame_count
 
     @property
     def transfer_mbps(self) -> float:
@@ -52,10 +52,14 @@ class FastFrameLoadTiming:
         """Human-readable size and timing summary."""
         mib = self.total_raw_bytes / (1024 * 1024)
         if self.num_frames > 1:
-            frame_desc = (
-                f"{self.data_frame_count} data frames + 1 average frame "
-                f"= {self.num_frames} total"
-            )
+            if self.summary_frame_count:
+                summary_label = "summary frame" if self.summary_frame_count == 1 else "summary frames"
+                frame_desc = (
+                    f"{self.data_frame_count} data frames + {self.summary_frame_count} "
+                    f"{summary_label} = {self.num_frames} total"
+                )
+            else:
+                frame_desc = f"{self.num_frames} data frames (no summary frame)"
         else:
             frame_desc = f"{self.num_frames} frame"
         return (

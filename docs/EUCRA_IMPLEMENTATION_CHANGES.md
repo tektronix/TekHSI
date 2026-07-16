@@ -231,7 +231,7 @@ with TekHSIConnect(url, require_tls=True, credential_store=store, on_trust_promp
     ...
 ```
 
-See `EUCRA_USAGE.md` for full user-facing documentation.
+See `EUCRA_USAGE.md` in this directory for full user-facing documentation.
 
 ---
 

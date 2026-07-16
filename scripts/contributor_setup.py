@@ -1,6 +1,6 @@
 """Set up an environment to use to contribute to this package.
 
-This script will run through the commands listed in the CONTRIBUTING.md file.
+This script will run through the commands listed in the docs/CONTRIBUTING.md file.
 """
 
 from __future__ import annotations

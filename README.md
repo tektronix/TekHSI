@@ -28,6 +28,13 @@ fields of electronics, telecommunications, and signal processing.
 way to communicate between applications. This means you can use `TekHSI` with any platform
 supporting gRPC, including Windows, Linux, and macOS.
 
+> [!NOTE]
+> **FastFrame stream status quirk:** On live scopes, `GetWaveform` data chunks often arrive with
+> `WFMREPLYSTATUS_UNSPECIFIED` rather than `WFMREPLYSTATUS_SUCCESS`. Only the final (often empty)
+> stream message may report `SUCCESS`. Clients must treat both statuses as valid when reading chunk
+> data; filtering on `SUCCESS` alone drops every frame and breaks FastFrame reads (notably digital
+> captures such as `ch2_DAll`). TekHSI accepts `UNSPECIFIED` and `SUCCESS` in its stream parsers.
+
 ## Key Features
 
 1. Low latency - `TekHSI` provides a fast and efficient data link between devices, with minimal
@@ -73,7 +80,12 @@ pip install tekhsi
 
 ## Documentation
 
-See the full documentation at <https://TekHSI.readthedocs.io>
+See the full documentation at <https://TekHSI.readthedocs.io>, or in this repository:
+
+- [FastFrame demo guide](docs/DEMO_README.md)
+- [Basic usage](docs/basic_usage.md)
+- [EUCRA secure connections](docs/EUCRA_USAGE.md)
+- [Changelog](docs/CHANGELOG.md)
 
 ## Maintainers
 
@@ -91,14 +103,14 @@ the maintainers will review and respond there.
 
 ## Contributing
 
-Interested in contributing? Check out the [contributing guidelines](https://github.com/tektronix/TekHSI/blob/main/CONTRIBUTING.md). Please
-note that this project is released with a [Code of Conduct](https://github.com/tektronix/TekHSI/blob/main/CODE_OF_CONDUCT.md). By
+Interested in contributing? Check out the [contributing guidelines](docs/CONTRIBUTING.md). Please
+note that this project is released with a [Code of Conduct](docs/CODE_OF_CONDUCT.md). By
 contributing to this project, you agree to abide by its terms.
 
 ## License
 
 `TekHSI` was created by Tektronix. It is licensed under the terms of
-the [Apache License 2.0](https://github.com/tektronix/TekHSI/blob/main/LICENSE.md).
+the [Apache License 2.0](docs/LICENSE.md).
 
 ## Security
 
