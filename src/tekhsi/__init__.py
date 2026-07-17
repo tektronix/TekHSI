@@ -18,6 +18,13 @@ from tekhsi.security import (
     TekUnknownInstrument,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
+from tekhsi.wfm_digital import (
+    DIGITAL_BITMASK_META_KEY,
+    read_digital_wfm,
+    restore_digital_bitmask_from_meta,
+    stamp_digital_bitmask_meta,
+    write_digital_wfm,
+)
 from tm_data_types import FastFrameAnalogWaveform, FastFrameDigitalWaveform, FrameTimingInfo
 
 # Read version from installed package.
@@ -34,6 +41,11 @@ __all__ = [
     "FastFrameLoadTiming",
     "WaveformTransferTiming",
     "FrameTimingInfo",
+    "DIGITAL_BITMASK_META_KEY",
+    "read_digital_wfm",
+    "restore_digital_bitmask_from_meta",
+    "stamp_digital_bitmask_meta",
+    "write_digital_wfm",
     "LoggingLevels",
     "TekAuthenticationFailed",
     "TekCertificateMismatch",

@@ -187,9 +187,24 @@ Implementation: class-based dispatch (`DigitalWaveform` → `"digital"`, etc.). 
 
 ---
 
-### 4.5 P3 — WFM file I/O for digital FastFrame (future)
+### 4.5 P3 — WFM file I/O for digital FastFrame
 
-0.3.0 WFM reader/writer paths target `FastFrameAnalogWaveform`. Out of scope for initial 0.4.0 unless WFM format already defines digital FastFrame curves — track separately.
+0.3.0 reads and writes `FastFrameDigitalWaveform` curve data. **`digital_bitmask` is not
+part of the native WFM header** — persist it in tekmeta instead:
+
+| tekmeta key | Type | Purpose |
+|-------------|------|---------|
+| `digital_bitmask` | int (extended metadata) | Integer bitmask from TekHSI `WaveformHeader.bitmask` |
+| `d0`–`d7` | string | Mirror of active digital lines (`0x01` / `0x00`) for scope/ref compatibility |
+
+TekHSI provides helpers in `tekhsi.wfm_digital`:
+
+- `stamp_digital_bitmask_meta(waveform)` before `write_file()`
+- `restore_digital_bitmask_from_meta(waveform)` after `read_file()`
+- `write_digital_wfm()` / `read_digital_wfm()` wrappers
+
+**Target for tm_data_types 0.4.0:** call these helpers inside `WaveformFileWFMDigital`
+read/write so `digital_bitmask` round-trips without client-side stamping.
 
 ---
 

@@ -125,3 +125,6 @@ GitHub.sublime-settings
 
 # Local-only superseded artifacts (not for remote)
 archive/
+
+# Generated scope capture files (large binaries)
+sample_waveforms/**/*.wfm

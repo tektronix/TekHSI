@@ -2,6 +2,59 @@
 
 Utility scripts for probing and measuring TekHSI on a live scope.
 
+## Test status
+
+Live scope: **169.254.6.254:5000** (4/5/6 Series MSO, TekHSI v2, FastFrame stopped captures).
+All results below used **100 FastFrame frames**, **1 byte/sample**, and **10-run averages** unless
+noted otherwise.
+
+### Transfer rate (Mbit/s)
+
+Measured with [`measure_transfer_rate.py`](measure_transfer_rate.py) (`--iterations 10`).
+
+| Record length | Frames | Bytes/sample | Ch1 analog (Mbit/s) | Ch2 digital (Mbit/s) |
+| ------------- | ------ | ------------ | ------------------- | -------------------- |
+| 1,000         | 100    | 1            | 96.6                | 94.2                 |
+| 10,000        | 100    | 1            | 471                 | 814                  |
+| 100,000       | 100    | 1            | 802                 | 931                  |
+| 1,000,000     | 100    | 1            | 900                 | 940                  |
+| 5,000,000     | 100    | 1            | 939                 | 941                  |
+
+Throughput rises with payload size and plateaus near **~940 Mbit/s** for large captures. Small
+record lengths are dominated by fixed gRPC/setup overhead. The first iteration in each run is
+often slower (warm-up); averages exclude that effect when `--iterations 10` is used.
+
+### FastFrame → .wfm → read-back
+
+[`fastframe_wfm_roundtrip.py`](fastframe_wfm_roundtrip.py) captures **ch1** (analog) and
+**ch2_dall** (digital), saves to `.wfm`, re-reads, and compares sample arrays.
+
+| Channel   | Capture shape        | Data round-trip | Notes |
+| --------- | -------------------- | --------------- | ----- |
+| ch1       | 100 × 5M samples     | **PASS**        | All 100 frames bit-accurate |
+| ch2_dall  | 100 × 5M samples     | **PASS**        | All 100 frames + bitstreams match; `digital_bitmask` restored via tekmeta |
+
+Saved files: `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
+
+Digital `digital_bitmask` is stored in WFM tekmeta (`tekhsi.wfm_digital` helpers) because it is
+not a native WFM header field.
+
+### Scope reference validation
+
+[`validate_scope_refs.py`](validate_scope_refs.py) compares scope refs loaded from the saved
+`.wfm` files against the on-disk originals.
+
+| Scope ref   | Source file    | Data compare | Status |
+| ----------- | -------------- | ------------ | ------ |
+| ref1        | CH1.wfm        | 100 frames match | **PASS** |
+| ref2_dall   | CH2_DALL.wfm   | —            | **FAIL** — header reports 100 frames / `hasdata=True`, but `GetWaveform` returns 0 bytes |
+
+Analog FastFrame refs load and stream correctly. Digital FastFrame refs appear in
+`available_symbols` with a valid header but TekHSI cannot pull waveform bytes from the scope
+(likely a scope-side limitation for digital FastFrame refs loaded from `.wfm`).
+
+---
+
 ## Transfer rate measurement
 
 [`measure_transfer_rate.py`](measure_transfer_rate.py) benchmarks gRPC waveform transfer speed on a
@@ -96,5 +149,7 @@ avg  ch2          digital  yes       1000000  1            100     100000000   8
 | Script | Purpose |
 | ------ | ------- |
 | [`read_channels.py`](read_channels.py) | Read and describe waveforms (type, frames, `load_timing`) |
+| [`fastframe_wfm_roundtrip.py`](fastframe_wfm_roundtrip.py) | Capture → save `.wfm` → read-back comparison |
+| [`validate_scope_refs.py`](validate_scope_refs.py) | Compare scope refs to saved `.wfm` files |
 | [`probe_fastframe.py`](probe_fastframe.py) | FastFrame header and frame probe |
 | [`manual_scope_waveform.py`](manual_scope_waveform.py) | Interactive scope waveform tests (TLS scenarios) |

@@ -78,11 +78,57 @@ pip install tekhsi
 
 </div>
 
+## Live test status
+
+Results from a live scope at **169.254.6.254:5000** (TekHSI v2, stopped FastFrame captures).
+Transfer rates are **10-run averages** in **Mbit/s** from
+[`scripts/measure_transfer_rate.py`](scripts/measure_transfer_rate.py) (`--iterations 10`).
+
+| Record length | Frames | Width | Ch1 analog data rate (Mbit/s) | Ch2 digital data rate (Mbit/s) |
+| ------------- | ------ | ----- | ----------------------------- | ------------------------------ |
+| 1,000         | 100    | 1     | 96.6                          | 94.2                           |
+| 10,000        | 100    | 1     | 471                           | 813                            |
+| 100,000       | 100    | 1     | 801                           | 931                            |
+| 1,000,000     | 100    | 1     | 899                           | 940                            |
+| 5,000,000     | 100    | 1     | 940                           | 941                            |
+
+Throughput increases with record length and plateaus near **~940 Mbit/s** on large captures.
+Small record lengths are dominated by fixed gRPC/setup overhead.
+
+### FastFrame → .wfm → read-back
+
+[`scripts/fastframe_wfm_roundtrip.py`](scripts/fastframe_wfm_roundtrip.py) — capture **ch1** and
+**ch2_dall**, save to `.wfm`, re-read, and compare:
+
+| Channel  | Capture          | Result   |
+| -------- | ---------------- | -------- |
+| ch1      | 100 × 5M samples | **PASS** — all 100 frames bit-accurate |
+| ch2_dall | 100 × 5M samples | **PASS** — all 100 frames + bitstreams match |
+
+Saved files: `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
+
+### Scope reference validation
+
+[`scripts/validate_scope_refs.py`](scripts/validate_scope_refs.py) — compare scope refs loaded
+from those `.wfm` files against the on-disk originals:
+
+| Scope ref | Source file  | Result   |
+| --------- | ------------ | -------- |
+| ref1      | CH1.wfm      | **PASS** — all 100 frames match |
+| ref2_dall | CH2_DALL.wfm | **FAIL** — header reports 100 frames and `hasdata=True`, but `GetWaveform` returns 0 bytes |
+
+Analog FastFrame refs load and stream correctly. Digital FastFrame refs appear in
+`available_symbols` with a valid header, but TekHSI cannot pull waveform bytes from the scope
+after loading from `.wfm`.
+
+See also [scripts/README.md](scripts/README.md) for usage details on the benchmark and validation scripts.
+
 ## Documentation
 
 See the full documentation at <https://TekHSI.readthedocs.io>, or in this repository:
 
 - [FastFrame demo guide](docs/DEMO_README.md)
+- [Scripts usage](scripts/README.md)
 - [Basic usage](docs/basic_usage.md)
 - [EUCRA secure connections](docs/EUCRA_USAGE.md)
 - [Changelog](docs/CHANGELOG.md)
