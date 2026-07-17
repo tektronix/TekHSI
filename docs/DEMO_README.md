@@ -10,7 +10,7 @@ Use this guide when installing the FastFrame demo build from a local wheel rathe
 
 | Feature | Description |
 | -------- | ------------ |
-| **FastFrame reads** | Multi-frame captures return `FastFrameAnalogWaveform` with all frames loaded in one transfer |
+| **FastFrame reads** | Multi-frame analog → `FastFrameAnalogWaveform`; digital → `FastFrameDigitalWaveform` |
 | **Stopped-scope access** | `access_stopped_data()` handles `force_sequence()` + `AnyAcq` for stopped FastFrame captures |
 | **Raw digitizer access** | `frame_data(index)` returns raw ADC codes; `frame_array(index)` returns normalized volts |
 | **Summary frame** | High Res FastFrame captures include an average/summary frame at `summary_frame_index` |
@@ -25,13 +25,19 @@ Use this guide when installing the FastFrame demo build from a local wheel rathe
 
 ## Installation
 
-Install `tm_data_types` 0.3.0, then build and install TekHSI from this repository:
+Install the bundled `tm_data_types` wheel from this repository root, then build and install TekHSI:
 
 ```shell
-pip install "tm_data_types==0.3.0"
+pip install tm_data_types-0.3.0-py3-none-any.whl
 python -m pip install build
 python -m build --wheel --outdir dist
 pip install dist/tekhsi-*.whl
+```
+
+Or from PyPI if the updated 0.3.0 release is published:
+
+```shell
+pip install "tm_data_types==0.3.0"
 ```
 
 Verify:

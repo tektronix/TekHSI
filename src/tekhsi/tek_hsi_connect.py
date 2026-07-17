@@ -22,6 +22,7 @@ from tm_data_types import (
     AnalogWaveform,
     DigitalWaveform,
     FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
     FrameTimingInfo,
     IQWaveform,
     IQWaveformMetaInfo,
@@ -40,6 +41,7 @@ from tekhsi.load_timing import (
     CAPABILITY_FASTFRAME,
     FastFrameLoadTiming,
     REPLY_CONTENT_MASK_FRAME_METADATA,
+    WaveformTransferTiming,
 )
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekCredentialStore, TekHSICredentialStore
@@ -411,7 +413,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         available = frozenset(self._cache_available_symbols())
         resolved, alias_from = self._resolve_symbol_name(name, available)
         if alias_from is not None:
-            _logger.info("Resolved symbol %r -> %r (digital bundle)", alias_from, resolved)
+            _logger.debug("Resolved symbol %r -> %r (digital bundle)", alias_from, resolved)
         return resolved
 
     @property
@@ -806,13 +808,13 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """Return a single frame view from a cached FastFrame capture.
 
         All frames are loaded when the waveform is first read; this does not
-        perform additional instrument I/O. Analog and digital FastFrame captures
-        both return ``FastFrameAnalogWaveform`` views from ``frame()``.
+        perform additional instrument I/O. ``frame()`` returns ``AnalogWaveform`` or
+        ``DigitalWaveform`` views for analog and digital FastFrame captures.
         """
         cached = self.get_data(name)
         if cached is None:
             return None
-        if isinstance(cached, FastFrameAnalogWaveform):
+        if isinstance(cached, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
             return cached.frame(frame_index)
         return cached
 
@@ -1087,6 +1089,32 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         )
 
     @staticmethod
+    def _waveform_kind_from_header(header: WaveformHeader) -> str:
+        if header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:
+            return "digital"
+        if header.wfmtype in {WaveformType.ANALOG_IQ, WaveformType.ANALOG_16_IQ}:
+            return "iq"
+        return "analog"
+
+    @staticmethod
+    def _transfer_timing_from_header(
+        header: WaveformHeader,
+        kind: str,
+        transfer_ms: float,
+        publish_ms: float = 0.0,
+    ) -> WaveformTransferTiming:
+        num_frames = int(header.num_frames) if header.num_frames and header.num_frames > 1 else 1
+        return WaveformTransferTiming(
+            kind=kind,
+            transfer_ms=transfer_ms,
+            publish_ms=publish_ms,
+            record_length=int(header.noofsamples),
+            bytes_per_sample=int(header.sourcewidth),
+            num_frames=num_frames,
+            summary_frame_count=TekHSIConnect._summary_frame_count_from_header(header),
+        )
+
+    @staticmethod
     def _summary_frame_count_from_header(header: WaveformHeader) -> int:
         """Count summary frames declared in FastFrame metadata."""
         if not header.frame_info:
@@ -1132,6 +1160,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 fract_sec=info.fract_sec,
                 real_point_offset=info.real_point_offset,
                 frame_duration_sec=info.frame_duration_sec,
+                is_summary_frame=info.is_summary_frame,
             )
             for info in header.frame_info
         ]
@@ -1143,20 +1172,35 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         samples_per_frame: int,
         dt_type: type,
         load_timing: FastFrameLoadTiming | None,
-    ) -> FastFrameAnalogWaveform:
-        """Populate a tm_data_types FastFrameAnalogWaveform from native sample arrays."""
-        waveform = FastFrameAnalogWaveform.create_fastframe(
-            header.num_frames,
-            samples_per_frame,
-            dtype=dt_type,
-            source_name=header.sourcename,
-            y_axis_spacing=header.verticalspacing,
-            y_axis_offset=header.verticaloffset,
-            y_axis_units=header.verticalunits,
-            x_axis_spacing=header.horizontalspacing,
-            x_axis_units=header.horizontalUnits,
-            trigger_index=header.horizontalzeroindex,
-        )
+        *,
+        wrapper: type = FastFrameAnalogWaveform,
+    ) -> FastFrameAnalogWaveform | FastFrameDigitalWaveform:
+        """Populate a tm_data_types FastFrame waveform from native sample arrays."""
+        common_kwargs = {
+            "source_name": header.sourcename,
+            "x_axis_spacing": header.horizontalspacing,
+            "x_axis_units": header.horizontalUnits,
+            "trigger_index": header.horizontalzeroindex,
+        }
+        if wrapper is FastFrameDigitalWaveform:
+            waveform = FastFrameDigitalWaveform.create_fastframe(
+                header.num_frames,
+                samples_per_frame,
+                dtype=dt_type,
+                y_axis_units=header.verticalunits,
+                digital_bitmask=header.bitmask,
+                **common_kwargs,
+            )
+        else:
+            waveform = FastFrameAnalogWaveform.create_fastframe(
+                header.num_frames,
+                samples_per_frame,
+                dtype=dt_type,
+                y_axis_spacing=header.verticalspacing,
+                y_axis_offset=header.verticaloffset,
+                y_axis_units=header.verticalunits,
+                **common_kwargs,
+            )
         waveform.summary_frame_type = TekHSIConnect._summary_frame_type_from_header(header)
         max_frame_index = max(0, len(raw_frames) - 1)
         current_index = int(header.current_frame_index)
@@ -1164,6 +1208,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             current_index = 0
         waveform.current_frame_index = current_index
         waveform.frame_info = TekHSIConnect._frame_info_from_header(header)
+        waveform.per_frame_summary_authoritative = bool(header.frame_info)
         waveform.load_timing = load_timing
 
         for index, frame in enumerate(raw_frames):
@@ -1229,6 +1274,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         waveform.x_axis_spacing = header.horizontalspacing
         waveform.x_axis_units = header.horizontalUnits
         waveform.trigger_index = header.horizontalzeroindex
+        waveform.digital_bitmask = header.bitmask
 
     def _read_digital_native(
         self,
@@ -1248,13 +1294,12 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             self._populate_digital_waveform(waveform, header)
             return self._read_digital_native_single_frame(waveform, header, native_stub)
 
-        wrapped = self._read_native_fastframe(
+        return self._read_native_fastframe(
             header,
             native_stub,
             self.d_datatypes[header.sourcewidth],
+            wrapper=FastFrameDigitalWaveform,
         )
-        wrapped.digital_bitmask = header.bitmask
-        return wrapped
 
     def _read_digital_native_single_frame(
         self,
@@ -1263,23 +1308,33 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         native_stub: NativeDataStub,
     ) -> DigitalWaveform:
         request = self._waveform_request_for_header(header)
+        transfer_start = time.perf_counter()
         response_iterator = native_stub.GetWaveform(request)
         dt_type = self.d_datatypes[header.sourcewidth]
         sum_of_chunks = 0
         waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
-        for response in response_iterator:
-            if not self.thread_active:
-                return waveform
-            if not self._is_wfm_data_status(response.status):
-                continue
-            if response.headerordata.WhichOneof("value") != "chunk":
-                continue
-            chunk = response.headerordata.chunk.data
-            if not chunk:
-                continue
-            dt = np.frombuffer(chunk, dtype=dt_type)
-            waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
-            sum_of_chunks += len(dt)
+        try:
+            for response in response_iterator:
+                if not self.thread_active:
+                    break
+                if not self._is_wfm_data_status(response.status):
+                    continue
+                if response.headerordata.WhichOneof("value") != "chunk":
+                    continue
+                chunk = response.headerordata.chunk.data
+                if not chunk:
+                    continue
+                dt = np.frombuffer(chunk, dtype=dt_type)
+                waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
+                sum_of_chunks += len(dt)
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+        waveform.load_timing = self._transfer_timing_from_header(
+            header,
+            "digital",
+            (time.perf_counter() - transfer_start) * 1000,
+        )
         return waveform
 
     @staticmethod
@@ -1307,8 +1362,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         header: WaveformHeader,
         native_stub: NativeDataStub,
         dt_type: type,
-    ) -> FastFrameAnalogWaveform:
-        """Stream and assemble a multi-frame native capture into FastFrameAnalogWaveform."""
+        *,
+        wrapper: type = FastFrameAnalogWaveform,
+    ) -> FastFrameAnalogWaveform | FastFrameDigitalWaveform:
+        """Stream and assemble a multi-frame native capture into a FastFrame wrapper."""
         request = self._waveform_request_for_header(header)
         samples_per_frame = int(header.noofsamples)
         bytes_per_sample = header.sourcewidth
@@ -1349,14 +1406,13 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             samples_per_frame,
             dt_type,
             None,
+            wrapper=wrapper,
         )
-        load_timing = FastFrameLoadTiming(
-            transfer_ms=transfer_ms,
-            publish_ms=(time.perf_counter() - publish_start) * 1000,
-            num_frames=header.num_frames,
-            samples_per_frame=samples_per_frame,
-            bytes_per_sample=bytes_per_sample,
-            summary_frame_count=self._summary_frame_count_from_header(header),
+        load_timing = self._transfer_timing_from_header(
+            header,
+            "digital" if wrapper is FastFrameDigitalWaveform else "analog",
+            transfer_ms,
+            (time.perf_counter() - publish_start) * 1000,
         )
         wrapped.load_timing = load_timing
         if self.verbose:
@@ -1370,21 +1426,33 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         native_stub: NativeDataStub,
     ) -> Waveform:
         request = self._waveform_request_for_header(header)
+        transfer_start = time.perf_counter()
         response_iterator = native_stub.GetWaveform(request)
         dt_type = self.v_datatypes[header.sourcewidth]
         sum_of_chunks = 0
         waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-        for response in response_iterator:
-            if not self.thread_active:
-                return waveform
-            if not self._is_wfm_data_status(response.status):
-                continue
-            chunk = response.headerordata.chunk.data
-            if not chunk:
-                continue
-            dt = np.frombuffer(chunk, dtype=dt_type)
-            waveform.y_axis_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
-            sum_of_chunks += len(dt)
+        try:
+            for response in response_iterator:
+                if not self.thread_active:
+                    break
+                if not self._is_wfm_data_status(response.status):
+                    continue
+                if response.headerordata.WhichOneof("value") != "chunk":
+                    continue
+                chunk = response.headerordata.chunk.data
+                if not chunk:
+                    continue
+                dt = np.frombuffer(chunk, dtype=dt_type)
+                waveform.y_axis_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
+                sum_of_chunks += len(dt)
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+        waveform.load_timing = self._transfer_timing_from_header(
+            header,
+            "analog",
+            (time.perf_counter() - transfer_start) * 1000,
+        )
         return waveform
 
     def _read_fastframe_stream(
@@ -1551,25 +1619,37 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
                 sample_index = 0
                 request = self._make_waveform_request(header.sourcename, self.chunksize)
-                response_iterator = self.native.GetWaveform(request)
+                transfer_start = time.perf_counter()
+                response_iterator = native_stub.GetWaveform(request)
                 dt = None
-                sum_chunk_size = 0
                 dt_type = self.iq_datatypes[header.sourcewidth]
 
                 waveform.interleaved_iq_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    sample_count = len(dt)
-                    waveform.interleaved_iq_axis_values[
-                        sample_index : sample_index + sample_count
-                    ] = dt
-                    if dt is not None:
+                try:
+                    for response in response_iterator:
+                        if not self.thread_active:
+                            break
+                        if not self._is_wfm_data_status(response.status):
+                            continue
+                        if response.headerordata.WhichOneof("value") != "chunk":
+                            continue
+                        chunk = response.headerordata.chunk.data
+                        if not chunk:
+                            continue
+                        dt = np.frombuffer(chunk, dtype=dt_type)
+                        sample_count = len(dt)
+                        waveform.interleaved_iq_axis_values[
+                            sample_index : sample_index + sample_count
+                        ] = dt
                         sample_index += sample_count
+                finally:
+                    with contextlib.suppress(Exception):
+                        response_iterator.cancel()
+                waveform.load_timing = self._transfer_timing_from_header(
+                    header,
+                    "iq",
+                    (time.perf_counter() - transfer_start) * 1000,
+                )
             elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
                 waveform = self._read_digital_native(header, self.native)
             else:
@@ -1654,17 +1734,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         datasize = 0
         for index in range(n):
             header = headers[index]
-            read_start = time.perf_counter()
             waveform = self._read_waveform(header)
             self._recordlength = waveform.record_length
             datasize += waveform.record_length * header.sourcewidth
-            # TODO: reuse this variable later
-            _ = (
-                waveform.record_length
-                * header.sourcewidth
-                * 8
-                / ((time.perf_counter() - read_start) * 1e6)
-            )
             if self._cachedataenabled:
                 self._lock_getdata.acquire()
                 self._datacache[header.sourcename.lower()] = waveform
@@ -1747,25 +1819,36 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
                 sample_index = 0
                 request = self._make_waveform_request(header.sourcename, self.chunksize)
+                transfer_start = time.perf_counter()
                 response_iterator = native_stub.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
                 dt_type = self.iq_datatypes[header.sourcewidth]
 
                 waveform.interleaved_iq_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    sample_count = len(dt)
-                    waveform.interleaved_iq_axis_values[
-                        sample_index : sample_index + sample_count
-                    ] = dt
-                    if dt is not None:
+                try:
+                    for response in response_iterator:
+                        if not self.thread_active:
+                            break
+                        if not self._is_wfm_data_status(response.status):
+                            continue
+                        if response.headerordata.WhichOneof("value") != "chunk":
+                            continue
+                        chunk = response.headerordata.chunk.data
+                        if not chunk:
+                            continue
+                        dt = np.frombuffer(chunk, dtype=dt_type)
+                        sample_count = len(dt)
+                        waveform.interleaved_iq_axis_values[
+                            sample_index : sample_index + sample_count
+                        ] = dt
                         sample_index += sample_count
+                finally:
+                    with contextlib.suppress(Exception):
+                        response_iterator.cancel()
+                waveform.load_timing = self._transfer_timing_from_header(
+                    header,
+                    "iq",
+                    (time.perf_counter() - transfer_start) * 1000,
+                )
             elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
                 waveform = self._read_digital_native(header, native_stub)
             else:

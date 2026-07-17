@@ -1,4 +1,4 @@
-"""TekHSI-specific FastFrame load instrumentation."""
+"""TekHSI waveform transfer timing instrumentation."""
 
 from __future__ import annotations
 
@@ -10,24 +10,32 @@ REPLY_CONTENT_MASK_FRAME_METADATA = 0x0001
 
 
 @dataclass(frozen=True)
-class FastFrameLoadTiming:
-    """Timing for loading raw digitizer samples into a FastFrameAnalogWaveform."""
+class WaveformTransferTiming:
+    """Timing for gRPC sample transfer and client-side assembly."""
+
+    kind: str
+    """Waveform class: ``analog``, ``digital``, or ``iq``."""
 
     transfer_ms: float
-    """gRPC stream receive plus assembly into per-frame raw sample arrays."""
+    """gRPC stream receive plus assembly into sample arrays."""
 
     publish_ms: float
-    """Assign raw arrays into the FastFrame wrapper (no normalization)."""
+    """Assign raw arrays into the waveform object (FastFrame only)."""
 
-    num_frames: int
-    samples_per_frame: int
+    record_length: int
+    """Samples per frame (or total samples for a single-frame capture)."""
+
     bytes_per_sample: int
+    num_frames: int
     summary_frame_count: int = 0
 
     @property
+    def fastframe(self) -> bool:
+        return self.num_frames > 1
+
+    @property
     def total_samples(self) -> int:
-        """Total raw digitizer samples across all frames."""
-        return self.num_frames * self.samples_per_frame
+        return self.num_frames * self.record_length
 
     @property
     def total_ms(self) -> float:
@@ -39,7 +47,6 @@ class FastFrameLoadTiming:
 
     @property
     def data_frame_count(self) -> int:
-        """Individual acquisition frames (excludes summary frames when present)."""
         return self.num_frames - self.summary_frame_count
 
     @property
@@ -51,7 +58,8 @@ class FastFrameLoadTiming:
     def format_summary(self) -> str:
         """Human-readable size and timing summary."""
         mib = self.total_raw_bytes / (1024 * 1024)
-        if self.num_frames > 1:
+        ff = "FastFrame" if self.fastframe else "single-frame"
+        if self.fastframe:
             if self.summary_frame_count:
                 summary_label = "summary frame" if self.summary_frame_count == 1 else "summary frames"
                 frame_desc = (
@@ -61,12 +69,16 @@ class FastFrameLoadTiming:
             else:
                 frame_desc = f"{self.num_frames} data frames (no summary frame)"
         else:
-            frame_desc = f"{self.num_frames} frame"
+            frame_desc = "1 frame"
+        bps_label = "byte/sample" if self.bytes_per_sample == 1 else "bytes/sample"
         return (
-            f"{frame_desc}, {self.samples_per_frame:,} samples/frame "
-            f"= {self.total_samples:,} total samples; "
-            f"{self.total_samples:,} samples x {self.bytes_per_sample} bytes "
-            f"= {self.total_raw_bytes:,} bytes ({mib:.1f} MiB); "
+            f"{self.kind} {ff}: {frame_desc}, {self.record_length:,} samples/frame, "
+            f"{self.bytes_per_sample} {bps_label} "
+            f"= {self.total_samples:,} total samples ({self.total_raw_bytes:,} bytes, {mib:.1f} MiB); "
             f"transfer {self.transfer_ms:.3f} ms, publish {self.publish_ms:.3f} ms, "
             f"total {self.total_ms:.3f} ms, {self.transfer_mbps:.2f} Mbit/s"
         )
+
+
+# Backward-compatible alias used by FastFrame paths and existing docs.
+FastFrameLoadTiming = WaveformTransferTiming

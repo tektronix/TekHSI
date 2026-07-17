@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tekhsi import FastFrameAnalogWaveform, TekHSIConnect
+from tekhsi import FastFrameAnalogWaveform, FastFrameDigitalWaveform, TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
 from tm_data_types import AnalogWaveform, DigitalWaveform
 
@@ -29,7 +29,7 @@ def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
 
 def _describe_waveform(wfm) -> None:
     print(f"  type={type(wfm).__name__} source={wfm.source_name!r}")
-    if isinstance(wfm, FastFrameAnalogWaveform):
+    if isinstance(wfm, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
         print(f"  record_length={wfm.record_length}")
         print(f"  num_frames={wfm.num_frames} data_frames={wfm.data_frame_count}")
         print(
@@ -44,20 +44,32 @@ def _describe_waveform(wfm) -> None:
             print(f"  digital_bitmask=0x{bitmask:08x}")
         samples = wfm.frame_data(0)
         print(f"  frame[0] raw[0]={int(samples[0])} len={len(samples)}")
+        if isinstance(wfm, FastFrameDigitalWaveform):
+            print(f"  frame[0] bitstream[0]={int(wfm.frame(0).get_nth_bitstream(0)[0])}")
         if wfm.load_timing:
-            print(f"  {wfm.load_timing.format_summary()}")
+            lt = wfm.load_timing
+            print(f"  bytes_per_sample={lt.bytes_per_sample}")
+            print(f"  {lt.format_summary()}")
     elif isinstance(wfm, AnalogWaveform):
         y = wfm.y_axis_values
         n = len(y) if y is not None else 0
         print(f"  samples={n} y_units={wfm.y_axis_units!r} x_spacing={wfm.x_axis_spacing}")
         if n:
             print(f"  raw[0]={int(y[0])} raw[-1]={int(y[-1])}")
+        if getattr(wfm, "load_timing", None):
+            lt = wfm.load_timing
+            print(f"  bytes_per_sample={lt.bytes_per_sample}")
+            print(f"  {lt.format_summary()}")
     elif isinstance(wfm, DigitalWaveform):
         y = wfm.y_axis_byte_values
         n = len(y) if y is not None else 0
         print(f"  samples={n} y_units={wfm.y_axis_units!r} x_spacing={wfm.x_axis_spacing}")
         if n:
             print(f"  raw[0]={int(y[0])} raw[-1]={int(y[-1])}")
+        if getattr(wfm, "load_timing", None):
+            lt = wfm.load_timing
+            print(f"  bytes_per_sample={lt.bytes_per_sample}")
+            print(f"  {lt.format_summary()}")
     else:
         print("  unexpected waveform type")
 
