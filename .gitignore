@@ -20,7 +20,8 @@ _readthedocs/
 # Distribution / packaging
 .Python build/
 develop-eggs/
-dist*/
+dist/*
+!dist/tekhsi-*.whl
 downloads/
 eggs/
 .eggs/
@@ -122,6 +123,7 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 *.whl
+!dist/tekhsi-*.whl
 
 # Local-only superseded artifacts (not for remote)
 archive/
