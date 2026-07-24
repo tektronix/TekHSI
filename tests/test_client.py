@@ -28,7 +28,7 @@ from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
         (True, 5, 10.0, 50.0, "Average Update Rate:0.50, Data Rate:10.00Mbs"),
     ],
 )
-def test_server_connection(  # noqa: PLR0913
+def test_server_connection(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
@@ -344,7 +344,7 @@ def test_get_data(
         (True, 0, 5, 0, 0, None, False),  # No wait_for_data pending, verbose is False
     ],
 )
-def test_done_with_data(  # noqa: PLR0913
+def test_done_with_data(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_for_data_count: int,
@@ -459,7 +459,7 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
         (False, AcqWaitOn.NewData, -1, {}, 0, 0, 0, 0, 0, None),  # Caching disabled
     ],
 )
-def test_wait_for_data(  # noqa: PLR0913
+def test_wait_for_data(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
@@ -634,7 +634,7 @@ def test_is_header_value(header: WaveformHeader, expected: bool) -> None:
         (True, AcqWaitOn.Time, 0, {"data": "value"}, 0, 1, 0, 1, 0),
     ],
 )
-def test_wait_for_data_acq_time(  # noqa: PLR0913
+def test_wait_for_data_acq_time(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
@@ -738,7 +738,7 @@ def test_wait_for_data_any_acq(
         (True, AcqWaitOn.NewData, {"data": "value"}, 5, 0, 1, 0),
     ],
 )
-def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
+def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
@@ -928,7 +928,7 @@ def test_read_waveform_analog(
         (True, True, True, 0.5, 0.2, 1000, 16, None),
     ],
 )
-def test_instrumentation(  # noqa: PLR0913
+def test_instrumentation(  # noqa: PLR0913,PLR0917
     tekhsi_client: TekHSIConnect,
     instrument: bool,
     connected: bool,

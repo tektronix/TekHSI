@@ -292,6 +292,7 @@ flake8-quotes = {docstring-quotes = "double"}
 ignore = [
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
   "COM812",  # Trailing comma missing (handled by formatter)
+  "CPY001",  # Missing copyright notice (allowed in this package)
   "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
   "FIX002",  # Line contains TO DO (allowed in this package)
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
