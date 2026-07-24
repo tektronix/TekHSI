@@ -17,10 +17,22 @@ updates:
     schedule:
       interval: weekly
     versioning-strategy: increase-if-necessary
+    exclude-paths: [docs/**, tests/**]
     groups:
       python-dependencies:
         patterns: ['*']
     labels: [python, dependencies]
     commit-message:
       prefix: python-deps
+      include: scope
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      pre-commit-dependencies:
+        patterns: ['*']
+    labels: [pre-commit, dependencies]
+    commit-message:
+      prefix: pre-commit-deps
       include: scope
