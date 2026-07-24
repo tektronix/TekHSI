@@ -81,7 +81,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
-version = "1.1.0"
+version = "1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 docutils-stubs = "^0.0.22"
@@ -259,7 +259,7 @@ typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
 
 [tool.pytest.ini_options]
-addopts = "--order-scope=module --cov-config=pyproject.toml"
+addopts = "--order-scope=module --cov-config=pyproject.toml --ignore=tests/manual"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
 filterwarnings = [
   "ignore:Type google._upb._message.:DeprecationWarning",

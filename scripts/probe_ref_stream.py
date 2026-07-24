@@ -27,7 +27,6 @@ def probe(channel: str) -> None:
         [channel],
         on_trust_prompt=trust,
         credential_store=TekHSICredentialStore(path=store),
-        background_thread=False,
     ) as conn:
         conn.force_sequence()
         conn._wait_for_data_access()

@@ -171,7 +171,6 @@ def main() -> int:
                 activesymbols=[ref_symbol],
                 on_trust_prompt=_auto_trust_prompt,
                 credential_store=TekHSICredentialStore(path=store_path),
-                background_thread=False,
             ) as conn:
                 with conn.access_stopped_data():
                     print(f"available_symbols={conn.available_symbols}", flush=True)

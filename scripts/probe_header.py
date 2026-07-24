@@ -42,7 +42,6 @@ def main() -> int:
         activesymbols=[channel],
         on_trust_prompt=_auto_trust,
         credential_store=TekHSICredentialStore(path=store_path),
-        background_thread=False,
         timeout=15.0,
     ) as conn:
         print(f"connected in {(time.perf_counter()-t0)*1000:.0f} ms", flush=True)

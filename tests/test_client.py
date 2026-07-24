@@ -11,14 +11,29 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
+from tm_data_types import AnalogWaveform, DigitalWaveform, FrameTimingInfo, IQWaveform, SummaryFrameType, Waveform
 
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
+    RawReply,
     WaveformHeader,
+    WfmReplyStatus,
     WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
+
+
+def _mock_native_get_waveform(chunks: list[bytes]) -> Callable[..., object]:
+    """Return a GetWaveform stand-in that yields SUCCESS chunks (no live server)."""
+
+    def _get_waveform(_request, timeout=None):  # noqa: ARG001
+        for chunk in chunks:
+            reply = RawReply()
+            reply.status = WfmReplyStatus.WFMREPLYSTATUS_SUCCESS
+            reply.headerordata.chunk.data = chunk
+            yield reply
+
+    return _get_waveform
 
 
 @pytest.mark.parametrize(
@@ -790,10 +805,10 @@ def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
                     horizontalUnits="s",
                     horizontalzeroindex=0,
                     sourcewidth=1,
-                    noofsamples=4,
+                    noofsamples=1000,
                 ),
             ],
-            4,
+            1000,
         ),
     ],
 )
@@ -871,7 +886,7 @@ def test_acq_id(headers: list[WaveformHeader], expected: int) -> None:
                 horizontalspacing=1.0,
                 horizontalUnits="s",
                 horizontalzeroindex=0,
-                sourcewidth=1,
+                sourcewidth=4,
                 noofsamples=4,
             ),
             np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32).tobytes(),
@@ -900,7 +915,7 @@ def test_read_waveform_analog(
     client.chunksize = 1024
     client.thread_active = True
     client.verbose = True
-    client._response_data = response_data
+    client.native.GetWaveform = MagicMock(side_effect=_mock_native_get_waveform([response_data]))
 
     waveform = client._read_waveform(header)
     assert isinstance(waveform, expected_waveform_type)
@@ -1004,8 +1019,9 @@ def test_read_waveform_digital(
     tekhsi_client.thread_active = True
     tekhsi_client.verbose = True
     tekhsi_client.d_datatypes = {1: np.uint8, 2: np.uint16}
-    # Directly set the response data in the client
-    tekhsi_client._response_data = response_data
+    tekhsi_client.native.GetWaveform = MagicMock(
+        side_effect=_mock_native_get_waveform([response_data])
+    )
 
     # Call the method to be tested
     waveform = tekhsi_client._read_waveform(header)
@@ -1097,11 +1113,27 @@ def test_callback_invocation(tekhsi_client: TekHSIConnect) -> None:
     ("header", "expected_sample_rate"),
     [
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Blackharris", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
+            WaveformHeader(
+                wfmtype=6,  # type: ignore[arg-type]
+                sourcename="ch1_iq",
+                sourcewidth=4,
+                noofsamples=1024,
+                iq_windowType="Blackharris",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
             1024 * 1e6 / 1.9,
         ),
         (
-            WaveformHeader(wfmtype=6, iq_windowType="Flattop2", iq_fftLength=1024, iq_rbw=1e6),  # type: ignore[arg-type]
+            WaveformHeader(
+                wfmtype=6,  # type: ignore[arg-type]
+                sourcename="ch1_iq",
+                sourcewidth=4,
+                noofsamples=1024,
+                iq_windowType="Flattop2",
+                iq_fftLength=1024,
+                iq_rbw=1e6,
+            ),
             1024 * 1e6 / 3.77,
         ),
     ],
@@ -1116,6 +1148,8 @@ def test_read_waveform_iq(
         header: The header information for the waveform.
         expected_sample_rate: The expected IQ sample rate.
     """
+    tekhsi_client.thread_active = True
+    tekhsi_client.native.GetWaveform = MagicMock(side_effect=_mock_native_get_waveform([]))
     waveform = tekhsi_client._read_waveform(header)
     assert isinstance(waveform, IQWaveform)
     assert waveform.meta_info.iq_sample_rate == pytest.approx(expected_sample_rate)
@@ -1254,6 +1288,132 @@ def test_is_header_value_false_cases() -> None:
     # hasdata False
     h = WaveformHeader(noofsamples=1, sourcewidth=1, hasdata=False)
     assert not TekHSIConnect._is_header_value(h)
+
+
+def test_is_pending_header() -> None:
+    """Placeholder headers from a live scope before metadata is committed."""
+    pending = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=True, sourcename="")
+    assert TekHSIConnect._is_pending_header(pending)
+
+    valid = WaveformHeader(noofsamples=100, sourcewidth=1, hasdata=True, sourcename="ch1")
+    assert not TekHSIConnect._is_pending_header(valid)
+
+    empty = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=False, sourcename="")
+    assert TekHSIConnect._is_pending_header(empty)
+
+    invalid = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=False, sourcename="ch1")
+    assert not TekHSIConnect._is_pending_header(invalid)
+
+
+def test_read_headers_retries_pending_placeholder() -> None:
+    """Pending headers are retried within the data-access window without failing."""
+    client = TekHSIConnect.__new__(TekHSIConnect)
+    client.activesymbols = ["ch1"]
+    client._is_exiting = False
+
+    pending = WaveformHeader(noofsamples=0, sourcewidth=1, hasdata=True, sourcename="")
+    valid = WaveformHeader(
+        noofsamples=100,
+        sourcewidth=1,
+        hasdata=True,
+        sourcename="ch1",
+        dataid=1,
+    )
+    responses = iter([pending, valid])
+
+    def fake_read_header(name: str) -> WaveformHeader:  # noqa: ARG001
+        return next(responses)
+
+    client._read_header = fake_read_header  # type: ignore[method-assign]
+
+    headers: list[WaveformHeader] = []
+    header_dict: dict[str, WaveformHeader] = {}
+    assert client._read_headers(
+        headers,
+        header_dict,
+        pending_ok=True,
+        max_attempts=5,
+        retry_sleep_s=0,
+    )
+    assert len(headers) == 1
+    assert headers[0].sourcename == "ch1"
+    assert header_dict["ch1"] is headers[0]
+
+
+def test_merge_fastframe_frame_info_prefers_stream() -> None:
+    """Stream frame_boundary metadata overrides header records for the same index."""
+    header = WaveformHeader(
+        noofsamples=100,
+        sourcewidth=1,
+        hasdata=True,
+        sourcename="ch1",
+        num_frames=2,
+    )
+    header.frame_info.add(
+        frame_index=0,
+        time_offset=1.0,
+        gmt_sec=0,
+        fract_sec=0.0,
+        is_summary_frame=False,
+    )
+    stream_info = [
+        FrameTimingInfo(
+            frame_index=0,
+            time_offset=2.0,
+            gmt_sec=0,
+            fract_sec=0.0,
+            real_point_offset=0,
+            frame_duration_sec=0.0,
+            is_summary_frame=True,
+        ),
+        FrameTimingInfo(
+            frame_index=1,
+            time_offset=3.0,
+            gmt_sec=0,
+            fract_sec=0.0,
+            real_point_offset=0,
+            frame_duration_sec=0.0,
+            is_summary_frame=False,
+        ),
+    ]
+    merged = TekHSIConnect._merge_fastframe_frame_info(header, stream_info)
+    assert len(merged) == 2
+    assert merged[0].time_offset == 2.0
+    assert merged[0].is_summary_frame is True
+    assert merged[1].frame_index == 1
+
+
+def test_summary_frame_type_from_frame_info() -> None:
+    """Summary mode is inferred from per-frame flags."""
+    off = [
+        FrameTimingInfo(
+            frame_index=0,
+            time_offset=0.0,
+            gmt_sec=0,
+            fract_sec=0.0,
+            real_point_offset=0,
+            frame_duration_sec=0.0,
+        )
+    ]
+    assert (
+        TekHSIConnect._summary_frame_type_from_frame_info(off)
+        == SummaryFrameType.SUMMARY_FRAME_OFF
+    )
+    on = [
+        FrameTimingInfo(
+            frame_index=0,
+            time_offset=0.0,
+            gmt_sec=0,
+            fract_sec=0.0,
+            real_point_offset=0,
+            frame_duration_sec=0.0,
+            is_summary_frame=True,
+        )
+    ]
+    assert (
+        TekHSIConnect._summary_frame_type_from_frame_info(on)
+        == SummaryFrameType.SUMMARY_FRAME_AVERAGE
+    )
 
 
 @pytest.mark.parametrize(

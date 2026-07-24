@@ -41,7 +41,6 @@ def main() -> int:
         [channel],
         on_trust_prompt=trust,
         credential_store=TekHSICredentialStore(path=store),
-        background_thread=False,
     ) as conn:
         with conn.access_stopped_data():
             header = conn._read_header(channel)

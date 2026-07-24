@@ -15,6 +15,9 @@
 
 # TekHSI: Tektronix High Speed Interface
 
+**FastFrame build v1.2.0** — extends upstream TekHSI with multi-frame capture, load timing, and
+benchmark tooling. Requires **`tm_data_types==0.3.0`**. See [FastFrame demo guide](docs/DEMO_README.md).
+
 `TekHSI` is a Python library that provides a low latency, high-speed data link between Tektronix
 scopes and host computer using gRPC. This library is designed to provide a reliable and efficient
 way to transfer data between devices, especially when dealing with large amounts of data.
@@ -48,6 +51,8 @@ supporting gRPC, including Windows, Linux, and macOS.
 5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes
     accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes,
     or only accepting acquisitions after a certain time.
+6. **FastFrame** - Multi-frame stopped captures stream into `FastFrameAnalogWaveform` /
+    `FastFrameDigitalWaveform` with per-frame timing metadata and `waveform.load_timing` transfer metrics.
 
 In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
 and host computer, `TekHSI` is the library for you. With its low latency, high speed, and
@@ -56,7 +61,22 @@ easy-to-use API, `TekHSI` provides a powerful solution for data acquisition and 
 ## Installation
 
 > [!IMPORTANT]
-> `TekHSI` requires a 64-bit Python installation due to its external dependencies
+> `TekHSI` requires a 64-bit Python installation due to its external dependencies.
+
+### This FastFrame build (local wheel)
+
+Bump `tool.poetry.version` in `pyproject.toml`, rebuild, then install:
+
+```shell
+pip install "tm_data_types==0.3.0"
+python -m pip install build
+python -m build --wheel --outdir dist
+pip install dist/tekhsi-1.2.0-py3-none-any.whl
+```
+
+The wheel filename matches the version in `pyproject.toml` (currently **1.2.0**).
+
+### PyPI (upstream TekHSI)
 
 ```shell
 pip install tekhsi
@@ -84,6 +104,20 @@ Results from a live scope at **169.254.6.254:5000** (TekHSI v2, stopped FastFram
 Transfer rates are **10-run averages** in **Mbit/s** from
 [`scripts/measure_transfer_rate.py`](scripts/measure_transfer_rate.py) (`--iterations 10`).
 
+### v1.2.0 diagnostic sweep (2026-07-24)
+
+Isolated frame-count vs record-length sweeps (66 configs, 3 repeats each, randomized order) are
+documented in [docs/HSI_DIAGNOSTIC_REPORT_20260724.md](docs/HSI_DIAGNOSTIC_REPORT_20260724.md).
+Cross-check at RL=100K, N=10: **~9.4 ms** gRPC transfer in both sweeps. Re-run with:
+
+```shell
+python scripts/hsi_diagnostic_benchmark.py --ip 169.254.6.254 --repeats 3 --acq-timeout 120
+```
+
+Excel-friendly total-sample sweeps: [`scripts/reproduce_benchmark_issue.py`](scripts/reproduce_benchmark_issue.py).
+
+### Transfer rate table
+
 | Record length | Frames | Width | Ch1 analog data rate (Mbit/s) | Ch2 digital data rate (Mbit/s) |
 | ------------- | ------ | ----- | ----------------------------- | ------------------------------ |
 | 1,000         | 100    | 1     | 96.6                          | 94.2                           |
@@ -105,7 +139,7 @@ Small record lengths are dominated by fixed gRPC/setup overhead.
 | ch1      | 100 × 5M samples | **PASS** — all 100 frames bit-accurate |
 | ch2_dall | 100 × 5M samples | **PASS** — all 100 frames + bitstreams match |
 
-Saved files: `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
+Saved files (local, gitignored): `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
 
 ### Scope reference validation
 
@@ -123,11 +157,19 @@ after loading from `.wfm`.
 
 See also [scripts/README.md](scripts/README.md) for usage details on the benchmark and validation scripts.
 
+### v1.2.0 library changes (summary)
+
+- `access_stopped_data()` waits on **`NewData`** (not `AnyAcq`) so stopped FastFrame reads do not reuse stale cache.
+- Background acquisition thread **always runs**; there is no `background_thread=False` mode.
+- Pending/empty headers are retried; IQ reads fixed (`self.native` in `_read_waveform()`).
+- Full list: [CHANGELOG v1.2.0](docs/CHANGELOG.md#v120-2026-07-24).
+
 ## Documentation
 
 See the full documentation at <https://TekHSI.readthedocs.io>, or in this repository:
 
 - [FastFrame demo guide](docs/DEMO_README.md)
+- [HSI diagnostic report (2026-07-24)](docs/HSI_DIAGNOSTIC_REPORT_20260724.md)
 - [Scripts usage](scripts/README.md)
 - [Basic usage](docs/basic_usage.md)
 - [EUCRA secure connections](docs/EUCRA_USAGE.md)

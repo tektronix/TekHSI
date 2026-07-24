@@ -90,7 +90,6 @@ def main() -> int:
         callback=None,
         on_trust_prompt=_auto_trust_prompt,
         credential_store=TekHSICredentialStore(path=store_path),
-        background_thread=False,
     ) as conn:
         conn.verbose = True
         print(

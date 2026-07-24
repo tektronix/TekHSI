@@ -2,7 +2,7 @@
 
 Install TekHSI first::
 
-    pip install tekhsi-1.1.0-py3-none-any.whl
+    pip install tekhsi-1.2.0-py3-none-any.whl
 
 Then run::
 

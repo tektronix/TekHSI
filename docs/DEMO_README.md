@@ -1,6 +1,6 @@
 # TekHSI Demo — FastFrame + tm_data_types 0.3.0
 
-This is a **demo build** of TekHSI (v1.1.0) paired with **tm_data_types 0.3.0**. It adds
+This is a **demo build** of TekHSI (v1.2.0) paired with **tm_data_types 0.3.0**. It adds
 **FastFrame** support on top of the v2 TekHSI protocol (`normalizedvector.proto`), using the
 `FastFrameAnalogWaveform` type from `tm_data_types` instead of a local duplicate.
 
@@ -353,7 +353,7 @@ This demo intentionally pins:
 
 ```
 tm_data_types==0.3.0
-TekHSI==1.1.0
+TekHSI==1.2.0
 ```
 
 Do not mix with PyPI `tm_data_types~=0.4.x` — the FastFrame types differ between versions.
