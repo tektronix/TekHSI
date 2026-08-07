@@ -4,15 +4,14 @@ import matplotlib.pyplot as plt
 
 from tm_data_types import AnalogWaveform
 
-from tekhsi import TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 address = "192.168.0.1"  # Replace with the IP address of your instrument
 
 # Open connection to the instrument
 with TekHSIConnect(f"{address}:5000", ["ch1", "ch3"]) as connection:
-    # Request access to data
-    with connection.access_data():
-        # Access granted
+    # Request access to data, waiting for new data
+    with connection.access_data(AcqWaitOn.NewData):
         ch1: AnalogWaveform = connection.get_data("ch1")
         ch3: AnalogWaveform = connection.get_data("ch3")
 

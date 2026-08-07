@@ -4,7 +4,7 @@ import pyvisa
 
 from tm_data_types import AnalogWaveform
 
-from tekhsi import TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 
@@ -27,7 +27,7 @@ visa_scope.write("HOR:MODE:RECO 2500")
 with TekHSIConnect(f"{addr}:5000", ["ch1"]) as connect:
     # Save data from 10 acquisitions
     for i in range(10):
-        with connect.access_data():
+        with connect.access_data(AcqWaitOn.NextAcq):
             waveform: AnalogWaveform = connect.get_data("ch1")
             print(f"{waveform.source_name}_{i}:{waveform.record_length}")
 

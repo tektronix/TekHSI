@@ -6,6 +6,7 @@ This example shows how to use `TekHSI` and `tm_data_types` to pull analog wavefo
 Tektronix oscilloscope and save them to a csv file very easily.
 
 !!! important
+
     Matching the type of waveform with the channel type is critical. See the
     [supported data types section](#supported-data-types) for more information.
 
@@ -80,21 +81,21 @@ An acquisition filter allows custom rules to be applied that can be used to filt
 the acquisitions that are accepted for processing by the client. Normally the filter is set to `None`,
 which lets all acquisitions through. However, there are several predefined filters that can be used:
 
-- [`any_acq`][tekhsi.TekHSIConnect.any_acq] - This is equivalent to setting the acquisition filter
+- [`any_acq`][tekhsi.tek_hsi_connect.TekHSIConnect.any_acq] - This is equivalent to setting the acquisition filter
     to `None`, and it allows all acquisitions to be processed.
-- [`any_vertical_change`][tekhsi.TekHSIConnect.any_vertical_change] - This looks at the previous and
+- [`any_vertical_change`][tekhsi.tek_hsi_connect.TekHSIConnect.any_vertical_change] - This looks at the previous and
     current acquisition and checks to see if any of the channels have seen any vertical change. If
     so, that acquisition is processed, otherwise it is skipped.
-- [`any_horizontal_change`][tekhsi.TekHSIConnect.any_horizontal_change] - This looks at the previous
+- [`any_horizontal_change`][tekhsi.tek_hsi_connect.TekHSIConnect.any_horizontal_change] - This looks at the previous
     and current acquisition and checks to see if any of the channels have seen any horizontal
     change. If so, that acquisition is processed, otherwise it is skipped.
 
 Custom rules can also be created by the user.
 
 These filters (pre-defined or user-defined) are either set during `TekHSIConnect`
-instantiation or by using the [`set_acq_filter()`][tekhsi.TekHSIConnect.set_acq_filter] method.
+instantiation or by using the [`set_acq_filter()`][tekhsi.tek_hsi_connect.TekHSIConnect.set_acq_filter] method.
 
-Below is the source code of [`any_horizontal_change()`][tekhsi.TekHSIConnect.any_horizontal_change].
+Below is the source code of [`any_horizontal_change()`][tekhsi.tek_hsi_connect.TekHSIConnect.any_horizontal_change].
 The arguments are the previous header and the current header. This allows you to compare changes
 from the current headers against the previous header. If this returns `True` the acquisition is
 passed on, otherwise it is ignored. This provides an easy way to only consider the changes which are
@@ -145,4 +146,38 @@ explicitly configured, the default logging settings will be used (as defined by 
 ```python
 # fmt: off
 --8<-- "examples/customize_logging.py"
+```
+
+## Experimental Parallel Waveform Reads
+
+!!! warning
+
+    This feature is experimental and disabled by default.
+
+`TekHSI` includes optional experimental support for parallel waveform reads.
+This behavior can be controlled using environment variables.
+
+### Environment Variables
+
+| Variable                        | Type                         | Default | Description                                                         |
+| ------------------------------- | ---------------------------- | ------- | ------------------------------------------------------------------- |
+| `TEKHSI_USE_PARALLEL_READS`     | Boolean (`1`, `true`, `yes`) | `false` | Enables experimental parallel waveform reads                        |
+| `TEKHSI_PARALLEL_THRESHOLD`     | Integer                      | `2`     | Minimum number of waveforms required before parallelization is used |
+| `TEKHSI_PARALLEL_WORKERS`       | Integer                      | `4`     | Number of worker threads used for parallel reads                    |
+| `TEKHSI_DISABLE_PARALLEL_READS` | Boolean (`1`, `true`, `yes`) | `false` | Forces parallel reads to be disabled even if otherwise enabled      |
+
+### Usage Examples
+
+**Linux / macOS**
+
+```bash
+export TEKHSI_USE_PARALLEL_READS=1
+export TEKHSI_PARALLEL_THRESHOLD=3
+```
+
+**Windows (PowerShell)**
+
+```powershell
+setx TEKHSI_USE_PARALLEL_READS 1
+setx TEKHSI_PARALLEL_THRESHOLD 3
 ```

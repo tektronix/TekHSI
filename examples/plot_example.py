@@ -5,14 +5,14 @@ import numpy as np
 
 from tm_data_types import AnalogWaveform
 
-from tekhsi import TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 source = "ch1"
 address = "192.168.0.1"  # Replace with the IP address of your instrument
 
 with TekHSIConnect(f"{address}:5000", [source]) as connection:
-    # Get one data set to setup plot
-    with connection.access_data():
+    # Get one data set to set up plot
+    with connection.access_data(AcqWaitOn.NewData):
         waveform: AnalogWaveform = connection.get_data(source)
 
     # Get data from data set need to setup plot
@@ -43,7 +43,7 @@ with TekHSIConnect(f"{address}:5000", [source]) as connection:
     # loop until user closes plot
     while plt.get_fignums() is not None and len(plt.get_fignums()) > 0:
         # Wait for next new data set
-        with connection.access_data():
+        with connection.access_data(AcqWaitOn.NextAcq):
             waveform = connection.get_data(source)
 
         # plot newly arrived data

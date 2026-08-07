@@ -5,6 +5,7 @@ any_horizontal_change
 any_vertical_change
 artifact
 behaviors
+benchmarked
 bitstream
 changelog
 csv
@@ -16,10 +17,12 @@ html
 http
 https
 io
+lets
 licensor
 linting
 matplotlib
 opensource
+parallelization
 pre
 readthedocs
 repo
@@ -31,6 +34,7 @@ styleguide
 sublicense
 tekhsi
 tektronix
+tm
 tm_data_types
 underly
 url

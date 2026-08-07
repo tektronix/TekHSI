@@ -18,12 +18,69 @@ Valid subsections within a version are:
 
 Things to be included in the next release go here.
 
+---
+
+## v1.1.1 (2026-07-02)
+
+### Merged Pull Requests
+
+- Fix: Digital samples handling for waveform data acquisition ([#159](https://github.com/tektronix/TekHSI/pull/159))
+- python-deps(deps): bump idna from 3.13 to 3.15 ([#153](https://github.com/tektronix/TekHSI/pull/153))
+- Update poetry dependencies ([#143](https://github.com/tektronix/TekHSI/pull/143))
+
+### Fixed
+
+- Fixed digital waveform sample decoding for MSO5/6 DIGITAL_16 probes (sourcewidth=2). The wire format uses 2 bits per channel (bit 2*ch for logic value, bit 2*ch+1 for validity flag), and the decoder now correctly extracts the value bits and packs them into a single D7..D0 byte for downstream processing.
+
+### Changed
+
+- Fixed test suite failures in `test_client.py` related to digital waveform handling, parallel read testing, and graceful shutdown scenarios.
+- Fixed log message handling in `tekhsi_test_server.py` to avoid duplicate logs during test runs.
+
+---
+
+## v1.1.0 (2026-02-27)
+
+### Merged Pull Requests
+
+- fix: update access_data() attributes to use AcqWaitOn.NewData ([#126](https://github.com/tektronix/TekHSI/pull/126))
+- chore: Update documentation dependencies ([#123](https://github.com/tektronix/TekHSI/pull/123))
+- chore: Update Mermaid library source to use CDN ([#99](https://github.com/tektronix/TekHSI/pull/99))
+- Drop support for Python 3.8 and 3.9, add support for Python 3.13, and improve handling of gRPC errors ([#85](https://github.com/tektronix/TekHSI/pull/85))
+- gh-actions(deps): bump tektronix/python-package-ci-cd ([#32](https://github.com/tektronix/TekHSI/pull/32))
+- fix: removed serial keyword from mkdocs.yml file. ([#55](https://github.com/tektronix/TekHSI/pull/55))
+- python-deps(deps-dev): update twine requirement from ^5.0.0 to ^6.0.1 in the python-dependencies group ([#49](https://github.com/tektronix/TekHSI/pull/49))
+- docs: Remove section of contribution guide that duplicates a later section ([#50](https://github.com/tektronix/TekHSI/pull/50))
+- feat: Add insiders documentation features. ([#48](https://github.com/tektronix/TekHSI/pull/48))
+- Switch from print to logging ([#46](https://github.com/tektronix/TekHSI/pull/46))
+- python-deps(deps-dev): update wheel requirement from ^0.44 to ^0.45 in the python-dependencies group ([#44](https://github.com/tektronix/TekHSI/pull/44))
+- chore: Update pyright dependency and use more reliable method of installing local nodejs for it ([#43](https://github.com/tektronix/TekHSI/pull/43))
+- python-deps(deps-dev): update pyright requirement from 1.1.386 to 1.1.387 in the python-dependencies group ([#42](https://github.com/tektronix/TekHSI/pull/42))
+- python-deps(deps-dev): update pyright requirement from 1.1.383 to 1.1.386 in the python-dependencies group across 1 directory ([#41](https://github.com/tektronix/TekHSI/pull/41))
+- ci: Skip updating the mdformat repo during the dependency updater workflow ([#40](https://github.com/tektronix/TekHSI/pull/40))
+- docs: Update documentation templates and macros ([#38](https://github.com/tektronix/TekHSI/pull/38))
+- ci: Remove pre-commit hook that no longer works on Python 3.8 and replace with one that does ([#35](https://github.com/tektronix/TekHSI/pull/35))
+- python-deps(deps-dev): update pyright requirement from 1.1.382.post1 to 1.1.383 in the python-dependencies group ([#33](https://github.com/tektronix/TekHSI/pull/33))
+- docs: Update basic usage documentation page ([#31](https://github.com/tektronix/TekHSI/pull/31))
+- python-deps(deps-dev): update pyright requirement from 1.1.381 to 1.1.382.post1 in the python-dependencies group ([#29](https://github.com/tektronix/TekHSI/pull/29))
+- test: Ignore googletagmanager links during doctests ([#27](https://github.com/tektronix/TekHSI/pull/27))
+- python-deps(deps-dev): update pyright requirement from 1.1.380 to 1.1.381 in the python-dependencies group ([#26](https://github.com/tektronix/TekHSI/pull/26))
+- docs: updated development status in toml file. ([#25](https://github.com/tektronix/TekHSI/pull/25))
+
+### Removed
+
+- Python 3.8 and 3.9 support has been removed from the package. The minimum supported version is now Python 3.10.
+
 ### Added
 
+- Added support for Python 3.13.
 - Added an installation section to the main README.
 
 ### Changed
 
+- Updated project dependencies to ensure compatibility with supported Python versions.
+- Updated CI configuration to reflect the supported Python version matrix (Python 3.10–3.13).
+- Improved exception handling in `tek_hsi_client.py` to provide clearer handling of gRPC errors.
 - Updated the documentation by moving portions from the Basic Usage page to the API docs.
 - Switched from using standard `print()` calls to using the `logging` module for all logging in the `tekhsi` package.
     - A configuration function provides the ability to set different logging levels for stdout and file logging.
@@ -79,7 +136,7 @@ Things to be included in the next release go here.
 - tests: Update test_client.py for tests to run efficiently on tox. ([#8](https://github.com/tektronix/TekHSI/pull/8))
 - fix: Resolved some security issues flagged by CodeQL ([#4](https://github.com/tektronix/TekHSI/pull/4))
 - build: Update dependencies to temporarily use the GitHub repo for tm_data_types ([#2](https://github.com/tektronix/TekHSI/pull/2))
-- fix: Updated line endings in  known_words.txt ([#1](https://github.com/tektronix/TekHSI/pull/1))
+- fix: Updated line endings in known_words.txt ([#1](https://github.com/tektronix/TekHSI/pull/1))
 
 ### Added
 
