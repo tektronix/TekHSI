@@ -97,7 +97,7 @@ poetry-audit-plugin = "^1.0.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
-pylint = "4.0.6"
+pylint = "4.0.7"
 pyright = {extras = ["nodejs"], version = "1.1.411"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
