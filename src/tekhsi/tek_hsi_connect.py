@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# pyright: reportPrivateUsage=false, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false, reportMissingParameterType=false, reportAttributeAccessIssue=false, reportInvalidTypeVarUse=false, reportMissingTypeArgument=false, reportCallIssue=false, reportUnnecessaryComparison=false, reportUntypedFunctionDecorator=false, reportReturnType=false, reportInvalidTypeForm=false, reportImplicitStringConcatenation=false
+# pyright: reportPrivateUsage=false, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false, reportMissingParameterType=false, reportAttributeAccessIssue=false, reportInvalidTypeVarUse=false, reportMissingTypeArgument=false, reportCallIssue=false, reportUnnecessaryComparison=false, reportUntypedFunctionDecorator=false, reportReturnType=false, reportInvalidTypeForm=false, reportImplicitStringConcatenation=false, reportArgumentType=false
 import contextlib
 import logging
 import os
@@ -14,7 +14,7 @@ import uuid
 from atexit import register
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
-from typing import ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 
 import grpc
 import numpy as np
@@ -141,7 +141,7 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
     ################################################################################################
     # Magic Methods
     ################################################################################################
-    def __init__(  # pylint: disable=too-many-locals  # noqa: PLR0913,PLR0917,PLR0915
+    def __init__(  # pylint: disable=too-many-locals  # noqa: PLR0913, PLR0915
         self,
         url: str,
         activesymbols: list[str] | None = None,
@@ -898,9 +898,10 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
         login: str | None = None
 
         if isinstance(result, (list, tuple)):
-            if len(result) >= 1 and result[0]:
-                password = result[1] if len(result) > 1 else None
-                if not (login := result[login_index] if len(result) > login_index else None):
+            values = list(result)
+            if values and values[0]:
+                password = values[1] if len(values) > 1 else None
+                if not (login := values[login_index] if len(values) > login_index else None):
                     login = None
         elif result is True:
             password = None
@@ -1186,7 +1187,7 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
         header: WaveformHeader,
         raw_frames: list[np.ndarray],
         samples_per_frame: int,
-        dt_type: type,
+        dt_type: type[np.integer[Any] | np.floating[Any]],
         load_timing: FastFrameLoadTiming | None,
         *,
         wrapper: type = FastFrameAnalogWaveform,
@@ -1196,12 +1197,6 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
         effective_frame_info = (
             frame_info if frame_info is not None else TekHSIConnect._frame_info_from_header(header)
         )
-        common_kwargs = {
-            "source_name": header.sourcename,
-            "x_axis_spacing": header.horizontalspacing,
-            "x_axis_units": header.horizontalUnits,
-            "trigger_index": header.horizontalzeroindex,
-        }
         if wrapper is FastFrameDigitalWaveform:
             waveform = FastFrameDigitalWaveform.create_fastframe(
                 TekHSIConnect._header_num_frames(header),
@@ -1209,7 +1204,10 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
                 dtype=dt_type,
                 y_axis_units=header.verticalunits,
                 digital_bitmask=header.bitmask,
-                **common_kwargs,
+                source_name=header.sourcename,
+                x_axis_spacing=header.horizontalspacing,
+                x_axis_units=header.horizontalUnits,
+                trigger_index=header.horizontalzeroindex,
             )
         else:
             waveform = FastFrameAnalogWaveform.create_fastframe(
@@ -1219,7 +1217,10 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
                 y_axis_spacing=header.verticalspacing,
                 y_axis_offset=header.verticaloffset,
                 y_axis_units=header.verticalunits,
-                **common_kwargs,
+                source_name=header.sourcename,
+                x_axis_spacing=header.horizontalspacing,
+                x_axis_units=header.horizontalUnits,
+                trigger_index=header.horizontalzeroindex,
             )
         waveform.summary_frame_type = TekHSIConnect._summary_frame_type_from_frame_info(
             effective_frame_info
