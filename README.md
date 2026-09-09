@@ -15,6 +15,10 @@
 
 # TekHSI: Tektronix High Speed Interface
 
+**FastFrame build v1.1.1** — extends upstream TekHSI with multi-frame capture, load timing, and
+benchmark tooling. Requires **`tm_data_types>=0.5.0,<0.6.0`** and **`protobuf>=7.35,<8.0`**.
+See [FastFrame demo guide](docs/DEMO_README.md).
+
 `TekHSI` is a Python library that provides a low latency, high-speed data link between Tektronix
 scopes and host computer using gRPC. This library is designed to provide a reliable and efficient
 way to transfer data between devices, especially when dealing with large amounts of data.
@@ -27,6 +31,13 @@ fields of electronics, telecommunications, and signal processing.
 `TekHSI` uses gRPC, a high-performance, open-source framework that provides a platform-independent
 way to communicate between applications. This means you can use `TekHSI` with any platform
 supporting gRPC, including Windows, Linux, and macOS.
+
+> [!NOTE]
+> **FastFrame stream status quirk:** On live scopes, `GetWaveform` data chunks often arrive with
+> `WFMREPLYSTATUS_UNSPECIFIED` rather than `WFMREPLYSTATUS_SUCCESS`. Only the final (often empty)
+> stream message may report `SUCCESS`. Clients must treat both statuses as valid when reading chunk
+> data; filtering on `SUCCESS` alone drops every frame and breaks FastFrame reads (notably digital
+> captures such as `ch2_DAll`). TekHSI accepts `UNSPECIFIED` and `SUCCESS` in its stream parsers.
 
 ## Key Features
 
@@ -41,6 +52,8 @@ supporting gRPC, including Windows, Linux, and macOS.
 5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes
     accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes,
     or only accepting acquisitions after a certain time.
+6. **FastFrame** - Multi-frame stopped captures stream into `FastFrameAnalogWaveform` /
+    `FastFrameDigitalWaveform` with per-frame timing metadata and `waveform.load_timing` transfer metrics.
 
 In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
 and host computer, `TekHSI` is the library for you. With its low latency, high speed, and
@@ -49,7 +62,21 @@ easy-to-use API, `TekHSI` provides a powerful solution for data acquisition and 
 ## Installation
 
 > [!IMPORTANT]
-> `TekHSI` requires a 64-bit Python installation due to its external dependencies
+> `TekHSI` requires a 64-bit Python installation due to its external dependencies.
+
+### This FastFrame build (local wheel)
+
+Bump the project version in `pyproject.toml` when preparing a new release, rebuild, then install:
+
+```shell
+python -m pip install build
+python -m build --wheel --outdir dist
+python -m pip install dist/tekhsi-1.1.1-py3-none-any.whl
+```
+
+The wheel filename matches the version in `pyproject.toml` (currently **1.1.1**).
+
+### PyPI (upstream TekHSI)
 
 ```shell
 pip install tekhsi
@@ -71,9 +98,103 @@ pip install tekhsi
 
 </div>
 
+## Live test status
+
+Results from a live scope at **169.254.6.254:5000** (TekHSI v2, stopped FastFrame captures).
+Transfer rates are **10-run averages** in **Mbit/s** from
+[`scripts/measure_transfer_rate.py`](scripts/measure_transfer_rate.py) (`--iterations 10`).
+
+### v1.1.1 diagnostic sweep (2026-07-24)
+
+Isolated frame-count vs record-length sweeps (66 configs, 3 repeats each, randomized order) were
+captured with `scripts/hsi_diagnostic_benchmark.py`.
+Cross-check at RL=100K, N=10: **~9.4 ms** gRPC transfer in both sweeps. Re-run with:
+
+```shell
+python scripts/hsi_diagnostic_benchmark.py --ip 169.254.6.254 --repeats 3 --acq-timeout 120
+```
+
+Excel-friendly total-sample sweeps: [`scripts/reproduce_benchmark_issue.py`](scripts/reproduce_benchmark_issue.py).
+
+### Transfer rate table
+
+| Record length | Frames | Width | Ch1 analog data rate (Mbit/s) | Ch2 digital data rate (Mbit/s) |
+| ------------- | ------ | ----- | ----------------------------- | ------------------------------ |
+| 1,000         | 100    | 1     | 96.6                          | 94.2                           |
+| 10,000        | 100    | 1     | 471                           | 813                            |
+| 100,000       | 100    | 1     | 801                           | 931                            |
+| 1,000,000     | 100    | 1     | 899                           | 940                            |
+| 5,000,000     | 100    | 1     | 940                           | 941                            |
+
+Throughput increases with record length and plateaus near **~940 Mbit/s** on large captures.
+Small record lengths are dominated by fixed gRPC/setup overhead.
+
+### FastFrame → .wfm → read-back
+
+[`scripts/fastframe_wfm_roundtrip.py`](scripts/fastframe_wfm_roundtrip.py) — capture **ch1** and
+**ch2_dall**, save to `.wfm`, re-read, and compare:
+
+| Channel  | Capture          | Result                                       |
+| -------- | ---------------- | -------------------------------------------- |
+| ch1      | 100 × 5M samples | **PASS** — all 100 frames bit-accurate       |
+| ch2_dall | 100 × 5M samples | **PASS** — all 100 frames + bitstreams match |
+
+Saved files (local, gitignored): `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
+
+### Scope reference validation
+
+[`scripts/validate_scope_refs.py`](scripts/validate_scope_refs.py) — compare scope refs loaded
+from those `.wfm` files against the on-disk originals:
+
+| Scope ref | Source file  | Result                                                                                     |
+| --------- | ------------ | ------------------------------------------------------------------------------------------ |
+| ref1      | CH1.wfm      | **PASS** — all 100 frames match                                                            |
+| ref2_dall | CH2_DALL.wfm | **FAIL** — header reports 100 frames and `hasdata=True`, but `GetWaveform` returns 0 bytes |
+
+Analog FastFrame refs load and stream correctly. Digital FastFrame refs appear in
+`available_symbols` with a valid header, but TekHSI cannot pull waveform bytes from the scope
+after loading from `.wfm`.
+
+See also [scripts/README.md](scripts/README.md) for usage details on the benchmark and validation scripts.
+
+### v1.1.1 library changes (summary)
+
+- `access_stopped_data()` waits on **`NewData`** (not `AnyAcq`) so stopped FastFrame reads do not reuse stale cache.
+- Background acquisition thread **always runs**; there is no `background_thread=False` mode.
+- Pending/empty headers are retried; IQ reads fixed (`self.native` in `_read_waveform()`).
+- Full list: [CHANGELOG v1.1.1](docs/CHANGELOG.md).
+
+## Testing and Packaging Quick Checks
+
+Use these commands as a practical pre-release gate:
+
+```powershell
+python -m pytest "tests/test_docs.py" -q --maxfail=1
+python -m pytest -q --maxfail=1
+python -m build
+```
+
+If your full test run is long-running due to instrument/network waits (for example repeated `wait_for_data_access` logs), run a quicker local pass and then targeted suites:
+
+```powershell
+python -m pytest -q -k "not slow and not docs"
+python -m pytest "tests/test_security.py" -q --maxfail=1
+python -m pytest "tests/test_wfm_digital.py" -q --maxfail=1
+```
+
+Build artifacts are written to `dist/` (wheel + sdist).
+
 ## Documentation
 
-See the full documentation at <https://TekHSI.readthedocs.io>
+See the full documentation at <https://TekHSI.readthedocs.io>, or in this repository:
+
+- [FastFrame demo guide](docs/DEMO_README.md)
+- [Scripts usage](scripts/README.md)
+- [Basic usage](docs/basic_usage.md)
+- [EUCRA secure connections](docs/EUCRA_USAGE.md)
+- [Release checklist](docs/release_checklist.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Changelog](docs/CHANGELOG.md)
 
 ## Maintainers
 
@@ -91,14 +212,14 @@ the maintainers will review and respond there.
 
 ## Contributing
 
-Interested in contributing? Check out the [contributing guidelines](https://github.com/tektronix/TekHSI/blob/main/CONTRIBUTING.md). Please
-note that this project is released with a [Code of Conduct](https://github.com/tektronix/TekHSI/blob/main/CODE_OF_CONDUCT.md). By
+Interested in contributing? Check out the [contributing guidelines](docs/CONTRIBUTING.md). Please
+note that this project is released with a [Code of Conduct](docs/CODE_OF_CONDUCT.md). By
 contributing to this project, you agree to abide by its terms.
 
 ## License
 
 `TekHSI` was created by Tektronix. It is licensed under the terms of
-the [Apache License 2.0](https://github.com/tektronix/TekHSI/blob/main/LICENSE.md).
+the [Apache License 2.0](docs/LICENSE.md).
 
 ## Security
 

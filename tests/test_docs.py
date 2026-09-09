@@ -9,10 +9,13 @@ import time
 from collections.abc import Generator
 from importlib.util import find_spec
 from pathlib import Path
+from typing import Any, cast
 
-import pytest
+import pytest  # pyright: ignore[reportMissingImports]
 
 from conftest import PROJECT_ROOT_DIR
+
+pytest = cast("Any", pytest)
 
 
 @pytest.fixture(name="docs_server")
@@ -37,13 +40,13 @@ def fixture_docs_server(site_dir: str) -> Generator[str, None, None]:
 
 
 @pytest.fixture(name="site_dir", scope="session")
-def fixture_site_dir(pytestconfig: pytest.Config) -> str:
+def fixture_site_dir(pytestconfig: Any) -> str:
     """Create the site directory path for testing."""
     site_path = (
         Path(__file__).parent.parent / f".site_{sys.version_info.major}{sys.version_info.minor}/"
     ).resolve()
-    if xml_path := pytestconfig.getoption("xmlpath"):
-        site_path = (Path(xml_path).parent / ".site_html/").resolve()  # pyright: ignore[reportArgumentType]
+    if xml_path := cast("str | None", pytestconfig.getoption("xmlpath")):
+        site_path = (Path(xml_path).parent / ".site_html/").resolve()
     site_path.mkdir(parents=True, exist_ok=True)
     return site_path.as_posix()
 

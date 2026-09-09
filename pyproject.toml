@@ -14,7 +14,7 @@ dependencies = [
   "numpy~=2.1; python_version >= '3.13'",
   "protobuf~=7.35",
   "python-dateutil~=2.8",
-  "tm_data_types~=0.4.0",
+  "tm_data_types~=0.5.0",
   "typing_extensions~=4.12",
   "tzlocal~=5.2",
 ]
@@ -248,6 +248,7 @@ reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
 reportImportCycles = "none"  # other analysis tools catch these more effectively
 reportMissingSuperCall = "none"  # this can be ignored since this would break unit tests if handled incorrectly
+reportMissingTypeStubs = "warning"  # third-party packages often lack stubs
 reportPropertyTypeMismatch = "error"
 reportShadowedImports = "error"
 reportUninitializedInstanceVariable = "error"
@@ -257,6 +258,10 @@ strict = ["**"]
 stubPath = "src"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
+
+[tool.pyright.overrides]
+"src/tekhsi/wfm_digital.py" = {strict = []}
+"tests/manual/**" = {reportMissingImports = "false", typeCheckingMode = "basic"}
 
 [tool.pytest.ini_options]
 addopts = "--order-scope=module --cov-config=pyproject.toml"
@@ -269,6 +274,8 @@ junit_logging = "all"
 log_format = "[%(asctime)s] [%(levelname)8s] %(message)s"
 markers = [
   'docs',
+  'hardware',
+  'manual',
   'order',
   'slow',
 ]

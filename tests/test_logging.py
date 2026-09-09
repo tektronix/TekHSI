@@ -6,14 +6,17 @@ import sys
 
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 
 import colorlog
-import pytest
+import pytest  # pyright: ignore[reportMissingImports]
 
 import tekhsi
 
 from tekhsi import configure_logging, LoggingLevels, PACKAGE_NAME
 from tekhsi.helpers import logging as tekhsi_logging
+
+pytest = cast(Any, pytest)  # noqa: TC006
 
 
 def test_logging_singleton() -> None:

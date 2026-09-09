@@ -148,6 +148,25 @@ explicitly configured, the default logging settings will be used (as defined by 
 --8<-- "examples/customize_logging.py"
 ```
 
+## Digital WFM metadata and bitmask
+
+When saving digital waveforms to `.wfm`, include digital-line context (`digital_bitmask`) in metadata so the value can be restored on read-back.
+
+Use `tekhsi.wfm_digital` helpers for consistent round-trips:
+
+- `stamp_digital_bitmask_meta(waveform)` before writing
+- `restore_digital_bitmask_from_meta(waveform)` after reading
+- or use wrapper helpers `write_digital_wfm()` / `read_digital_wfm()`
+
+For design background and compatibility notes, see [tm_data_types update spec](tm_data_types_update_spec.md).
+
+## Security credential workflows
+
+For secure connection setup (TLS trust-on-first-use, optional password auth, `require_tls=True`, and store-backed credentials), see:
+
+- [EUCRA Usage](EUCRA_USAGE.md)
+- [Security policy](SECURITY.md)
+
 ## Experimental Parallel Waveform Reads
 
 !!! warning

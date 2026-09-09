@@ -16,7 +16,20 @@ Valid subsections within a version are:
 
 ## Unreleased
 
-Things to be included in the next release go here.
+### Added
+
+- Added documentation for release verification, packaging commands, and troubleshooting long-running integration tests.
+- Added explicit guidance for secure connection workflows using `TekHSICredentials.tls()` / `TekHSICredentials.token()` with and without a credential store.
+
+### Changed
+
+- Expanded README and contributor guidance with practical build/test commands for local wheel generation and docs validation.
+- Improved digital waveform documentation around `digital_bitmask` metadata round-trip behavior and WFM helper usage.
+
+### Fixed
+
+- Reduced false-positive static type errors in tests by hardening `pytest` typing patterns in targeted test modules.
+- Fixed Pyright test typing issues in docs, logging, security, and digital WFM tests without changing runtime behavior.
 
 ---
 

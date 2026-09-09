@@ -17,6 +17,7 @@ from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     WaveformHeader,
+    WfmReplyStatus,
     WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
@@ -152,11 +153,9 @@ def test_any_acq(
             },
             True,
         ),
-        # Value changes from None to a valid header
+        # Previous header dict is empty (key not seen before)
         (
-            {
-                "ch1": None,
-            },
+            {},
             {
                 "ch1": type(
                     "Header",
@@ -228,11 +227,9 @@ def test_any_horizontal_change(
             },
             True,
         ),
-        # Previous header has None
+        # Previous header dict is empty (key not seen before)
         (
-            {
-                "ch1": None,
-            },
+            {},
             {
                 "ch1": type("Header", (object,), {"verticalspacing": 0.2, "verticaloffset": 10}),
             },
@@ -427,7 +424,6 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
         "lastacqseen",
         "expected_wait_for_data_count",
         "expected_lastacqseen",
-        "expected_output",
     ),
     [
         (
@@ -440,9 +436,8 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
             0,
             1,
             0,
-            None,
         ),  # Valid case: NewData with unseen data
-        (True, AcqWaitOn.AnyAcq, -1, {"data": "value"}, 5, 0, 0, 1, 0, None),  # Valid case: AnyAcq
+        (True, AcqWaitOn.AnyAcq, -1, {"data": "value"}, 5, 0, 0, 1, 0),  # Valid case: AnyAcq
         (
             True,
             AcqWaitOn.NextAcq,
@@ -453,10 +448,9 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
             0,
             1,
             0,
-            None,
         ),  # Valid case: NextAcq
-        (True, AcqWaitOn.Time, 5, {"data": "value"}, 0, 10, 0, 1, 0, None),  # Valid case: Time
-        (False, AcqWaitOn.NewData, -1, {}, 0, 0, 0, 0, 0, None),  # Caching disabled
+        (True, AcqWaitOn.Time, 5, {"data": "value"}, 0, 10, 0, 1, 0),  # Valid case: Time
+        (False, AcqWaitOn.NewData, -1, {}, 0, 0, 0, 0, 0),  # Caching disabled
     ],
 )
 def test_wait_for_data(  # noqa: PLR0913,PLR0917
@@ -470,7 +464,6 @@ def test_wait_for_data(  # noqa: PLR0913,PLR0917
     lastacqseen: int,
     expected_wait_for_data_count: int,
     expected_lastacqseen: int,
-    expected_output: str | None,
 ) -> None:
     """Test the wait_for_data method of TekHSIConnect.
 
@@ -485,7 +478,6 @@ def test_wait_for_data(  # noqa: PLR0913,PLR0917
         lastacqseen: The last acquisition seen.
         expected_wait_for_data_count: The expected wait_for_data_count after the method call.
         expected_lastacqseen: The expected last acquisition seen after the method call.
-        expected_output: The expected output message, if any.
     """
     with tekhsi_client as connection:
         # Set up the client state
@@ -495,16 +487,7 @@ def test_wait_for_data(  # noqa: PLR0913,PLR0917
         connection._acqtime = acqtime
         connection._lastacqseen = lastacqseen
 
-        # Mocking print_with_timestamp if expected_output is provided
-        if expected_output:
-            with patch(
-                "tekhsi.tekhsi_client.print_with_timestamp",
-                side_effect=lambda x: x,
-            ) as mock_print:
-                connection.wait_for_data(wait_on, after)
-                mock_print.assert_called_once_with(expected_output)
-        else:
-            connection.wait_for_data(wait_on, after)
+        connection.wait_for_data(wait_on, after)
 
         # Verify the internal state
         assert connection._wait_for_data_count == expected_wait_for_data_count
@@ -809,6 +792,12 @@ def test_read_waveforms(
         expected_datasize: The expected size of the data read.
     """
     waveforms = []
+    # Stop bg thread to avoid shape-mismatch noise from concurrent ch1 reads racing
+    # with this test's explicit (small) header noofsamples (see test_read_waveform_digital).
+    tekhsi_client.thread_active = False
+    if tekhsi_client.thread.is_alive():
+        tekhsi_client.thread.join(timeout=2.0)
+
     datasize = tekhsi_client._read_waveforms(headers, waveforms)
     assert datasize == expected_datasize
     assert len(waveforms) == len(headers)
@@ -1301,7 +1290,13 @@ def test_read_waveform_with_stub_unknown_type() -> None:
 # ----------------------------------------------------------------------------------------------
 def _make_chunked_stub(payload: bytes) -> MagicMock:
     """Build a fake NativeDataStub whose GetWaveform yields one chunk with ``payload``."""
-    response = SimpleNamespace(headerordata=SimpleNamespace(chunk=SimpleNamespace(data=payload)))
+    header_or_data = MagicMock()
+    header_or_data.WhichOneof.return_value = "chunk"
+    header_or_data.chunk.data = payload
+    response = SimpleNamespace(
+        status=WfmReplyStatus.WFMREPLYSTATUS_SUCCESS,
+        headerordata=header_or_data,
+    )
     stub = MagicMock()
     stub.GetWaveform.return_value = iter([response])
     return stub

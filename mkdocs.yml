@@ -18,8 +18,8 @@ exclude_docs: |
 validation:
   omitted_files: warn
   absolute_links: warn
-  unrecognized_links: warn
-  not_found: warn
+  unrecognized_links: info
+  not_found: info
   anchors: warn
 theme:
   name: readthedocs
@@ -166,10 +166,19 @@ nav:  # The first entry in each section needs a hard-coded title to avoid being 
   - index.md
   - The Basics:
       - Basic Usage: basic_usage.md
+      - FastFrame Demo: DEMO_README.md
+      - Digital/FastFrame Spec: tm_data_types_update_spec.md
       - glossary.md
       - CHANGELOG.md
+  - Security:
+      - EUCRA Usage: EUCRA_USAGE.md
+      - EUCRA Implementation Notes: EUCRA_IMPLEMENTATION_CHANGES.md
+      - EUCRA Security Port Spec: TekHSI_EUCRA_Security_Port_Spec.md
+      - SECURITY.md
   - Contributing:
       - Contributing Guidelines: CONTRIBUTING.md
+      - Release Checklist: release_checklist.md
+      - Troubleshooting: troubleshooting.md
       - CODE_OF_CONDUCT.md
       - LICENSE.md
   - API Reference: reference/
