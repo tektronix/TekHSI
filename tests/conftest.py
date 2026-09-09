@@ -1,4 +1,5 @@
 """Pytest configuration."""
+# pylint: disable=import-outside-toplevel
 
 import contextlib
 import logging
@@ -7,7 +8,8 @@ import sys
 import time
 
 from abc import ABC
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
@@ -17,6 +19,10 @@ import grpc
 import psutil
 import pytest
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 from grpc import Channel
 from tm_data_types import Waveform
 from typing_extensions import Self
@@ -207,3 +213,46 @@ def tekhsi_client() -> Generator[TekHSIConnect, None, None]:
         with contextlib.suppress(Exception):
             if getattr(client, "_connected", False):
                 client.close()
+
+
+@pytest.fixture
+def self_signed_pem() -> Callable[..., tuple[bytes, bytes]]:
+    """Factory fixture returning (cert_pem, key_pem) for a self-signed cert.
+
+    Uses the ``cryptography`` package (already a project dependency).
+    """
+
+    def _make(
+        common_name: str = "scope",
+        san_dns: list[str] | None = None,
+        *,
+        include_cn: bool = True,
+    ) -> tuple[bytes, bytes]:
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        name_attrs = [x509.NameAttribute(NameOID.COMMON_NAME, common_name)] if include_cn else []
+        subject = issuer = x509.Name(name_attrs)
+        now = datetime.now(tz=timezone.utc)
+        builder = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - timedelta(minutes=1))
+            .not_valid_after(now + timedelta(days=1))
+        )
+        if san_dns:
+            builder = builder.add_extension(
+                x509.SubjectAlternativeName([x509.DNSName(n) for n in san_dns]),
+                critical=False,
+            )
+        cert = builder.sign(private_key=key, algorithm=hashes.SHA256())
+        cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+        key_pem = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        return cert_pem, key_pem
+
+    return _make

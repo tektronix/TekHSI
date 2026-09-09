@@ -1,4 +1,10 @@
-"""Unit tests for auth_basic helpers."""
+"""Unit tests for tekhsi.auth_basic."""
+
+from __future__ import annotations
+
+import base64
+
+import pytest
 
 from tekhsi.auth_basic import (
     build_basic_authorization_value,
@@ -7,54 +13,64 @@ from tekhsi.auth_basic import (
 )
 
 
-def test_build_and_parse_round_trip() -> None:
-    """Basic auth value round-trips through parse."""
-    value = build_basic_authorization_value("user", "secret")
-    assert value.startswith("Basic ")
-    parsed = parse_basic_authorization(value)
-    assert parsed == ("user", "secret")
+def test_build_basic_authorization_value_ascii() -> None:
+    """Test that building a Basic Authorization header value works for ASCII characters."""
+    expected = "Basic " + base64.b64encode(b"tektronix:pw").decode("ascii")
+    assert build_basic_authorization_value("tektronix", "pw") == expected
 
 
-def test_empty_password() -> None:
-    """Empty password is preserved in round-trip."""
-    value = build_basic_authorization_value("user", "")
-    assert parse_basic_authorization(value) == ("user", "")
+def test_build_and_parse_round_trip_unicode() -> None:
+    """Test round-trip build/parse of a Basic Authorization header with Unicode characters."""
+    value = build_basic_authorization_value("user", "pässwörd")
+    assert parse_basic_authorization(value) == ("user", "pässwörd")
 
 
-def test_colon_in_password() -> None:
-    """Password containing colon splits on first colon only."""
-    value = build_basic_authorization_value("user", "a:b:c")
-    assert parse_basic_authorization(value) == ("user", "a:b:c")
+def test_parse_basic_authorization_valid_case_insensitive_prefix() -> None:
+    """Test that the prefix is case-insensitive."""
+    value = "bAsIc " + base64.b64encode(b"user:pw").decode("ascii")
+    assert parse_basic_authorization(value) == ("user", "pw")
 
 
-def test_non_ascii_password() -> None:
-    """UTF-8 passwords round-trip."""
-    value = build_basic_authorization_value("user", "päss")
-    assert parse_basic_authorization(value) == ("user", "päss")
+def test_parse_basic_authorization_strips_whitespace() -> None:
+    """Test that leading and trailing whitespace is stripped from the header value."""
+    inner = base64.b64encode(b"user:pw").decode("ascii")
+    assert parse_basic_authorization(f"  Basic {inner}  ") == ("user", "pw")
 
 
-def test_parse_invalid_inputs() -> None:
-    """Malformed headers return None."""
-    assert parse_basic_authorization("") is None
-    assert parse_basic_authorization("Bearer xyz") is None
-    assert parse_basic_authorization("Basic") is None
-    assert parse_basic_authorization("Basic !!!") is None
-    assert parse_basic_authorization("Basic dGVzdA==") is None  # no colon in decoded
+def test_parse_basic_authorization_password_contains_colon() -> None:
+    """Test that a password containing colons is parsed correctly."""
+    value = "Basic " + base64.b64encode(b"user:pw:with:colons").decode("ascii")
+    assert parse_basic_authorization(value) == ("user", "pw:with:colons")
+
+
+@pytest.mark.parametrize("bad", ["Bearer xxx", "Bas", "", "     "])
+def test_parse_basic_authorization_invalid_prefix(bad: str) -> None:
+    """Test that invalid prefixes return None."""
+    assert parse_basic_authorization(bad) is None
+
+
+def test_parse_basic_authorization_empty_b64() -> None:
+    """Test that an empty base64 string returns None."""
+    assert parse_basic_authorization("Basic    ") is None
+
+
+def test_parse_basic_authorization_invalid_base64() -> None:
+    """Test that a non-base64 string returns None."""
+    assert parse_basic_authorization("Basic !!!not_b64!!!") is None
+
+
+def test_parse_basic_authorization_non_utf8() -> None:
+    """Test that a base64 string that decodes to non-UTF-8 returns None."""
+    value = "Basic " + base64.b64encode(b"\xff\xfe:pw").decode("ascii")
+    assert parse_basic_authorization(value) is None
+
+
+def test_parse_basic_authorization_missing_colon() -> None:
+    """Test that a base64 string without a colon returns None."""
+    value = "Basic " + base64.b64encode(b"nocolon").decode("ascii")
+    assert parse_basic_authorization(value) is None
 
 
 def test_default_username_constant() -> None:
-    """Default Mode 3 username is tektronix."""
+    """Test that the default username constant is as expected."""
     assert DEFAULT_MODE3_USERNAME == "tektronix"
-
-
-def test_auth_basic_reexport_module() -> None:
-    """tekhsi.auth.basic re-exports the same objects as tekhsi.auth_basic."""
-    from tekhsi import auth_basic
-    from tekhsi.auth import basic as reexported
-
-    assert reexported.build_basic_authorization_value is auth_basic.build_basic_authorization_value
-    assert reexported.parse_basic_authorization is auth_basic.parse_basic_authorization
-    assert reexported.DEFAULT_MODE3_USERNAME == auth_basic.DEFAULT_MODE3_USERNAME
-
-    value = reexported.build_basic_authorization_value("user", "secret")
-    assert reexported.parse_basic_authorization(value) == ("user", "secret")

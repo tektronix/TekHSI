@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import base64
-import binascii
 
 DEFAULT_MODE3_USERNAME = "tektronix"
+
+# Length of the "Basic " scheme prefix (including the trailing space).
+_BASIC_PREFIX_LEN = 6
 
 
 def build_basic_authorization_value(username: str, password: str) -> str:
@@ -18,14 +20,13 @@ def build_basic_authorization_value(username: str, password: str) -> str:
 def parse_basic_authorization(header_value: str) -> tuple[str, str] | None:
     """Parse ``Basic <b64>``; return ``(username, password)`` or ``None`` if invalid."""
     s = header_value.strip()
-    if len(s) < 6 or s[:6].lower() != "basic ":
+    if len(s) < _BASIC_PREFIX_LEN or s[:_BASIC_PREFIX_LEN].lower() != "basic ":
         return None
-    b64 = s[6:].strip()
-    if not b64:
+    if not (b64 := s[_BASIC_PREFIX_LEN:].strip()):
         return None
     try:
         raw = base64.b64decode(b64, validate=True)
-    except (binascii.Error, ValueError):
+    except ValueError:
         return None
     try:
         decoded = raw.decode("utf-8")

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-import binascii
+import contextlib
 import hashlib
 import os
 import stat
@@ -12,9 +12,21 @@ import tempfile
 
 from configparser import ConfigParser
 from dataclasses import dataclass
-from typing import cast, Dict, List
+from pathlib import Path
 
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
+
+try:
+    from cryptography import x509 as _x509
+    from cryptography.x509.oid import ExtensionOID as _ExtensionOID
+    from cryptography.x509.oid import NameOID as _NameOID
+
+    _HAS_CRYPTOGRAPHY = True
+except ImportError:  # pragma: no cover - optional dependency
+    _x509 = None  # type: ignore[assignment]
+    _ExtensionOID = None  # type: ignore[assignment]
+    _NameOID = None  # type: ignore[assignment]
+    _HAS_CRYPTOGRAPHY = False
 
 _OBFUSCATION_PREFIX = "obf1:"
 _OBFUSCATION_KEY = b"tekhsi-credstore-v1"
@@ -22,50 +34,38 @@ _OBFUSCATION_KEY = b"tekhsi-credstore-v1"
 
 def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
     """Return TLS verification name from server cert PEM (SAN DNS, else CN)."""
-    try:
-        from cryptography import x509
-        from cryptography.x509.oid import ExtensionOID, NameOID
-    except ImportError:
+    if not _HAS_CRYPTOGRAPHY:
         return None
     try:
-        cert = x509.load_pem_x509_certificate(cert_pem)
+        cert = _x509.load_pem_x509_certificate(cert_pem)
     except ValueError:
         return None
     try:
-        san = cast(
-            "x509.SubjectAlternativeName",
-            cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value,
-        )
-        dns_names = san.get_values_for_type(x509.DNSName)
-        if dns_names:
-            return str(dns_names[0])
-    except x509.ExtensionNotFound:
+        san = cert.extensions.get_extension_for_oid(_ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
+        for name in san:
+            if isinstance(name, _x509.DNSName):
+                return str(name.value)
+    except _x509.ExtensionNotFound:
         pass
-    attrs = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-    if attrs:
+    if attrs := cert.subject.get_attributes_for_oid(_NameOID.COMMON_NAME):
         return str(attrs[0].value)
     return None
 
 
 def _default_store_path() -> str:
-    """Default path per platform (Tektronix shared store).
+    r"""Default path per platform (Tektronix shared store).
 
     Linux:   ~/.tektronix/credentials.ini
-    Windows: %APPDATA%\\tektronix\\credentials.ini
+    Windows: %APPDATA%\tektronix\credentials.ini
     macOS:   ~/Library/Application Support/tektronix/credentials.ini
     """
+    home = Path.home()
     if sys.platform == "win32":
-        base = os.environ.get("APPDATA", os.path.expanduser("~"))
-        return os.path.join(base, "tektronix", "credentials.ini")
+        base = Path(os.environ.get("APPDATA", str(home)))
+        return str(base / "tektronix" / "credentials.ini")
     if sys.platform == "darwin":
-        return os.path.join(
-            os.path.expanduser("~"),
-            "Library",
-            "Application Support",
-            "tektronix",
-            "credentials.ini",
-        )
-    return os.path.join(os.path.expanduser("~"), ".tektronix", "credentials.ini")
+        return str(home / "Library" / "Application Support" / "tektronix" / "credentials.ini")
+    return str(home / ".tektronix" / "credentials.ini")
 
 
 def _xor_bytes(data: bytes, key: bytes) -> bytes:
@@ -95,7 +95,7 @@ def _reveal_password(stored: str | None) -> str | None:
     try:
         raw = base64.b64decode(b64, validate=True)
         return _xor_bytes(raw, _OBFUSCATION_KEY).decode("utf-8")
-    except (binascii.Error, ValueError, UnicodeDecodeError):
+    except ValueError:
         return stored
 
 
@@ -124,9 +124,10 @@ class TekHSICredentialStore:
     """INI-backed store for per-host TLS trust and Basic-auth credentials."""
 
     def __init__(self, path: str | None = None) -> None:
+        """Initialize store. Loads existing file if present, otherwise starts empty."""
         self._path = path or _default_store_path()
-        self._data: Dict[str, Dict[str, str]] = {}
-        self._certs_dir = os.path.join(os.path.dirname(self._path), "certs")
+        self._data: dict[str, dict[str, str]] = {}
+        self._certs_dir = str(Path(self._path).parent / "certs")
         self.load()
 
     def _normalize_host(self, host: str) -> str:
@@ -136,11 +137,12 @@ class TekHSICredentialStore:
     def load(self) -> None:
         """Load store from file. No-op if file does not exist."""
         self._data = {}
-        if not os.path.isfile(self._path):
+        path = Path(self._path)
+        if not path.is_file():
             return
         parser = ConfigParser()
         try:
-            with open(self._path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 parser.read_file(f)
         except OSError:
             return
@@ -150,40 +152,37 @@ class TekHSICredentialStore:
 
     def save(self) -> None:
         """Write store atomically (temp + rename). Creates parent directory if needed."""
-        dirpath = os.path.dirname(self._path)
-        if dirpath:
-            os.makedirs(dirpath, exist_ok=True)
+        target = Path(self._path)
+        dirpath = target.parent
+        if str(dirpath):
+            dirpath.mkdir(parents=True, exist_ok=True)
         parser = ConfigParser()
         for host, opts in sorted(self._data.items()):
             parser[host] = opts
-        fd, tmp_path = tempfile.mkstemp(
+        fd, tmp_path_str = tempfile.mkstemp(
             suffix=".ini.tmp",
-            dir=dirpath or ".",
+            dir=str(dirpath) or ".",
             text=True,
         )
+        tmp_path = Path(tmp_path_str)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 parser.write(f)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(tmp_path, self._path)
+            tmp_path.replace(target)
         except OSError:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+            with contextlib.suppress(OSError):
+                tmp_path.unlink()
             raise
         if os.name != "nt":
-            try:
-                os.chmod(self._path, stat.S_IRUSR | stat.S_IWUSR)
-            except OSError:
-                pass
+            with contextlib.suppress(OSError):
+                target.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
     def get(self, host: str) -> dict[str, str | None] | None:
         """Return entry for host or None if not found."""
         key = self._normalize_host(host)
-        raw = self._data.get(key)
-        if raw is None:
+        if not (raw := self._data.get(key)):
             return None
         return {
             "cert_fingerprint": raw.get("cert_fingerprint") or None,
@@ -203,8 +202,7 @@ class TekHSICredentialStore:
         password: str | None = None,
     ) -> None:
         """Write or update entry for host. Omitted keys left unchanged; explicit None clears."""
-        key = self._normalize_host(host)
-        if key not in self._data:
+        if (key := self._normalize_host(host)) not in self._data:
             self._data[key] = {}
         entry = self._data[key]
         if cert_fingerprint is not None:
@@ -216,9 +214,9 @@ class TekHSICredentialStore:
         if login is not None:
             entry["login"] = login
         if password is not None:
-            entry["password"] = _obscure_password(password) if password != "" else ""
+            entry["password"] = _obscure_password(password) if password else ""
         for k in list(entry):
-            if entry[k] == "":
+            if not entry[k]:
                 del entry[k]
 
     def trust(
@@ -240,14 +238,15 @@ class TekHSICredentialStore:
             login=login,
         )
         if cert_info.cert_pem:
-            os.makedirs(self._certs_dir, exist_ok=True)
+            certs_dir = Path(self._certs_dir)
+            certs_dir.mkdir(parents=True, exist_ok=True)
             safe_name = key.replace(":", "_").replace("/", "_")
-            cert_path = os.path.join(self._certs_dir, f"{safe_name}.pem")
-            with open(cert_path, "wb") as f:
+            cert_path = certs_dir / f"{safe_name}.pem"
+            with cert_path.open("wb") as f:
                 f.write(cert_info.cert_pem)
-            self.set(host, cert_path=cert_path)
+            self.set(host, cert_path=str(cert_path))
 
-    def list_hosts(self) -> List[str]:
+    def list_hosts(self) -> list[str]:
         """Return all stored host keys."""
         return sorted(self._data.keys())
 

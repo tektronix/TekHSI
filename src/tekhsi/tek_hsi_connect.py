@@ -48,7 +48,7 @@ from tekhsi.load_timing import (
     REPLY_CONTENT_MASK_FRAME_METADATA,
     WaveformTransferTiming,
 )
-from tekhsi.security import (
+from tekhsi.security import (  # pylint: disable=import-private-name
     _auto_negotiate_channel,
     _build_creds_from_entry,
     _call_on_trust,
@@ -74,9 +74,6 @@ _logger = logging.getLogger(__name__)
 # WaitForDataAccess (live scopes may grant access slightly before GetHeader is ready).
 _HEADER_PENDING_MAX_ATTEMPTS = 50
 _HEADER_PENDING_RETRY_SLEEP_S = 0.002
-# on_trust_prompt result tuple indices
-_TRUST_RESULT_PASSWORD_IDX = 1
-_TRUST_RESULT_LOGIN_IDX = 2
 
 
 class AcqWaitOn(Enum):
@@ -153,7 +150,8 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
         credentials: grpc.ChannelCredentials | TekHSICredentials | None = None,
         credential_store: TekHSICredentialStore | None = None,
         on_trust_prompt: Callable[..., bool | tuple[bool, str | None]] | None = None,
-        require_tls: bool = False,  # noqa: FBT001, FBT002
+        *,
+        require_tls: bool = False,
         timeout: float = 10.0,
     ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
@@ -892,6 +890,32 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
                 raise
             return
 
+    @staticmethod
+    def _parse_auth_prompt_result(result: object, url: str) -> tuple[str, str | None]:
+        """Parse `on_trust_prompt` result for auth-required flow."""
+        login_index = 2
+        password: str | None = None
+        login: str | None = None
+
+        if isinstance(result, (list, tuple)):
+            if len(result) >= 1 and result[0]:
+                password = result[1] if len(result) > 1 else None
+                if not (login := result[login_index] if len(result) > login_index else None):
+                    login = None
+        elif result is True:
+            password = None
+        else:
+            raise TekAuthenticationFailed(url, "Authentication declined in on_trust_prompt.")
+
+        if not password:
+            raise TekAuthenticationFailed(
+                url,
+                "Server requires a password; when auth_required is True, return "
+                "(True, password) or (True, password, login) from on_trust_prompt.",
+            )
+
+        return password, login
+
     def _upgrade_channel_with_token_after_unauthenticated(self) -> None:
         """After Connect returns UNAUTHENTICATED on TLS, prompt for password and retry channel."""
         store = self._credential_store_ref
@@ -913,32 +937,7 @@ class TekHSIConnect:  # pylint: disable=too-many-instance-attributes,too-many-pu
         if fp and live.cert_fingerprint != fp:
             raise TekCertificateMismatch(self.url, fp, live.cert_fingerprint)
         result = _call_on_trust(cb, self.url, live, auth_required=True)
-        password: str | None = None
-        login: str | None = None
-        if isinstance(result, (list, tuple)):
-            if len(result) >= 1 and result[0]:
-                password = (
-                    result[_TRUST_RESULT_PASSWORD_IDX]
-                    if len(result) > _TRUST_RESULT_PASSWORD_IDX
-                    else None
-                )
-                login = (
-                    result[_TRUST_RESULT_LOGIN_IDX]
-                    if len(result) > _TRUST_RESULT_LOGIN_IDX
-                    else None
-                )
-                if not login:
-                    login = None
-        elif result is True:
-            password = None
-        else:
-            raise TekAuthenticationFailed(self.url, "Authentication declined in on_trust_prompt.")
-        if not password:
-            raise TekAuthenticationFailed(
-                self.url,
-                "Server requires a password; when auth_required is True, return "
-                "(True, password) or (True, password, login) from on_trust_prompt.",
-            )
+        password, login = self._parse_auth_prompt_result(result, self.url)
         store.set(
             self.url,
             password=password,

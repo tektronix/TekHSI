@@ -8,8 +8,10 @@ authors = [
 ]
 dependencies = [
   "colorlog~=6.9",
+  "cryptography>=42.0.0",
   "grpcio-tools~=1.66",
   "grpcio~=1.66",
+  "matplotlib>=3.8",
   "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
   "numpy~=2.1; python_version >= '3.13'",
   "protobuf~=7.35",
@@ -268,6 +270,7 @@ addopts = "--order-scope=module --cov-config=pyproject.toml"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
 filterwarnings = [
   "ignore:Type google._upb._message.:DeprecationWarning",
+  "ignore:authlib\\.jose module is deprecated.*:DeprecationWarning",
 ]
 junit_family = "xunit2"
 junit_logging = "all"
@@ -342,11 +345,24 @@ order-by-type = false
   "ALL",
 ]
 "tests/**" = [
+  "ANN001",  # Missing type annotation for function argument (fixture params etc.)
+  "ANN201",  # Missing return type annotation for public function
+  "ANN202",  # Missing return type annotation for private function
+  "D103",  # Missing docstring in public function (tests are self-describing)
   "D104",  # Missing docstring in public package
+  "FBT001",  # Boolean-typed positional argument in function definition
+  "FBT002",  # Boolean default positional argument in function definition
+  "PLC0415",  # `import` should be at the top-level of a file (lazy optional imports in fixtures)
   "PLC1901",  # compare-to-empty-string
   "PLR2004",  # Magic value used in comparison
+  "PT018",  # Assertion should be broken down into multiple parts
   "S101",  # Use of assert detected
+  "S105",  # Possible hardcoded password (fake creds in tests)
+  "S106",  # Possible hardcoded password argument (fake creds in tests)
+  "S108",  # Probable insecure usage of temporary file (fake paths in tests)
   "T201",  # `print` found
+  "TC002",  # Move third-party import into a type-checking block
+  "TC003",  # Move standard library import into a type-checking block
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
@@ -360,8 +376,22 @@ order-by-type = false
   "SIM",
   "SLF001",  # Private member accessed
 ]
+"tests/test_auth_basic.py" = [
+  "SLF001",  # Private member accessed
+]
 "tests/test_client.py" = [
   "FBT001",  # Boolean-typed positional argument in function definition
+  "SLF001",  # Private member accessed
+]
+"tests/test_credential_store.py" = [
+  "SLF001",  # Private member accessed
+]
+"tests/test_security.py" = [
+  "FBT001",
+  "SLF001",  # Private member accessed
+]
+"tests/test_tek_hsi_connect_security.py" = [
+  "FBT001",
   "SLF001",  # Private member accessed
 ]
 
