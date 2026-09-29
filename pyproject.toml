@@ -8,6 +8,7 @@ authors = [
 ]
 dependencies = [
   "colorlog~=6.9",
+  "cryptography>=42.0.0",
   "grpcio-tools~=1.66",
   "grpcio~=1.66",
   "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
@@ -259,7 +260,7 @@ typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
 
 [tool.pytest.ini_options]
-addopts = "--order-scope=module --cov-config=pyproject.toml"
+addopts = "--order-scope=module --cov-config=pyproject.toml --ignore=tests/manual"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
 filterwarnings = [
   "ignore:Type google._upb._message.:DeprecationWarning",
@@ -269,6 +270,7 @@ junit_logging = "all"
 log_format = "[%(asctime)s] [%(levelname)8s] %(message)s"
 markers = [
   'docs',
+  'manual',
   'order',
   'slow',
 ]
@@ -340,6 +342,14 @@ order-by-type = false
   "PLR2004",  # Magic value used in comparison
   "S101",  # Use of assert detected
   "T201",  # `print` found
+]
+"tests/manual/**" = [
+  "D104",
+  "PLC1901",
+  "PLR2004",
+  "S101",
+  "T201",
+  "TID252",  # relative imports from parent
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section

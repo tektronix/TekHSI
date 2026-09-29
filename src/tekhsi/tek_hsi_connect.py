@@ -18,22 +18,47 @@ from typing import ClassVar, TYPE_CHECKING, TypeVar
 import grpc
 import numpy as np
 
-from tm_data_types import (
-    AnalogWaveform,
-    DigitalWaveform,
-    IQWaveform,
-    IQWaveformMetaInfo,
-    Waveform,
-)
-
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     ConnectRequest,
     WaveformHeader,
     WaveformRequest,
+    WfmReplyStatus,
 )
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub, NativeDataStub
+from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
+from tekhsi.credential_store import TekCredentialStore, TekHSICredentialStore
 from tekhsi.helpers.enums import WaveformType  # Added for enum-based waveform type checks
 from tekhsi.helpers.logging import configure_logging
+from tekhsi.load_timing import (
+    CAPABILITY_FASTFRAME,
+    FastFrameLoadTiming,
+    REPLY_CONTENT_MASK_FRAME_METADATA,
+    WaveformTransferTiming,
+)
+from tekhsi.security import (  # pylint: disable=private-import
+    _auto_negotiate_channel,
+    _build_creds_from_entry,
+    _call_on_trust,
+    _fetch_server_cert,
+    _parse_host_port,
+    _resolve_credentials_from_store,
+    _secure_channel,
+    TekAuthenticationFailed,
+    TekCertificateMismatch,
+    TekHSICredentials,
+    TekSecurityError,
+)
+from tm_data_types import (
+    AnalogWaveform,
+    DigitalWaveform,
+    FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
+    FrameTimingInfo,
+    IQWaveform,
+    IQWaveformMetaInfo,
+    SummaryFrameType,
+    Waveform,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -42,6 +67,11 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
 _logger = logging.getLogger(__name__)
+
+# Retries for placeholder headers returned before metadata is committed after
+# WaitForDataAccess (live scopes may grant access slightly before GetHeader is ready).
+_HEADER_PENDING_MAX_ATTEMPTS = 50
+_HEADER_PENDING_RETRY_SLEEP_S = 0.002
 
 AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
 
@@ -61,6 +91,7 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.NextAcq):
         ...         ...
     """
+
     Time = 2
     """Wait for a specific time.
 
@@ -76,6 +107,7 @@ class AcqWaitOn(Enum):
         ...     with connection.access_data(AcqWaitOn.Time, after=0.5):
         ...         ...
     """
+
     AnyAcq = 3
     """Wait for any acquisition."""
     NewData = 4
@@ -115,6 +147,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         activesymbols: list[str] | None = None,
         callback: Callable | None = None,
         data_filter: Callable | None = None,
+        credentials: grpc.ChannelCredentials | TekHSICredentials | None = None,
+        credential_store: TekHSICredentialStore | None = None,
+        on_trust_prompt: Callable[..., bool | tuple[bool, str | None]] | None = None,
+        require_tls: bool = False,
+        timeout: float = 10.0,
     ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
 
@@ -132,6 +169,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 all acquisitions are accepted. However, if customer behavior is desired, then this
                 method can be provided. Typically, these functions are used to look for specific
                 kinds of changes, such as record length changing.
+            credentials: Optional TLS or TLS+Basic credentials. When omitted with no other
+                security parameters, the legacy plaintext channel is used unchanged.
+            credential_store: Optional credential store for trust and passwords. When omitted
+                but another security parameter is set, the default platform store is used.
+            on_trust_prompt: Callback invoked for trust-on-first-use or when the server
+                requires a password after TLS trust is established.
+            require_tls: When True (with other security parameters), refuse plaintext fallback.
+            timeout: Security negotiation timeout in seconds. Passing ``timeout`` alone does
+                not enable security negotiation; at least one of ``credential_store``,
+                ``on_trust_prompt``, or ``require_tls=True`` is required.
         """
         # Configure logging in case it hasn't been done yet
         configure_logging()
@@ -141,12 +188,65 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.url = url
         self.v_datatypes = {1: np.int8, 2: np.int16, 4: np.float32, 8: np.double}
         self.iq_datatypes = {1: np.int8, 2: np.int16, 4: np.int32}
-        # Digital probes only declare width=1 here. The MSO5/6 DIGITAL_16
-        # (wfmtype=5, sourcewidth=2) case is normalized to 8-bit D0..D7
-        # samples inside the digital read branch below, so the rest of the
-        # pipeline always sees the same int8 layout regardless of probe.
-        self.d_datatypes = {1: np.int8}
-        self.channel = grpc.insecure_channel(url)
+        self.d_datatypes = {1: np.int8, 2: np.int16}
+
+        _legacy_plain = (
+            credentials is None
+            and credential_store is None
+            and on_trust_prompt is None
+            and not require_tls
+        )
+        if _legacy_plain:
+            self.channel = grpc.insecure_channel(url)
+            self._credential_store_ref = None
+            self._on_trust_ref = None
+            self._auto_security = False
+        else:
+            deadline = time.time() + max(1.0, float(timeout))
+            store_for_auto = (
+                credential_store if credential_store is not None else TekCredentialStore()
+            )
+            if credentials is not None:
+                if isinstance(credentials, TekHSICredentials) and getattr(
+                    credentials, "_use_store", False
+                ):
+                    if credential_store is None:
+                        msg = "credential_store is required when credentials use the store"
+                        raise ValueError(msg)
+                    creds = _resolve_credentials_from_store(
+                        url,
+                        credential_store,
+                        credentials._store_mode,
+                        on_trust_prompt,
+                        deadline,
+                    )
+                    entry = credential_store.get(url)
+                    self.channel = _secure_channel(url, creds, entry=entry)
+                    self._credential_store_ref = credential_store
+                    self._on_trust_ref = on_trust_prompt
+                    self._auto_security = True
+                else:
+                    if isinstance(credentials, TekHSICredentials):
+                        creds = credentials._grpc_credentials()
+                    else:
+                        creds = credentials
+                    tls_name = (
+                        credentials._tls_server_name
+                        if isinstance(credentials, TekHSICredentials)
+                        else None
+                    )
+                    self.channel = _secure_channel(url, creds, tls_server_name=tls_name)
+                    self._credential_store_ref = store_for_auto
+                    self._on_trust_ref = None
+                    self._auto_security = False
+            else:
+                self.channel = _auto_negotiate_channel(
+                    url, store_for_auto, on_trust_prompt, require_tls, deadline, timeout
+                )
+                self._credential_store_ref = store_for_auto
+                self._on_trust_ref = on_trust_prompt
+                self._auto_security = True
+
         self.clientname = str(uuid.uuid4())
         self.connection = ConnectStub(self.channel)
         self.native = NativeDataStub(self.channel)
@@ -161,8 +261,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._lock_filter = threading.Lock()
         self._datacache = {}
         self._headers = {}
-        self._connect()
-        self._connected = True
+        self._available_symbol_names: list[str] | None = None
         self._recordlength = 0
         self._acqcount = 0
         self._acqtime = -1
@@ -178,6 +277,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self._sum_count = 0
         self._is_exiting = False
         self._prev_data_id = -1
+        self._protocol_version = 0
+        self._capabilities = 0
+        self._connect()
+        self._connected = True
 
         # Parallel read support for A/B testing (DISABLED BY DEFAULT - experimental)
         self._parallel_reads_enabled = self._should_enable_parallel_reads()
@@ -206,10 +309,11 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         TekHSIConnect._connections[self.clientname] = self
 
+        self._cache_available_symbols()
         if not activesymbols:
-            self.activesymbols = self._available_symbols()
+            self.activesymbols = list(self._available_symbol_names or [])
         else:
-            self.activesymbols = [x.lower() for x in activesymbols]
+            self.activesymbols = [self._resolve_symbol(x) for x in activesymbols]
 
         self.thread = threading.Thread(target=self._run, args=())
         self.thread.daemon = True
@@ -275,10 +379,56 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         associated with `'ch1'` (when enabled). `'ch3'` is another analog channel, and `'ch4_DAll'`
         is a digital probe on `'ch4'`. Types are generally determined by the name of the symbol.
 
+        When a channel is digital-only, the scope may expose `chN_DAll` without a plain `chN`
+        symbol. TekHSI resolves that common mistake automatically when `chN` is requested but only
+        `chN_DAll` is available (not when both symbols exist).
+
         Returns:
             A list of available symbols.
         """
         return self._available_symbols()
+
+    @staticmethod
+    def _resolve_symbol_name(
+        name: str,
+        available: frozenset[str],
+    ) -> tuple[str, str | None]:
+        """Map a user symbol to an available TekHSI name when cheaply inferable.
+
+        Returns:
+            ``(resolved_name, aliased_from)`` where ``aliased_from`` is set when ``name`` was
+            mapped (for example ``ch2`` -> ``ch2_dall``).
+        """
+        key = name.lower()
+        if key in available:
+            return key, None
+        digital_bundle = f"{key}_dall"
+        if digital_bundle in available:
+            return digital_bundle, key
+        return key, None
+
+    def _resolve_symbol(self, name: str) -> str:
+        """Resolve ``name`` against cached available symbols."""
+        available = frozenset(self._cache_available_symbols())
+        resolved, alias_from = self._resolve_symbol_name(name, available)
+        if alias_from is not None:
+            _logger.debug("Resolved symbol %r -> %r (digital bundle)", alias_from, resolved)
+        return resolved
+
+    @property
+    def protocol_version(self) -> int:
+        """Server protocol version reported at connect (200 = v2.0)."""
+        return self._protocol_version
+
+    @property
+    def capabilities(self) -> int:
+        """Server capability bitmask from connect (bit 0 = FastFrame)."""
+        return self._capabilities
+
+    @property
+    def fastframe_capable(self) -> bool:
+        """True when the connected server advertises FastFrame support."""
+        return bool(self._capabilities & CAPABILITY_FASTFRAME)
 
     @property
     def current_time(self) -> float:
@@ -377,6 +527,18 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         finally:
             self.done_with_data()
 
+    @contextlib.contextmanager
+    def access_stopped_data(self) -> Self:
+        """Grant access to waveform data on a stopped scope.
+
+        TekHSI blocks on ``WaitForDataAccess`` until the instrument offers a sequence.
+        On a stopped scope (including stopped FastFrame captures), call
+        ``RequestNewSequence`` via ``force_sequence()`` before waiting for data.
+        """
+        self.force_sequence()
+        with self.access_data(AcqWaitOn.NewData):
+            yield self
+
     ################################################################################################
     # Public Methods
     ################################################################################################
@@ -463,7 +625,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         Args:
             symbols (list[str]): list of symbols to be moved
         """
-        self.activesymbols = symbols
+        self.activesymbols = [self._resolve_symbol(x) for x in symbols]
 
     def close(self) -> None:
         """Close and clean up gRPC connection."""
@@ -472,7 +634,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         _logger.debug("close")
 
-        # Call force_sequence while still connected to unblock the background thread's
+        # Call force_sequence while still connected so it can run. This asks the
+        # server to provide new data and unblocks the background thread's
         # WaitForDataAccess so it can exit. Do this before setting _connected=False.
         try:
             self.force_sequence()
@@ -489,7 +652,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.thread_active = False
 
         try:
-            # Wait for thread to exit
             self.thread.join(20.0)
         except RuntimeError as error:
             # Handle specific exceptions related to threading
@@ -592,13 +754,33 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         self._lock_getdata.acquire()
         try:
-            retval = self._datacache.get(
-                name.lower(),
-                None,
-            )  # Return None if cached data is not found
+            key = name.lower()
+            retval = self._datacache.get(key)
+            if retval is None:
+                resolved = self._resolve_symbol(name)
+                if resolved != key:
+                    retval = self._datacache.get(resolved)
         finally:
             self._lock_getdata.release()
         return retval
+
+    def get_frame(
+        self,
+        name: str,
+        frame_index: int,
+    ) -> AnyWaveform | None:
+        """Return a single frame view from a cached FastFrame capture.
+
+        All frames are loaded when the waveform is first read; this does not
+        perform additional instrument I/O. ``frame()`` returns ``AnalogWaveform`` or
+        ``DigitalWaveform`` views for analog and digital FastFrame captures.
+        """
+        cached = self.get_data(name)
+        if cached is None:
+            return None
+        if isinstance(cached, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
+            return cached.frame(frame_index)
+        return cached
 
     def set_acq_filter(self, acq_filter: Callable) -> None:
         """Sets rules for acquisitions that are accepted and forwarded.
@@ -654,21 +836,120 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             return header.dataid
         return None
 
+    def _cache_available_symbols(self) -> list[str]:
+        """Fetch and cache available symbol names from the instrument."""
+        if self._available_symbol_names is None:
+            request = ConnectRequest(name=self.clientname)
+            response = self.connection.RequestAvailableNames(request)
+            self._available_symbol_names = [symbol.lower() for symbol in response.symbolnames]
+        return self._available_symbol_names
+
     def _available_symbols(self) -> list[str]:
         """Returns the list of available channels.
 
         Returns:
             list of available channels.
         """
-        request = ConnectRequest(name=self.clientname)
-        response = self.connection.RequestAvailableNames(request)
-        return response.symbolnames
+        return list(self._cache_available_symbols())
 
     def _connect(self) -> None:
-        """Request connect to the gRCP server."""
+        """Connect to the gRPC server, upgrading to Mode 3 if the server demands auth."""
         _logger.debug("connect")
         request = ConnectRequest(name=self.clientname)
-        self.connection.Connect(request)
+        upgrade_done = False
+        while True:
+            try:
+                reply = self.connection.Connect(request)
+                self._protocol_version = reply.protocol_version
+                self._capabilities = reply.capabilities
+                if self._verbose and self._protocol_version:
+                    _logger.info(
+                        "Connected: protocol v%s, capabilities=0x%04x%s",
+                        self._protocol_version / 100,
+                        self._capabilities,
+                        ", FastFrame" if self.fastframe_capable else "",
+                    )
+            except grpc.RpcError as e:
+                if (
+                    e.code() == grpc.StatusCode.UNAUTHENTICATED
+                    and getattr(self, "_auto_security", False)
+                    and not upgrade_done
+                ):
+                    self._upgrade_channel_with_token_after_unauthenticated()
+                    upgrade_done = True
+                    continue
+                if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    if getattr(self, "_auto_security", False):
+                        detail = (e.details() or "").strip() or "UNAUTHENTICATED"
+                        if upgrade_done:
+                            detail = (
+                                f"{detail} "
+                                "(Check Mode 3 password matches the server's --password; "
+                                f"Basic username defaults to {DEFAULT_MODE3_USERNAME}.)"
+                            )
+                        raise TekAuthenticationFailed(self.url, detail) from e
+                    raise
+                raise
+            return
+
+    def _upgrade_channel_with_token_after_unauthenticated(self) -> None:
+        """After Connect returns UNAUTHENTICATED on TLS, prompt for password and retry channel."""
+        store = self._credential_store_ref
+        cb = self._on_trust_ref
+        if store is None or cb is None:
+            raise TekAuthenticationFailed(
+                self.url,
+                "Authentication required; provide on_trust_prompt or store password for this host.",
+            )
+        entry = store.get(self.url)
+        if not entry or not entry.get("cert_path"):
+            raise TekAuthenticationFailed(
+                self.url,
+                "Authentication required but no stored certificate for this host.",
+            )
+        host, port = _parse_host_port(self.url)
+        live = _fetch_server_cert(host, port, timeout=8.0)
+        fp = entry.get("cert_fingerprint")
+        if fp and live.cert_fingerprint != fp:
+            raise TekCertificateMismatch(self.url, fp, live.cert_fingerprint)
+        result = _call_on_trust(cb, self.url, live, True)
+        password: str | None = None
+        login: str | None = None
+        if isinstance(result, (list, tuple)):
+            if len(result) >= 1 and result[0]:
+                password = result[1] if len(result) > 1 else None
+                login = result[2] if len(result) > 2 else None
+                if login == "":
+                    login = None
+        elif result is True:
+            password = None
+        else:
+            raise TekAuthenticationFailed(self.url, "Authentication declined in on_trust_prompt.")
+        if not password:
+            raise TekAuthenticationFailed(
+                self.url,
+                "Server requires a password; when auth_required is True, return "
+                "(True, password) or (True, password, login) from on_trust_prompt.",
+            )
+        store.set(
+            self.url,
+            password=password,
+            login=login if login is not None else DEFAULT_MODE3_USERNAME,
+        )
+        store.save()
+        entry2 = store.get(self.url)
+        if not entry2 or not entry2.get("cert_path"):
+            msg = "Store update failed after authentication prompt."
+            raise TekSecurityError(msg)
+        try:
+            self.channel.close()
+        except Exception:  # noqa: BLE001
+            pass
+        self.channel = _secure_channel(
+            self.url, _build_creds_from_entry(entry2, "token"), entry=entry2
+        )
+        self.connection = ConnectStub(self.channel)
+        self.native = NativeDataStub(self.channel)
 
     def _disconnect(self) -> None:
         """Disconnect from gRPC server."""
@@ -686,9 +967,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 "Error during disconnect: %s",
                 rpc_error,
             )
-        except Exception:  # noqa: BLE001
-            # Catch-all for non-RpcError transport issues during interpreter shutdown;
-            # logged inside except to avoid noise on every clean teardown.
+        with contextlib.suppress(Exception):
             _logger.log(
                 logging.WARNING if self.verbose else logging.DEBUG,
                 "Unexpected error during disconnect",
@@ -737,8 +1016,18 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             header is not None
             and header.noofsamples > 0
             and header.sourcewidth in {1, 2, 4}
-            and header.hasdata
+            and (header.hasdata or bool(header.num_frames and header.num_frames > 1))
         )
+
+    @staticmethod
+    def _is_pending_header(header: WaveformHeader) -> bool:
+        """True when the instrument granted access before header metadata is ready."""
+        if header is None:
+            return False
+        if header.noofsamples != 0 or header.sourcename:
+            return False
+        # Live scopes may return hasdata=True or hasdata=False while metadata commits.
+        return True
 
     def _finished_with_data_access(self) -> None:
         """Releases access to instrument data.
@@ -753,6 +1042,513 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         request = ConnectRequest(name=self.clientname)
         self.connection.FinishedWithDataAccess(request)
 
+    @staticmethod
+    def _make_waveform_request(
+        sourcename: str,
+        chunksize: int,
+        *,
+        stream_all_frames: bool = False,
+        include_frame_metadata: bool = False,
+    ) -> WaveformRequest:
+        """Build a WaveformRequest using the v2 reply_content_mask fields."""
+        reply_content_mask = REPLY_CONTENT_MASK_FRAME_METADATA if include_frame_metadata else 0
+        return WaveformRequest(
+            sourcename=sourcename,
+            chunksize=chunksize,
+            reply_content_mask=reply_content_mask,
+            stream_all_frames=stream_all_frames,
+        )
+
+    @staticmethod
+    def _waveform_kind_from_header(header: WaveformHeader) -> str:
+        if header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:
+            return "digital"
+        if header.wfmtype in {WaveformType.ANALOG_IQ, WaveformType.ANALOG_16_IQ}:
+            return "iq"
+        return "analog"
+
+    @staticmethod
+    def _transfer_timing_from_header(
+        header: WaveformHeader,
+        kind: str,
+        transfer_ms: float,
+        publish_ms: float = 0.0,
+        *,
+        summary_frame_count: int | None = None,
+    ) -> WaveformTransferTiming:
+        num_frames = int(header.num_frames) if header.num_frames and header.num_frames > 1 else 1
+        resolved_summary_frame_count = (
+            TekHSIConnect._summary_frame_count_from_header(header)
+            if summary_frame_count is None
+            else int(summary_frame_count)
+        )
+        return WaveformTransferTiming(
+            kind=kind,
+            transfer_ms=transfer_ms,
+            publish_ms=publish_ms,
+            record_length=int(header.noofsamples),
+            bytes_per_sample=int(header.sourcewidth),
+            num_frames=num_frames,
+            summary_frame_count=resolved_summary_frame_count,
+        )
+
+    @staticmethod
+    def _summary_frame_count_from_header(header: WaveformHeader) -> int:
+        """Count summary frames declared in FastFrame metadata."""
+        if not header.frame_info:
+            return 0
+        return sum(1 for info in header.frame_info if info.is_summary_frame)
+
+    @staticmethod
+    def _summary_frame_type_from_header(header: WaveformHeader) -> SummaryFrameType:
+        """Infer summary-frame handling from FastFrame header metadata."""
+        if TekHSIConnect._summary_frame_count_from_header(header) == 0:
+            return SummaryFrameType.SUMMARY_FRAME_OFF
+        return SummaryFrameType.SUMMARY_FRAME_AVERAGE
+
+    @staticmethod
+    def _is_wfm_data_status(status: WfmReplyStatus | int) -> bool:
+        """Return True when a stream message may carry sample data."""
+        return status in {
+            WfmReplyStatus.WFMREPLYSTATUS_SUCCESS,
+            WfmReplyStatus.WFMREPLYSTATUS_UNSPECIFIED,
+        }
+
+    @staticmethod
+    def _is_fastframe_header(header: WaveformHeader) -> bool:
+        return bool(header.num_frames and header.num_frames > 1)
+
+    @staticmethod
+    def _trim_raw_frames(
+        frame_arrays: list[np.ndarray], samples_per_frame: int
+    ) -> list[np.ndarray]:
+        trimmed: list[np.ndarray] = []
+        for frame in frame_arrays:
+            if len(frame) == samples_per_frame:
+                trimmed.append(frame)
+            else:
+                trimmed.append(frame[:samples_per_frame])
+        return trimmed
+
+    @staticmethod
+    def _frame_info_from_header(header: WaveformHeader) -> list[FrameTimingInfo]:
+        return [
+            FrameTimingInfo(
+                frame_index=info.frame_index,
+                time_offset=info.time_offset,
+                gmt_sec=info.gmt_sec,
+                fract_sec=info.fract_sec,
+                real_point_offset=info.real_point_offset,
+                frame_duration_sec=info.frame_duration_sec,
+                is_summary_frame=info.is_summary_frame,
+            )
+            for info in header.frame_info
+        ]
+
+    @staticmethod
+    def _frame_info_map(frame_info_list: list[FrameTimingInfo]) -> dict[int, FrameTimingInfo]:
+        """Map frame index to metadata, keeping the last record for duplicate indices."""
+        info_map: dict[int, FrameTimingInfo] = {}
+        for info in frame_info_list:
+            info_map[int(info.frame_index)] = info
+        return info_map
+
+    @staticmethod
+    def _merge_fastframe_frame_info(
+        header: WaveformHeader,
+        stream_frame_info: list[FrameTimingInfo],
+    ) -> list[FrameTimingInfo]:
+        """Merge header and stream metadata, preferring stream records when both exist."""
+        merged = TekHSIConnect._frame_info_map(TekHSIConnect._frame_info_from_header(header))
+        merged.update(TekHSIConnect._frame_info_map(stream_frame_info))
+        return [merged[idx] for idx in sorted(merged)]
+
+    @staticmethod
+    def _summary_frame_type_from_frame_info(
+        frame_info_list: list[FrameTimingInfo],
+    ) -> SummaryFrameType:
+        """Infer summary-frame mode from concrete per-frame metadata."""
+        if any(info.is_summary_frame for info in frame_info_list):
+            return SummaryFrameType.SUMMARY_FRAME_AVERAGE
+        return SummaryFrameType.SUMMARY_FRAME_OFF
+
+    @staticmethod
+    def _build_fastframe_from_native(
+        header: WaveformHeader,
+        raw_frames: list[np.ndarray],
+        samples_per_frame: int,
+        dt_type: type,
+        load_timing: FastFrameLoadTiming | None,
+        *,
+        wrapper: type = FastFrameAnalogWaveform,
+        frame_info: list[FrameTimingInfo] | None = None,
+    ) -> FastFrameAnalogWaveform | FastFrameDigitalWaveform:
+        """Populate a tm_data_types FastFrame waveform from native sample arrays."""
+        effective_frame_info = (
+            frame_info if frame_info is not None else TekHSIConnect._frame_info_from_header(header)
+        )
+        common_kwargs = {
+            "source_name": header.sourcename,
+            "x_axis_spacing": header.horizontalspacing,
+            "x_axis_units": header.horizontalUnits,
+            "trigger_index": header.horizontalzeroindex,
+        }
+        if wrapper is FastFrameDigitalWaveform:
+            waveform = FastFrameDigitalWaveform.create_fastframe(
+                header.num_frames,
+                samples_per_frame,
+                dtype=dt_type,
+                y_axis_units=header.verticalunits,
+                digital_bitmask=header.bitmask,
+                **common_kwargs,
+            )
+        else:
+            waveform = FastFrameAnalogWaveform.create_fastframe(
+                header.num_frames,
+                samples_per_frame,
+                dtype=dt_type,
+                y_axis_spacing=header.verticalspacing,
+                y_axis_offset=header.verticaloffset,
+                y_axis_units=header.verticalunits,
+                **common_kwargs,
+            )
+        waveform.summary_frame_type = TekHSIConnect._summary_frame_type_from_frame_info(
+            effective_frame_info
+        )
+        max_frame_index = max(0, len(raw_frames) - 1)
+        current_index = int(header.current_frame_index)
+        if current_index < 0 or current_index > max_frame_index:
+            current_index = 0
+        waveform.current_frame_index = current_index
+        waveform.frame_info = effective_frame_info
+        waveform.per_frame_summary_authoritative = bool(effective_frame_info)
+        waveform.load_timing = load_timing
+
+        frame_info_by_index = TekHSIConnect._frame_info_map(effective_frame_info)
+
+        for index, frame in enumerate(raw_frames):
+            waveform.fill_frame(index, np.asarray(frame, dtype=dt_type))
+            info = frame_info_by_index.get(index)
+            if info is not None:
+                waveform.set_frame_timing(
+                    index,
+                    info.time_offset,
+                    info.gmt_sec,
+                    info.fract_sec,
+                )
+
+        return waveform
+
+    def _waveform_request_for_header(
+        self,
+        header: WaveformHeader,
+    ) -> WaveformRequest:
+        stream_all = self._is_fastframe_header(header)
+        return self._make_waveform_request(
+            header.sourcename,
+            self.chunksize,
+            stream_all_frames=stream_all,
+            include_frame_metadata=stream_all,
+        )
+
+    @staticmethod
+    def _populate_analog_waveform(waveform: AnalogWaveform, header: WaveformHeader) -> None:
+        waveform.source_name = header.sourcename
+        waveform.y_axis_spacing = header.verticalspacing
+        waveform.y_axis_offset = header.verticaloffset
+        waveform.y_axis_units = header.verticalunits
+        waveform.x_axis_spacing = header.horizontalspacing
+        waveform.x_axis_units = header.horizontalUnits
+        waveform.trigger_index = header.horizontalzeroindex
+
+    def _read_analog_native(
+        self,
+        header: WaveformHeader,
+        native_stub: NativeDataStub,
+    ) -> Waveform:
+        """Read an analog waveform from NativeData.
+
+        FastFrame captures (``num_frames > 1``) always stream every frame in one call.
+        """
+        if not self._is_fastframe_header(header):
+            waveform = AnalogWaveform()
+            self._populate_analog_waveform(waveform, header)
+            return self._read_analog_native_single_frame(waveform, header, native_stub)
+
+        return self._read_native_fastframe(
+            header,
+            native_stub,
+            self.v_datatypes[header.sourcewidth],
+        )
+
+    @staticmethod
+    def _populate_digital_waveform(waveform: DigitalWaveform, header: WaveformHeader) -> None:
+        waveform.source_name = header.sourcename
+        waveform.y_axis_units = header.verticalunits
+        waveform.x_axis_spacing = header.horizontalspacing
+        waveform.x_axis_units = header.horizontalUnits
+        waveform.trigger_index = header.horizontalzeroindex
+        waveform.digital_bitmask = header.bitmask
+
+    def _read_digital_native(
+        self,
+        header: WaveformHeader,
+        native_stub: NativeDataStub,
+    ) -> Waveform:
+        """Read a digital waveform from NativeData, including FastFrame captures."""
+        if header.sourcewidth not in self.d_datatypes:
+            msg = (
+                f"unsupported digital sourcewidth {header.sourcewidth} for {header.sourcename}; "
+                f"expected one of {sorted(self.d_datatypes)}"
+            )
+            raise ValueError(msg)
+
+        if not self._is_fastframe_header(header):
+            waveform = DigitalWaveform()
+            self._populate_digital_waveform(waveform, header)
+            return self._read_digital_native_single_frame(waveform, header, native_stub)
+
+        return self._read_native_fastframe(
+            header,
+            native_stub,
+            self.d_datatypes[header.sourcewidth],
+            wrapper=FastFrameDigitalWaveform,
+        )
+
+    def _read_digital_native_single_frame(
+        self,
+        waveform: DigitalWaveform,
+        header: WaveformHeader,
+        native_stub: NativeDataStub,
+    ) -> DigitalWaveform:
+        request = self._waveform_request_for_header(header)
+        transfer_start = time.perf_counter()
+        response_iterator = native_stub.GetWaveform(request)
+        dt_type = self.d_datatypes[header.sourcewidth]
+        sum_of_chunks = 0
+        waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
+        try:
+            for response in response_iterator:
+                if not self.thread_active:
+                    break
+                if not self._is_wfm_data_status(response.status):
+                    continue
+                if response.headerordata.WhichOneof("value") != "chunk":
+                    continue
+                chunk = response.headerordata.chunk.data
+                if not chunk:
+                    continue
+                dt = np.frombuffer(chunk, dtype=dt_type)
+                waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
+                sum_of_chunks += len(dt)
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+        waveform.load_timing = self._transfer_timing_from_header(
+            header,
+            "digital",
+            (time.perf_counter() - transfer_start) * 1000,
+        )
+        return waveform
+
+    @staticmethod
+    def _normalize_fastframe_arrays(
+        frame_arrays: list[np.ndarray],
+        expected_frames: int,
+        samples_per_frame: int,
+    ) -> list[np.ndarray]:
+        """Split or trim frame buffers to match the header frame count."""
+        if len(frame_arrays) == expected_frames:
+            return frame_arrays
+        if len(frame_arrays) == 1 and frame_arrays[0].size >= samples_per_frame * expected_frames:
+            combined = frame_arrays[0][: samples_per_frame * expected_frames]
+            return [
+                combined[i * samples_per_frame : (i + 1) * samples_per_frame]
+                for i in range(expected_frames)
+            ]
+        return frame_arrays
+
+    def _read_native_fastframe(
+        self,
+        header: WaveformHeader,
+        native_stub: NativeDataStub,
+        dt_type: type,
+        *,
+        wrapper: type = FastFrameAnalogWaveform,
+    ) -> FastFrameAnalogWaveform | FastFrameDigitalWaveform:
+        """Stream and assemble a multi-frame native capture into a FastFrame wrapper."""
+        request = self._waveform_request_for_header(header)
+        samples_per_frame = int(header.noofsamples)
+        bytes_per_sample = header.sourcewidth
+        expected_bytes = header.num_frames * samples_per_frame * bytes_per_sample
+        timeout_sec = min(120.0, max(15.0, expected_bytes / (5 * 1024 * 1024)))
+
+        transfer_start = time.perf_counter()
+        response_iterator = native_stub.GetWaveform(request, timeout=timeout_sec)
+        try:
+            frame_arrays, stream_frame_info = self._read_fastframe_stream(
+                response_iterator,
+                header,
+                dt_type,
+                samples_per_frame,
+            )
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+        transfer_ms = (time.perf_counter() - transfer_start) * 1000
+
+        frame_arrays = self._normalize_fastframe_arrays(
+            frame_arrays,
+            int(header.num_frames),
+            samples_per_frame,
+        )
+        if len(frame_arrays) != header.num_frames:
+            msg = (
+                f"expected {header.num_frames} FastFrame segments for {header.sourcename}, "
+                f"received {len(frame_arrays)}"
+            )
+            raise RuntimeError(msg)
+
+        publish_start = time.perf_counter()
+        raw_frames = self._trim_raw_frames(frame_arrays, samples_per_frame)
+        effective_frame_info = self._merge_fastframe_frame_info(header, stream_frame_info)
+        summary_frame_count = sum(1 for info in effective_frame_info if info.is_summary_frame)
+        wrapped = self._build_fastframe_from_native(
+            header,
+            raw_frames,
+            samples_per_frame,
+            dt_type,
+            None,
+            wrapper=wrapper,
+            frame_info=effective_frame_info,
+        )
+        load_timing = self._transfer_timing_from_header(
+            header,
+            "digital" if wrapper is FastFrameDigitalWaveform else "analog",
+            transfer_ms,
+            (time.perf_counter() - publish_start) * 1000,
+            summary_frame_count=summary_frame_count,
+        )
+        wrapped.load_timing = load_timing
+        if self.verbose:
+            _logger.info(
+                "FastFrame raw load %s: %s", header.sourcename, load_timing.format_summary()
+            )
+        return wrapped
+
+    def _read_analog_native_single_frame(
+        self,
+        waveform: AnalogWaveform,
+        header: WaveformHeader,
+        native_stub: NativeDataStub,
+    ) -> Waveform:
+        request = self._waveform_request_for_header(header)
+        transfer_start = time.perf_counter()
+        response_iterator = native_stub.GetWaveform(request)
+        dt_type = self.v_datatypes[header.sourcewidth]
+        sum_of_chunks = 0
+        waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
+        try:
+            for response in response_iterator:
+                if not self.thread_active:
+                    break
+                if not self._is_wfm_data_status(response.status):
+                    continue
+                if response.headerordata.WhichOneof("value") != "chunk":
+                    continue
+                chunk = response.headerordata.chunk.data
+                if not chunk:
+                    continue
+                dt = np.frombuffer(chunk, dtype=dt_type)
+                waveform.y_axis_values[sum_of_chunks : sum_of_chunks + len(dt)] = dt
+                sum_of_chunks += len(dt)
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+        waveform.load_timing = self._transfer_timing_from_header(
+            header,
+            "analog",
+            (time.perf_counter() - transfer_start) * 1000,
+        )
+        return waveform
+
+    def _read_fastframe_stream(
+        self,
+        response_iterator,
+        header: WaveformHeader,
+        dt_type: type,
+        samples_per_frame: int,
+    ) -> tuple[list[np.ndarray], list[FrameTimingInfo]]:
+        expected_frames = int(header.num_frames)
+        expected_samples = expected_frames * samples_per_frame
+        frame_arrays: list[np.ndarray] = []
+        current_parts: list[np.ndarray] = []
+        stream_frame_info: list[FrameTimingInfo] = []
+
+        def _flush_current_frame() -> None:
+            nonlocal current_parts
+            if current_parts:
+                frame_arrays.append(np.concatenate(current_parts))
+                current_parts = []
+
+        def _sample_count() -> int:
+            total = sum(arr.size for arr in frame_arrays)
+            total += sum(arr.size for arr in current_parts)
+            return total
+
+        try:
+            for response in response_iterator:
+                if not self.thread_active:
+                    break
+                if not self._is_wfm_data_status(response.status):
+                    continue
+
+                if response.HasField("frame_boundary"):
+                    boundary_info = response.frame_boundary.frame_info
+                    stream_frame_info.append(
+                        FrameTimingInfo(
+                            frame_index=boundary_info.frame_index,
+                            time_offset=boundary_info.time_offset,
+                            gmt_sec=boundary_info.gmt_sec,
+                            fract_sec=boundary_info.fract_sec,
+                            real_point_offset=boundary_info.real_point_offset,
+                            frame_duration_sec=boundary_info.frame_duration_sec,
+                            is_summary_frame=boundary_info.is_summary_frame,
+                        )
+                    )
+                    _flush_current_frame()
+                    if len(frame_arrays) >= expected_frames:
+                        break
+
+                if response.headerordata.WhichOneof("value") == "chunk":
+                    chunk = response.headerordata.chunk.data
+                    if chunk:
+                        current_parts.append(np.frombuffer(chunk, dtype=dt_type))
+
+                if _sample_count() >= expected_samples:
+                    _flush_current_frame()
+                    break
+                if len(frame_arrays) >= expected_frames and not current_parts:
+                    break
+        finally:
+            with contextlib.suppress(Exception):
+                response_iterator.cancel()
+
+        _flush_current_frame()
+
+        if (
+            len(frame_arrays) == 1
+            and expected_frames > 1
+            and frame_arrays[0].size >= expected_samples
+        ):
+            combined = frame_arrays[0][:expected_samples]
+            frame_arrays = [
+                combined[i * samples_per_frame : (i + 1) * samples_per_frame]
+                for i in range(expected_frames)
+            ]
+
+        return frame_arrays, stream_frame_info
+
     def _read_header(self, name: str) -> WaveformHeader:
         """Reads header for the named source.
 
@@ -763,27 +1559,102 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             WaveformHeader: the description of the properties of the specified waveform
         """
         _logger.debug("%s:read header", name)
-        request = WaveformRequest(sourcename=name, chunksize=self.chunksize)
+        name = self._resolve_symbol(name)
+        request = self._make_waveform_request(name, self.chunksize, include_frame_metadata=True)
         response = self.native.GetHeader(request)
         return response.headerordata.header
 
     def _read_headers(
-        self, headers: list[WaveformHeader], header_dict: dict[str, WaveformHeader]
-    ) -> None:
-        """Reads headers for the active symbols.
+        self,
+        headers: list[WaveformHeader],
+        header_dict: dict[str, WaveformHeader],
+        *,
+        pending_ok: bool = False,
+        max_attempts: int = _HEADER_PENDING_MAX_ATTEMPTS,
+        retry_sleep_s: float = _HEADER_PENDING_RETRY_SLEEP_S,
+        reject_log_level: int = logging.WARNING,
+    ) -> bool:
+        """Read headers for the active symbols.
+
+        When ``pending_ok`` is True, placeholder headers (``noofsamples=0``, empty
+        ``sourcename``) are retried briefly within the current data-access window instead
+        of being logged as rejections.
 
         Args:
-            headers (list): list of headers
-            header_dict (dict): dictionary of headers
+            headers: Cleared and populated with valid headers on success.
+            header_dict: Cleared and populated keyed by ``sourcename`` on success.
+            pending_ok: Retry while the instrument reports pending placeholders.
+            max_attempts: Maximum read attempts when ``pending_ok`` is True.
+            retry_sleep_s: Sleep between retry attempts in seconds.
+            reject_log_level: Log level for non-pending invalid headers (DEBUG in ``_run``).
+
+        Returns:
+            True when every active symbol has a valid header.
         """
         symbols = self.activesymbols
-        n = len(symbols)
-        for index in range(n):
-            symbol = symbols[index]
-            header = self._read_header(symbol)
-            if self._is_header_value(header):
-                headers.append(header)
-                header_dict[header.sourcename] = header
+        expected = len(symbols)
+        if expected == 0:
+            headers.clear()
+            header_dict.clear()
+            return True
+
+        attempts = max_attempts if pending_ok else 1
+        for attempt in range(attempts):
+            if self._is_exiting:
+                headers.clear()
+                header_dict.clear()
+                return False
+
+            headers.clear()
+            header_dict.clear()
+            any_pending = False
+            any_invalid = False
+            pending_symbols: list[str] = []
+
+            for symbol in symbols:
+                header = self._read_header(symbol)
+                if self._is_header_value(header):
+                    headers.append(header)
+                    header_dict[header.sourcename] = header
+                elif self._is_pending_header(header):
+                    any_pending = True
+                    pending_symbols.append(symbol)
+                else:
+                    any_invalid = True
+                    _logger.log(
+                        reject_log_level,
+                        "Header rejected for %s: sourcename=%r wfmtype=%s num_frames=%s "
+                        "noofsamples=%s sourcewidth=%s hasdata=%s",
+                        symbol,
+                        header.sourcename,
+                        header.wfmtype,
+                        header.num_frames,
+                        header.noofsamples,
+                        header.sourcewidth,
+                        header.hasdata,
+                    )
+
+            if any_pending and attempt == 0:
+                _logger.debug(
+                    "Headers pending for %s (metadata not ready); retrying",
+                    ", ".join(pending_symbols) or symbols,
+                )
+
+            if len(headers) == expected:
+                return True
+            if any_invalid:
+                return False
+            if any_pending and pending_ok and attempt + 1 < attempts:
+                time.sleep(retry_sleep_s)
+                continue
+            if any_pending and pending_ok:
+                _logger.debug(
+                    "Headers still pending after %d attempts; releasing access window",
+                    attempts,
+                )
+            return False
+
+        return False
 
     # pylint: disable= too-many-locals
     def _read_waveform(  # noqa: PLR0915, PLR0912, C901
@@ -797,38 +1668,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         Returns:
             Waveform: contains definition and data for the specified source
         """
+        waveform: Waveform | None = None
         try:
             if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
-                waveform = AnalogWaveform()
-                waveform.source_name = header.sourcename
-                waveform.y_axis_spacing = header.verticalspacing
-                waveform.y_axis_offset = header.verticaloffset
-                waveform.y_axis_units = header.verticalunits
-                waveform.x_axis_spacing = header.horizontalspacing
-                waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
-
-                sum_of_chunks = 0
-                data_size = header.sourcewidth
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
-                response_iterator = self.native.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
-                dt_type = self.v_datatypes[header.sourcewidth]
-
-                waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    waveform.y_axis_values[
-                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
-                    ] = dt
-                    if dt is not None:
-                        sum_of_chunks += len(dt)
-
+                waveform = self._read_analog_native(header, self.native)
             elif header.wfmtype in {
                 WaveformType.ANALOG_IQ,
                 WaveformType.ANALOG_16_IQ,
@@ -867,106 +1710,51 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 )
 
                 sample_index = 0
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
+                request = self._make_waveform_request(header.sourcename, self.chunksize)
+                transfer_start = time.perf_counter()
                 response_iterator = self.native.GetWaveform(request)
                 dt = None
-                sum_chunk_size = 0
                 dt_type = self.iq_datatypes[header.sourcewidth]
 
                 waveform.interleaved_iq_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    sample_count = len(dt)
-                    waveform.interleaved_iq_axis_values[
-                        sample_index : sample_index + sample_count
-                    ] = dt
-                    if dt is not None:
+                try:
+                    for response in response_iterator:
+                        if not self.thread_active:
+                            break
+                        if not self._is_wfm_data_status(response.status):
+                            continue
+                        if response.headerordata.WhichOneof("value") != "chunk":
+                            continue
+                        chunk = response.headerordata.chunk.data
+                        if not chunk:
+                            continue
+                        dt = np.frombuffer(chunk, dtype=dt_type)
+                        sample_count = len(dt)
+                        waveform.interleaved_iq_axis_values[
+                            sample_index : sample_index + sample_count
+                        ] = dt
                         sample_index += sample_count
+                finally:
+                    with contextlib.suppress(Exception):
+                        response_iterator.cancel()
+                waveform.load_timing = self._transfer_timing_from_header(
+                    header,
+                    "iq",
+                    (time.perf_counter() - transfer_start) * 1000,
+                )
             elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
-                waveform = DigitalWaveform()
-                waveform.source_name = header.sourcename
-                waveform.y_axis_units = header.verticalunits
-                waveform.x_axis_spacing = header.horizontalspacing
-                waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
+                waveform = self._read_digital_native(header, self.native)
+            else:
+                msg = f"Unknown waveform type: {header.wfmtype}"
+                raise ValueError(msg)
 
-                sum_of_chunks = 0
-                data_size = header.sourcewidth
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
-                response_iterator = self.native.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
+        except Exception as e:
+            _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Exception: %s", e)
+            raise
 
-                # Normalize every probe variant down to 1 byte/sample (D0..D7)
-                # so the downstream tm_data_types pipeline always sees an
-                # int8 array of shape (noofsamples,).
-                #
-                # For MSO5/6 DIGITAL_16 (sourcewidth=2) each on-the-wire
-                # sample is a little-endian uint16 that encodes 8 channels
-                # using *2 bits per channel*:
-                #
-                #     bit 2*ch + 0  -> D<ch> logic value (0/1)
-                #     bit 2*ch + 1  -> D<ch> validity / channel-enable flag
-                #
-                # i.e. D0 = bits 0..1, D1 = bits 2..3, ..., D7 = bits 14..15.
-                # We extract just the value bits and pack them into a single
-                # byte D7..D0 so existing consumers (e.g. get_nth_bitstream)
-                # work unchanged.
-                #
-                # Earlier attempts that simply masked the low byte (or
-                # shifted to keep the high byte) of the uint16 produced
-                # constant garbage values matching the per-channel enable
-                # mask (e.g. 20 = 0x14 when only D2 & D4 were enabled, or 5
-                # = 0x05 after a >>8) instead of the real logic transitions.
-                if data_size == 1:
-                    wire_dtype = np.int8
-                elif data_size == 2:  # noqa: PLR2004
-                    wire_dtype = np.uint16
-                else:
-                    msg = (
-                        f"Unsupported digital sourcewidth={data_size} for "
-                        f"{header.sourcename} (wfmtype={header.wfmtype})"
-                    )
-                    raise ValueError(msg)  # noqa: TRY301
-
-                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=np.int8)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
-                    if data_size == 2:  # noqa: PLR2004
-                        v = raw.astype(np.uint16)
-                        packed = np.zeros(v.shape, dtype=np.uint8)
-                        # Gather the low (value) bit of each 2-bit channel
-                        # field into the corresponding D0..D7 position.
-                        for _ch in range(8):
-                            packed |= (((v >> (2 * _ch)) & 0x1) << _ch).astype(np.uint8)
-                        dt = packed.astype(np.int8)
-                    else:
-                        dt = raw
-                    n_samples = len(dt)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
-
-        except Exception as ex:  # noqa: BLE001
-            # Log per-branch failures (shape mismatch, unsupported sourcewidth) as a concise
-            # WARNING/DEBUG line; caller still gets the partial waveform so record_length==0
-            # -> skip cache is preserved.
-            _logger.log(
-                logging.WARNING if self._verbose else logging.DEBUG,
-                "Failed to read waveform for %s (wfmtype=%s, sourcewidth=%s): %s",
-                getattr(header, "sourcename", "?"),
-                getattr(header, "wfmtype", "?"),
-                getattr(header, "sourcewidth", "?"),
-                ex,
-            )
-
+        if waveform is None:
+            msg = f"No waveform read for {header.sourcename}"
+            raise RuntimeError(msg)
         return waveform
 
     def _should_enable_parallel_reads(self) -> bool:
@@ -1038,17 +1826,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         datasize = 0
         for index in range(n):
             header = headers[index]
-            read_start = time.perf_counter()
             waveform = self._read_waveform(header)
             self._recordlength = waveform.record_length
             datasize += waveform.record_length * header.sourcewidth
-            # TODO: reuse this variable later
-            _ = (
-                waveform.record_length
-                * header.sourcewidth
-                * 8
-                / ((time.perf_counter() - read_start) * 1e6)
-            )
             if self._cachedataenabled:
                 self._lock_getdata.acquire()
                 self._datacache[header.sourcename.lower()] = waveform
@@ -1091,36 +1871,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         # For now, let's use a wrapper that creates a new stub per call
         try:
             if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
-                waveform = AnalogWaveform()
-                waveform.source_name = header.sourcename
-                waveform.y_axis_spacing = header.verticalspacing
-                waveform.y_axis_offset = header.verticaloffset
-                waveform.y_axis_units = header.verticalunits
-                waveform.x_axis_spacing = header.horizontalspacing
-                waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
-
-                sum_of_chunks = 0
-                data_size = header.sourcewidth
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
-                response_iterator = native_stub.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
-                dt_type = self.v_datatypes[header.sourcewidth]
-
-                waveform.y_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    waveform.y_axis_values[
-                        sum_of_chunks : sum_of_chunks + int(chunk_size / data_size)
-                    ] = dt
-                    if dt is not None:
-                        sum_of_chunks += len(dt)
-
+                waveform = self._read_analog_native(header, native_stub)
             elif header.wfmtype in {
                 WaveformType.ANALOG_IQ,
                 WaveformType.ANALOG_16_IQ,
@@ -1159,77 +1910,39 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 )
 
                 sample_index = 0
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
+                request = self._make_waveform_request(header.sourcename, self.chunksize)
+                transfer_start = time.perf_counter()
                 response_iterator = native_stub.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
                 dt_type = self.iq_datatypes[header.sourcewidth]
 
                 waveform.interleaved_iq_axis_values = np.empty(header.noofsamples, dtype=dt_type)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    dt = np.frombuffer(response.headerordata.chunk.data, dtype=dt_type)
-                    sample_count = len(dt)
-                    waveform.interleaved_iq_axis_values[
-                        sample_index : sample_index + sample_count
-                    ] = dt
-                    if dt is not None:
+                try:
+                    for response in response_iterator:
+                        if not self.thread_active:
+                            break
+                        if not self._is_wfm_data_status(response.status):
+                            continue
+                        if response.headerordata.WhichOneof("value") != "chunk":
+                            continue
+                        chunk = response.headerordata.chunk.data
+                        if not chunk:
+                            continue
+                        dt = np.frombuffer(chunk, dtype=dt_type)
+                        sample_count = len(dt)
+                        waveform.interleaved_iq_axis_values[
+                            sample_index : sample_index + sample_count
+                        ] = dt
                         sample_index += sample_count
+                finally:
+                    with contextlib.suppress(Exception):
+                        response_iterator.cancel()
+                waveform.load_timing = self._transfer_timing_from_header(
+                    header,
+                    "iq",
+                    (time.perf_counter() - transfer_start) * 1000,
+                )
             elif header.wfmtype in {WaveformType.DIGITAL, WaveformType.DIGITAL_16}:  # Digital
-                waveform = DigitalWaveform()
-                waveform.source_name = header.sourcename
-                waveform.y_axis_units = header.verticalunits
-                waveform.x_axis_spacing = header.horizontalspacing
-                waveform.x_axis_units = header.horizontalUnits
-                waveform.trigger_index = header.horizontalzeroindex
-
-                sum_of_chunks = 0
-                data_size = header.sourcewidth
-                request = WaveformRequest(sourcename=header.sourcename, chunksize=self.chunksize)
-                response_iterator = native_stub.GetWaveform(request)
-                dt = None
-                sum_chunk_size = 0
-
-                # See _read_waveform DIGITAL branch: for sourcewidth=2 the
-                # wire format is a little-endian uint16 that encodes 8
-                # channels using 2 bits per channel (bit 2*ch = D<ch> logic
-                # value, bit 2*ch+1 = validity / channel-enable flag). We
-                # gather the value bits into a single D7..D0 byte so the
-                # stored buffer is always int8.
-                if data_size == 1:
-                    wire_dtype = np.int8
-                elif data_size == 2:  # noqa: PLR2004
-                    wire_dtype = np.uint16
-                else:
-                    msg = (
-                        f"Unsupported digital sourcewidth={data_size} for "
-                        f"{header.sourcename} (wfmtype={header.wfmtype})"
-                    )
-                    raise ValueError(msg)  # noqa: TRY301
-
-                waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=np.int8)
-                for response in response_iterator:
-                    if not self.thread_active:
-                        return waveform
-                    chunk_size = len(response.headerordata.chunk.data)
-                    sum_chunk_size += chunk_size
-                    raw = np.frombuffer(response.headerordata.chunk.data, dtype=wire_dtype)
-                    if data_size == 2:  # noqa: PLR2004
-                        v = raw.astype(np.uint16)
-                        packed = np.zeros(v.shape, dtype=np.uint8)
-                        for _ch in range(8):
-                            packed |= (((v >> (2 * _ch)) & 0x1) << _ch).astype(np.uint8)
-                        dt = packed.astype(np.int8)
-                    else:
-                        dt = raw
-                    n_samples = len(dt)
-                    waveform.y_axis_byte_values[sum_of_chunks : sum_of_chunks + n_samples] = dt
-                    if dt is not None:
-                        sum_of_chunks += n_samples
+                waveform = self._read_digital_native(header, native_stub)
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
                 raise ValueError(msg)  # noqa: TRY301
@@ -1237,14 +1950,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             waveform.record_length = header.noofsamples
             return waveform  # noqa: TRY300
         except Exception as e:
-            # Re-raise so _read_waveforms_parallel can decide; log only at DEBUG to avoid
-            # duplicate ERROR noise (parallel reader already logs at its catch site).
-            _logger.debug(
-                "_read_waveform_with_stub for %s raised %s: %s",
-                getattr(header, "sourcename", "?"),
-                type(e).__name__,
-                e,
-            )
+            _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)  # noqa: TRY400
             raise
 
     def _read_waveforms_parallel(  # noqa: PLR0912, C901
@@ -1369,16 +2075,13 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     self._finished_with_data_access()
                     self._lock_filter.release()
                     self._holding_scope_open = False
-            except grpc.RpcError as rpc_error:
-                # Server went away or connection reset; exit thread cleanly. Only log if this
-                # wasn't a graceful shutdown (close() flips _connected/thread_active,
-                # __exit__ flips _is_exiting first).
-                if not self._is_exiting and self.thread_active and self._connected:
-                    _logger.log(
-                        logging.DEBUG if not self.verbose else logging.INFO,
-                        "Background thread exiting (connection closed): %s",
-                        rpc_error,
-                    )
+            except grpc.RpcError as rpc_error:  # Server went away or connection reset;
+                # exit thread cleanly
+                _logger.log(
+                    logging.DEBUG if not self.verbose else logging.INFO,
+                    "Background thread exiting (connection closed): %s",
+                    rpc_error,
+                )
                 # Ensure we release lock if we bailed before releasing
                 if self._holding_scope_open:
                     with contextlib.suppress(Exception):
@@ -1411,7 +2114,16 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             if self._is_exiting:
                 return
 
-            self._read_headers(headers, header_dict)
+            if not self._read_headers(
+                headers,
+                header_dict,
+                pending_ok=True,
+                reject_log_level=logging.DEBUG,
+            ):
+                _logger.debug(
+                    "No valid headers in access window; releasing and waiting for next sequence"
+                )
+                return
 
             cur_acq_id = self._acq_id(headers)
 

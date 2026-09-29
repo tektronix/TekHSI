@@ -18,12 +18,12 @@ import psutil
 import pytest
 
 from grpc import Channel
-from tm_data_types import Waveform
 from typing_extensions import Self
 
 from tekhsi import configure_logging, LoggingLevels
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
+from tm_data_types import Waveform
 
 from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
 
