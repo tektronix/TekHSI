@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,9 +54,7 @@ def probe(channel: str) -> None:
                         total_bytes += len(chunk)
                 if last_i < 8:
                     which = response.headerordata.WhichOneof("value")
-                    chunk_len = (
-                        len(response.headerordata.chunk.data) if which == "chunk" else 0
-                    )
+                    chunk_len = len(response.headerordata.chunk.data) if which == "chunk" else 0
                     print(
                         f"  [{last_i}] status={WfmReplyStatus.Name(response.status)} "
                         f"oneof={which} bytes={chunk_len} "

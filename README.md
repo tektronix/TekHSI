@@ -50,6 +50,9 @@ supporting gRPC, including Windows, Linux, and macOS.
     or only accepting acquisitions after a certain time.
 6. **FastFrame** - Multi-frame stopped captures stream into `FastFrameAnalogWaveform` /
     `FastFrameDigitalWaveform` with per-frame timing metadata and `waveform.load_timing` transfer metrics.
+7. **Secure connections (opt-in)** - Connect over TLS with trust-on-first-use certificate pinning,
+    and optional HTTP Basic authentication, without changing any existing plaintext usage. See
+    the [EUCRA secure connections guide](https://github.com/tektronix/TekHSI/blob/main/docs/EUCRA_USAGE.md).
 
 In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
 and host computer, `TekHSI` is the library for you. With its low latency, high speed, and
@@ -84,12 +87,12 @@ pip install tekhsi
 
 See the full documentation at <https://TekHSI.readthedocs.io>, or in this repository:
 
-- [FastFrame demo guide](docs/DEMO_README.md)
-- [HSI diagnostic report (2026-07-24)](docs/HSI_DIAGNOSTIC_REPORT_20260724.md)
-- [Scripts usage](scripts/README.md)
-- [Basic usage](docs/basic_usage.md)
-- [EUCRA secure connections](docs/EUCRA_USAGE.md)
-- [Changelog](docs/CHANGELOG.md)
+- [FastFrame guide](https://github.com/tektronix/TekHSI/blob/main/docs/DEMO_README.md)
+- [HSI diagnostic report (2026-07-24)](https://github.com/tektronix/TekHSI/blob/main/docs/HSI_DIAGNOSTIC_REPORT_20260724.md)
+- [Scripts usage](https://github.com/tektronix/TekHSI/blob/main/scripts/README.md)
+- [Basic usage](https://github.com/tektronix/TekHSI/blob/main/docs/basic_usage.md)
+- [EUCRA secure connections](https://github.com/tektronix/TekHSI/blob/main/docs/EUCRA_USAGE.md)
+- [Changelog](https://github.com/tektronix/TekHSI/blob/main/docs/CHANGELOG.md)
 
 ## Maintainers
 

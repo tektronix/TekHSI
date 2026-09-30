@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import time
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,7 +45,7 @@ def main() -> int:
         credential_store=TekHSICredentialStore(path=store_path),
         timeout=15.0,
     ) as conn:
-        print(f"connected in {(time.perf_counter()-t0)*1000:.0f} ms", flush=True)
+        print(f"connected in {(time.perf_counter() - t0) * 1000:.0f} ms", flush=True)
         print(f"available_symbols={conn.available_symbols}", flush=True)
         with conn.access_stopped_data():
             header = conn._read_header(channel)

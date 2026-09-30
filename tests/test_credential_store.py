@@ -5,15 +5,16 @@ from __future__ import annotations
 import os
 import stat
 import sys
+
 from pathlib import Path
 
 import pytest
 
 from tekhsi.credential_store import (
-    CertInfo,
-    TekHSICredentialStore,
     _obscure_password,
     _reveal_password,
+    CertInfo,
+    TekHSICredentialStore,
 )
 
 

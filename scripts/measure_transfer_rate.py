@@ -9,6 +9,7 @@ import os
 import statistics
 import sys
 import tempfile
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,7 +17,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from tekhsi import TekHSIConnect, WaveformTransferTiming
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.helpers.logging import LoggingLevels, configure_logging
+from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tm_data_types import Waveform
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+
 from pathlib import Path
 from typing import Any
 
@@ -25,12 +26,18 @@ def trust(host: str, cert_info: Any, auth_required: bool = False) -> bool:
 def main() -> int:
     url = sys.argv[1] if len(sys.argv) > 1 else "169.254.6.254:5000"
     channel = sys.argv[2] if len(sys.argv) > 2 else "ch1"
-    store = TekHSICredentialStore(path=str(Path(tempfile.gettempdir()) / "tekhsi_probe_credentials.ini"))
+    store = TekHSICredentialStore(
+        path=str(Path(tempfile.gettempdir()) / "tekhsi_probe_credentials.ini")
+    )
 
     print(f"Connecting to {url} ...", flush=True)
-    with TekHSIConnect(url, activesymbols=[channel], on_trust_prompt=trust, credential_store=store) as conn:
-        with conn.access_stopped_data():
-            wfm = conn.get_data(channel)
+    with (
+        TekHSIConnect(
+            url, activesymbols=[channel], on_trust_prompt=trust, credential_store=store
+        ) as conn,
+        conn.access_stopped_data(),
+    ):
+        wfm = conn.get_data(channel)
 
     if not isinstance(wfm, FastFrameAnalogWaveform):
         print(f"Not FastFrame: {type(wfm).__name__}")
@@ -54,7 +61,9 @@ def main() -> int:
     print(f"samples_per_frame (header): {wfm.record_length}")
     print(f"data frames: {data_count}, average frame index: {avg_index}, total: {wfm.num_frames}")
     print(f"average frame length: {len(avg_array)}")
-    print(f"data frame lengths: min={min(len(a) for a in data_arrays)} max={max(len(a) for a in data_arrays)}")
+    print(
+        f"data frame lengths: min={min(len(a) for a in data_arrays)} max={max(len(a) for a in data_arrays)}"
+    )
 
     # If all frames share length, compute mean of data frames and compare to last frame.
     lengths = {len(a) for a in data_arrays}
@@ -75,16 +84,24 @@ def main() -> int:
 
         # Heuristic thresholds on raw ADC codes
         if max_abs_diff < 1.0 and corr > 0.9999:
-            print("\nRESULT: Last frame matches the average of data frames (High Res average confirmed).")
+            print(
+                "\nRESULT: Last frame matches the average of data frames (High Res average confirmed)."
+            )
             return 0
         if corr > 0.99 and rms_diff < max(1.0, 0.01 * float(np.std(last))):
-            print("\nRESULT: Last frame is very close to the mean of data frames (likely High Res average).")
+            print(
+                "\nRESULT: Last frame is very close to the mean of data frames (likely High Res average)."
+            )
             return 0
         print("\nRESULT: Last frame does NOT match the mean of data frames.")
-        print("  (Either High Res average is computed differently, or last frame is not an average.)")
+        print(
+            "  (Either High Res average is computed differently, or last frame is not an average.)"
+        )
         return 2
 
-    print("\nRESULT: Data and average frames have different lengths; cannot compare sample-by-sample.")
+    print(
+        "\nRESULT: Data and average frames have different lengths; cannot compare sample-by-sample."
+    )
     print("  Inspect lengths above to see how the scope structured the capture.")
     return 3
 

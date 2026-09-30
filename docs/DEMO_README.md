@@ -1,43 +1,44 @@
-# TekHSI Demo — FastFrame + tm_data_types 0.3.0
+# TekHSI FastFrame Guide
 
-This is a **demo build** of TekHSI (v1.2.0) paired with **tm_data_types 0.3.0**. It adds
-**FastFrame** support on top of the v2 TekHSI protocol (`normalizedvector.proto`), using the
-`FastFrameAnalogWaveform` type from `tm_data_types` instead of a local duplicate.
+`TekHSI` includes **FastFrame** support on top of the v2 TekHSI protocol (`normalizedvector.proto`),
+using the `FastFrameAnalogWaveform` / `FastFrameDigitalWaveform` types from `tm_data_types`
+(`~=0.4.0`, see [`pyproject.toml`](https://github.com/tektronix/TekHSI/blob/main/pyproject.toml)).
 
-Use this guide when installing the FastFrame demo build from a local wheel rather than PyPI.
+This feature is part of the standard `tekhsi` package — no separate wheel or demo build is
+required; a normal `pip install tekhsi` (or upgrade) is sufficient. See the
+[CHANGELOG](https://github.com/tektronix/TekHSI/blob/main/docs/CHANGELOG.md) for the release this
+first shipped in.
 
-## What's new in this demo
+## What's included
 
-| Feature | Description |
-| -------- | ------------ |
-| **FastFrame reads** | Multi-frame analog → `FastFrameAnalogWaveform`; digital → `FastFrameDigitalWaveform` |
-| **Stopped-scope access** | `access_stopped_data()` handles `force_sequence()` + `AnyAcq` for stopped FastFrame captures |
-| **Raw digitizer access** | `frame_data(index)` returns raw ADC codes; `frame_array(index)` returns normalized volts |
-| **Summary frame** | High Res FastFrame captures include an average/summary frame at `summary_frame_index` |
-| **Load timing** | `waveform.load_timing` reports transfer and publish time (TekHSI-specific instrumentation) |
-| **tm_data_types 0.3.0** | Shared waveform types across TekHSI, tm_devices, and file I/O |
+| Feature                   | Description                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| **FastFrame reads**       | Multi-frame analog → `FastFrameAnalogWaveform`; digital → `FastFrameDigitalWaveform`         |
+| **Stopped-scope access**  | `access_stopped_data()` handles `force_sequence()` + `AnyAcq` for stopped FastFrame captures |
+| **Raw digitizer access**  | `frame_data(index)` returns raw ADC codes; `frame_array(index)` returns normalized volts     |
+| **Summary frame**         | High Res FastFrame captures include an average/summary frame at `summary_frame_index`        |
+| **Load timing**           | `waveform.load_timing` reports transfer and publish time (TekHSI-specific instrumentation)   |
+| **tm_data_types ~=0.4.0** | Shared waveform types across TekHSI, tm_devices, and file I/O                                |
 
 ## Requirements
 
 - 64-bit Python 3.10–3.13
 - A Tektronix scope with TekHSI enabled (4/5/6 Series MSO family)
-- For TLS-enabled scopes: a trust callback or credential store (see FastFrame example below)
+- For TLS-enabled scopes: a trust callback or credential store (see FastFrame example below, and
+    [`EUCRA_USAGE.md`](EUCRA_USAGE.md) for the full security guide)
 
 ## Installation
 
-Install the bundled `tm_data_types` wheel from this repository root, then build and install TekHSI:
+```shell
+pip install tekhsi
+```
+
+Or, to build and install from a local checkout:
 
 ```shell
-pip install tm_data_types-0.3.0-py3-none-any.whl
 python -m pip install build
 python -m build --wheel --outdir dist
 pip install dist/tekhsi-*.whl
-```
-
-Or from PyPI if the updated 0.3.0 release is published:
-
-```shell
-pip install "tm_data_types==0.3.0"
 ```
 
 Verify:
@@ -48,7 +49,7 @@ python -c "from tekhsi import FastFrameAnalogWaveform, TekHSIConnect; print('ok'
 
 ## Quick start — read one channel
 
-From [`examples/analog_waveform_usage.py`](examples/analog_waveform_usage.py):
+From [`examples/analog_waveform_usage.py`](https://github.com/tektronix/TekHSI/blob/main/examples/analog_waveform_usage.py):
 
 ```python
 import matplotlib.pyplot as plt
@@ -71,7 +72,7 @@ with TekHSIConnect("192.168.0.1:5000") as connection:
 
 ## Examples from `examples/`
 
-The [`examples/`](examples/) folder contains runnable scripts. Set your scope IP before running.
+The [`examples/`](https://github.com/tektronix/TekHSI/tree/main/examples) folder contains runnable scripts. Set your scope IP before running.
 
 ### Save repeated acquisitions — `simple_single_hs.py`
 
@@ -132,6 +133,7 @@ Only accept acquisitions when horizontal or vertical scale changes:
 from tm_data_types import AnalogWaveform, write_file
 from tekhsi import TekHSIConnect, WaveformHeader
 
+
 def custom_filter(
     previous_header: dict[str, WaveformHeader],
     current_header: dict[str, WaveformHeader],
@@ -146,6 +148,7 @@ def custom_filter(
         ):
             return True
     return False
+
 
 with TekHSIConnect("192.168.0.1:5000", ["ch1"]) as connect:
     connect.set_acq_filter(custom_filter)
@@ -317,7 +320,7 @@ with TekHSIConnect(
         print(f"get_frame(ch1, 3): {len(frame3.normalized_vertical_values)} samples")
 ```
 
-Full script: [`examples/fastframe_usage.py`](examples/fastframe_usage.py)
+Full script: [`examples/fastframe_usage.py`](https://github.com/tektronix/TekHSI/blob/main/examples/fastframe_usage.py)
 
 Probe script (prints timing and optional per-frame listing):
 
@@ -328,35 +331,38 @@ python scripts/read_channels.py ch1 ref1
 
 ### FastFrame API notes
 
-| Method / property | Purpose |
-| ----------------- | ------- |
-| `frame_data(i)` | Raw digitizer sample array for frame `i` |
-| `frame_array(i)` | Normalized vertical values (volts) for frame `i` |
-| `frame(i)` | `AnalogWaveform` view of frame `i` |
-| `get_summary_frame()` | Summary/average frame as `AnalogWaveform` |
+| Method / property     | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `frame_data(i)`       | Raw digitizer sample array for frame `i`                      |
+| `frame_array(i)`      | Normalized vertical values (volts) for frame `i`              |
+| `frame(i)`            | `AnalogWaveform` view of frame `i`                            |
+| `get_summary_frame()` | Summary/average frame as `AnalogWaveform`                     |
 | `summary_frame_index` | Index of the High Res average frame (last frame when present) |
-| `data_frame_count` | Number of individual acquisition frames (excludes summary) |
-| `all_frames_loaded` | Always `True` after TekHSI read completes |
-| `load_timing` | TekHSI transfer/publish timing (`FastFrameLoadTiming`) |
+| `data_frame_count`    | Number of individual acquisition frames (excludes summary)    |
+| `all_frames_loaded`   | Always `True` after TekHSI read completes                     |
+| `load_timing`         | TekHSI transfer/publish timing (`FastFrameLoadTiming`)        |
 
 ## Helper scripts
 
-| Script | Purpose |
-| ------ | ------- |
-| [`scripts/probe_fastframe.py`](scripts/probe_fastframe.py) | Connect, read one channel, print FastFrame metadata and load timing |
-| [`scripts/read_channels.py`](scripts/read_channels.py) | Read multiple stopped channels (e.g. `ch1 ref1`) |
-| [`scripts/confirm_average_frame.py`](scripts/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames |
+| Script                                                                                                               | Purpose                                                             |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`scripts/probe_fastframe.py`](https://github.com/tektronix/TekHSI/blob/main/scripts/probe_fastframe.py)             | Connect, read one channel, print FastFrame metadata and load timing |
+| [`scripts/read_channels.py`](https://github.com/tektronix/TekHSI/blob/main/scripts/read_channels.py)                 | Read multiple stopped channels (e.g. `ch1 ref1`)                    |
+| [`scripts/confirm_average_frame.py`](https://github.com/tektronix/TekHSI/blob/main/scripts/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames            |
 
-## Version pin
+## Version compatibility
 
-This demo intentionally pins:
+`TekHSI` currently requires:
 
 ```
-tm_data_types==0.3.0
-TekHSI==1.2.0
+tm_data_types~=0.4.0
 ```
 
-Do not mix with PyPI `tm_data_types~=0.4.x` — the FastFrame types differ between versions.
+(see [`pyproject.toml`](https://github.com/tektronix/TekHSI/blob/main/pyproject.toml) for the
+exact, up-to-date constraint). Do not mix with an older `tm_data_types==0.3.x` install — the
+FastFrame types (notably `FastFrameDigitalWaveform` and `FrameTimingInfo.is_summary_frame`) differ
+between versions; see
+[`tm_data_types_update_spec.md`](tm_data_types_update_spec.md) for the full migration history.
 
 ## License
 

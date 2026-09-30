@@ -1,7 +1,16 @@
 # tm_data_types Update Specification — FastFrame + TekHSI v2
 
-**Status:** Implemented in `tm_data_types` 0.3.0 (updated wheel bundled at repo root)  
-**Baseline:** `tm_data_types==0.3.0` with `FastFrameDigitalWaveform`, `FrameTimingInfo.is_summary_frame`, and `digital_bitmask`  
+> **✅ Implementation status: shipped.** Everything proposed in this spec (P0–P1: `FastFrameDigitalWaveform`,
+> `FrameTimingInfo.is_summary_frame`, first-class `digital_bitmask`, and the `tekhsi.wfm_digital`
+> read/write helpers) has been implemented and is live in this repository. `pyproject.toml` now
+> pins `tm_data_types~=0.4.0`, `tekhsi/__init__.py` exports `FastFrameDigitalWaveform` and
+> `FrameTimingInfo` directly from `tm_data_types`, and `tekhsi/wfm_digital.py` implements the
+> tekmeta round-tripping described in §4.5. The sections below are kept as the original design
+> record; treat any "proposed" / "target" / "when released" language as historical — the P2
+> (`waveform_kind`) and P3 items are the only pieces that remain optional/future work (see §11).
+
+**Status:** Implemented in `tm_data_types` 0.3.0 (updated wheel bundled at repo root)
+**Baseline:** `tm_data_types==0.3.0` with `FastFrameDigitalWaveform`, `FrameTimingInfo.is_summary_frame`, and `digital_bitmask`
 **Driver:** TekHSI client in [TekHSI_FastFrame_Proto](https://github.com/TEK-Product-AI-Sandbox/TekHSI_FastFrame_Proto) with v2 `normalizedvector.proto` and live-scope validation
 
 ---
@@ -18,11 +27,11 @@ TekHSI v2 FastFrame reads work with `tm_data_types` 0.3.0, but **digital FastFra
 
 ### 2.1 What works today (0.3.0)
 
-| Source (TekHSI) | Returned type | Correct? |
-|-----------------|---------------|------------|
-| Single-frame analog (`wfmtype` 1–3) | `AnalogWaveform` | Yes |
-| Single-frame digital (`wfmtype` 4–5) | `DigitalWaveform` | Yes |
-| FastFrame analog (`num_frames > 1`) | `FastFrameAnalogWaveform` | Yes |
+| Source (TekHSI)                      | Returned type                                                      | Correct?                   |
+| ------------------------------------ | ------------------------------------------------------------------ | -------------------------- |
+| Single-frame analog (`wfmtype` 1–3)  | `AnalogWaveform`                                                   | Yes                        |
+| Single-frame digital (`wfmtype` 4–5) | `DigitalWaveform`                                                  | Yes                        |
+| FastFrame analog (`num_frames > 1`)  | `FastFrameAnalogWaveform`                                          | Yes                        |
 | FastFrame digital (`chN_DAll`, etc.) | `FastFrameAnalogWaveform` + **`digital_bitmask`** (monkey-patched) | **Functional, wrong type** |
 
 Live scope validation (MSO, TekHSI v2):
@@ -35,9 +44,9 @@ Live scope validation (MSO, TekHSI v2):
 ```python
 wfm = connection.get_data("ch2_dall")
 
-isinstance(wfm, DigitalWaveform)   # False — isinstance(..., AnalogWaveform) is True
-wfm.get_nth_bitstream(0)           # AttributeError
-getattr(wfm, "digital_bitmask")    # Works only because TekHSI sets it ad hoc
+isinstance(wfm, DigitalWaveform)  # False — isinstance(..., AnalogWaveform) is True
+wfm.get_nth_bitstream(0)  # AttributeError
+getattr(wfm, "digital_bitmask")  # Works only because TekHSI sets it ad hoc
 ```
 
 Documentation and examples (`digital_waveform_usage.py`) assume `DigitalWaveform` for digital bus data. FastFrame digital breaks that contract.
@@ -85,19 +94,19 @@ class FastFrameDigitalWaveform(DigitalWaveform):
 
 **Mirror `FastFrameAnalogWaveform` surface** where applicable:
 
-| Member | Semantics |
-|--------|-----------|
-| `create_fastframe(frame_count, record_length, dtype=np.int8, **kwargs)` | Class method; pre-allocate frame storage |
-| `fill_frame(index, data)` | Copy raw byte/int sample array into frame `index` |
-| `frame_data(index)` | Raw samples for frame without changing current frame |
-| `frame(index) -> DigitalWaveform` | Single-frame **digital** view (`y_axis_byte_values`, `get_nth_bitstream`) |
-| `frames(include_summary=False)` | Iterator of `(index, DigitalWaveform)` |
-| `num_frames`, `current_frame_index`, `all_frames_loaded` | Same as analog FastFrame |
-| `frame_info: list[FrameTimingInfo]` | Per-frame timing |
-| `summary_frame_type`, `summary_frame_index`, `data_frame_count` | Same semantics as analog (updated per §4.2) |
-| `is_summary_frame(index)` | Uses per-frame flags when available (§4.2) |
-| `load_timing` | Optional opaque timing object (TekHSI sets `FastFrameLoadTiming`) |
-| `digital_bitmask: int` | From proto `WaveformHeader.bitmask`; which digital lines are active |
+| Member                                                                  | Semantics                                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `create_fastframe(frame_count, record_length, dtype=np.int8, **kwargs)` | Class method; pre-allocate frame storage                                  |
+| `fill_frame(index, data)`                                               | Copy raw byte/int sample array into frame `index`                         |
+| `frame_data(index)`                                                     | Raw samples for frame without changing current frame                      |
+| `frame(index) -> DigitalWaveform`                                       | Single-frame **digital** view (`y_axis_byte_values`, `get_nth_bitstream`) |
+| `frames(include_summary=False)`                                         | Iterator of `(index, DigitalWaveform)`                                    |
+| `num_frames`, `current_frame_index`, `all_frames_loaded`                | Same as analog FastFrame                                                  |
+| `frame_info: list[FrameTimingInfo]`                                     | Per-frame timing                                                          |
+| `summary_frame_type`, `summary_frame_index`, `data_frame_count`         | Same semantics as analog (updated per §4.2)                               |
+| `is_summary_frame(index)`                                               | Uses per-frame flags when available (§4.2)                                |
+| `load_timing`                                                           | Optional opaque timing object (TekHSI sets `FastFrameLoadTiming`)         |
+| `digital_bitmask: int`                                                  | From proto `WaveformHeader.bitmask`; which digital lines are active       |
 
 **Frame view construction:** `_build_frame_view(index)` wraps backing bytes in `DigitalWaveform` with `y_axis_byte_values` set from the frame buffer (not `y_axis_values`).
 
@@ -120,7 +129,7 @@ class FrameTimingInfo:
     fract_sec: float
     real_point_offset: int
     frame_duration_sec: float
-    is_summary_frame: bool = False   # NEW — default False for WFM / legacy paths
+    is_summary_frame: bool = False  # NEW — default False for WFM / legacy paths
 ```
 
 **Update summary logic on both FastFrame classes:**
@@ -130,10 +139,11 @@ class FrameTimingInfo:
 def summary_frame_index(self) -> int | None:
     flagged = [info.frame_index for info in self.frame_info if info.is_summary_frame]
     if flagged:
-        return flagged[0]   # or document rule if multiple allowed
+        return flagged[0]  # or document rule if multiple allowed
     if self.summary_frame_type == SummaryFrameType.SUMMARY_FRAME_OFF:
         return None
-    return self.num_frames - 1   # legacy WFM fallback
+    return self.num_frames - 1  # legacy WFM fallback
+
 
 def is_summary_frame(self, index: int) -> bool:
     for info in self.frame_info:
@@ -162,9 +172,9 @@ When **no** frame has `is_summary_frame=True`, `summary_frame_index` must be **`
 
 ### 4.3 P1 — First-class `digital_bitmask` on digital types (recommended)
 
-| Type | Field |
-|------|-------|
-| `DigitalWaveform` | `digital_bitmask: int = 0` |
+| Type                       | Field                                                    |
+| -------------------------- | -------------------------------------------------------- |
+| `DigitalWaveform`          | `digital_bitmask: int = 0`                               |
 | `FastFrameDigitalWaveform` | `digital_bitmask: int = 0` (required at FastFrame level) |
 
 Populate from TekHSI `WaveformHeader.bitmask`. Document: bit *n* set ⇒ line *n* present in the packed byte stream (scope convention).
@@ -179,8 +189,7 @@ Add read-only property on `Waveform` base (or shared mixin):
 
 ```python
 @property
-def waveform_kind(self) -> Literal["analog", "digital", "iq"]:
-    ...
+def waveform_kind(self) -> Literal["analog", "digital", "iq"]: ...
 ```
 
 Implementation: class-based dispatch (`DigitalWaveform` → `"digital"`, etc.). Helps generic plotting / file routing without `isinstance` chains.
@@ -192,10 +201,10 @@ Implementation: class-based dispatch (`DigitalWaveform` → `"digital"`, etc.). 
 0.3.0 reads and writes `FastFrameDigitalWaveform` curve data. **`digital_bitmask` is not
 part of the native WFM header** — persist it in tekmeta instead:
 
-| tekmeta key | Type | Purpose |
-|-------------|------|---------|
-| `digital_bitmask` | int (extended metadata) | Integer bitmask from TekHSI `WaveformHeader.bitmask` |
-| `d0`–`d7` | string | Mirror of active digital lines (`0x01` / `0x00`) for scope/ref compatibility |
+| tekmeta key       | Type                    | Purpose                                                                      |
+| ----------------- | ----------------------- | ---------------------------------------------------------------------------- |
+| `digital_bitmask` | int (extended metadata) | Integer bitmask from TekHSI `WaveformHeader.bitmask`                         |
+| `d0`–`d7`         | string                  | Mirror of active digital lines (`0x01` / `0x00`) for scope/ref compatibility |
 
 TekHSI provides helpers in `tekhsi.wfm_digital`:
 
@@ -296,12 +305,12 @@ match wfm.waveform_kind:
 
 ## 9. Migration notes
 
-| Consumer | Action |
-|----------|--------|
-| TekHSI demo repo | Bump pin to `0.4.0`, use `FastFrameDigitalWaveform` in digital FastFrame path |
-| Code checking `FastFrameAnalogWaveform` only | Also handle `FastFrameDigitalWaveform` or use `waveform_kind` |
-| Code using `digital_bitmask` hack | Switch to `FastFrameDigitalWaveform.digital_bitmask` |
-| WFM-only workflows | No change until P3 |
+| Consumer                                     | Action                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| TekHSI (this repo)                           | ✅ Done — pin bumped to `~=0.4.0`, `FastFrameDigitalWaveform` used in the digital FastFrame path |
+| Code checking `FastFrameAnalogWaveform` only | Also handle `FastFrameDigitalWaveform` or use `waveform_kind`                                    |
+| Code using `digital_bitmask` hack            | Switch to `FastFrameDigitalWaveform.digital_bitmask`                                             |
+| WFM-only workflows                           | No change until P3                                                                               |
 
 ---
 

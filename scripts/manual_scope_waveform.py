@@ -24,20 +24,20 @@ import statistics
 import sys
 import time
 import traceback
+
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, UTC
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from tm_data_types import AnalogWaveform, Waveform
-
-from tekhsi import AcqWaitOn, TekHSICredentials, TekHSIConnect
+from tekhsi import AcqWaitOn, TekHSIConnect, TekHSICredentials
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _parse_host_port,
     _tls_channel_options,
 )
+from tm_data_types import AnalogWaveform, Waveform
 
 DEFAULT_SCOPE_URL = "169.254.6.254:5000"
 DEFAULT_PASSWORD = "tek"
@@ -118,7 +118,9 @@ class ConnectTracker:
             result = tracker._orig_plain(url, deadline)
             if result is not None:
                 tracker.plaintext_probe_succeeded = True
-                tracker.events.append("Plaintext probe succeeded - using insecure channel (Mode 1).")
+                tracker.events.append(
+                    "Plaintext probe succeeded - using insecure channel (Mode 1)."
+                )
             else:
                 tracker.events.append("Plaintext probe failed - continuing with TLS negotiation.")
             return result
@@ -193,22 +195,24 @@ def build_connection_summary(
                     "- TLS credentials were not used this connect."
                 )
             elif tracker.store_had_password_before:
-                narrative.append("Stored password was present - built TLS + HTTP Basic credentials.")
+                narrative.append(
+                    "Stored password was present - built TLS + HTTP Basic credentials."
+                )
             elif tracker.store_had_cert_before:
                 narrative.append("Stored certificate was present - built TLS-only credentials.")
         else:
-            narrative.append("No usable store entry before connect - fetched live server certificate (TOFU).")
+            narrative.append(
+                "No usable store entry before connect - fetched live server certificate (TOFU)."
+            )
 
         for ev in tracker.trust_events:
             if ev["auth_required"]:
                 narrative.append(
-                    "Trust callback invoked with auth_required=True "
-                    f"-> returned {ev['response']}."
+                    f"Trust callback invoked with auth_required=True -> returned {ev['response']}."
                 )
             else:
                 narrative.append(
-                    "Trust callback invoked for first-time trust "
-                    f"-> returned {ev['response']}."
+                    f"Trust callback invoked for first-time trust -> returned {ev['response']}."
                 )
 
         for event in tracker.events:
@@ -268,7 +272,9 @@ def build_connection_summary(
     elif tracker.store_had_entry_before:
         trust_source = "Reused trusted cert from credential store (no TOFU prompt)"
     elif tracker.trust_events:
-        trust_source = f"Trust established via on_trust_prompt ({len(tracker.trust_events)} call(s))"
+        trust_source = (
+            f"Trust established via on_trust_prompt ({len(tracker.trust_events)} call(s))"
+        )
     elif not sec_kw:
         trust_source = "No certificate trust (plaintext legacy path)"
     else:
@@ -287,21 +293,13 @@ def build_connection_summary(
             "(extra Connect/Disconnect round-trip, then TLS + auth overhead)"
         )
     if tracker.store_had_entry_before and not using_plaintext:
-        impact.append(
-            "Warm credential store - skipped TOFU cert fetch and trust prompt"
-        )
+        impact.append("Warm credential store - skipped TOFU cert fetch and trust prompt")
     elif tracker.store_had_entry_before and using_plaintext:
-        impact.append(
-            "Warm store available but unused for transport this connect (plaintext won)"
-        )
+        impact.append("Warm store available but unused for transport this connect (plaintext won)")
     elif not tracker.store_had_entry_before and sec_kw:
-        impact.append(
-            "Cold connect - live cert fetch (TOFU) and trust prompt add one-time latency"
-        )
+        impact.append("Cold connect - live cert fetch (TOFU) and trust prompt add one-time latency")
     elif not sec_kw:
-        impact.append(
-            "Legacy path - direct grpc.insecure_channel, no store, no probe, no certs"
-        )
+        impact.append("Legacy path - direct grpc.insecure_channel, no store, no probe, no certs")
     if tracker.auth_upgraded:
         impact.append(
             "Connect returned UNAUTHENTICATED once - password prompt + channel rebuild "
@@ -575,7 +573,11 @@ def scenario_connect_kwargs(
         }
 
     if scenario == "second-connect":
-        return {"on_trust_prompt": prompt, "credential_store": store} if store else {"on_trust_prompt": prompt}
+        return (
+            {"on_trust_prompt": prompt, "credential_store": store}
+            if store
+            else {"on_trust_prompt": prompt}
+        )
 
     msg = f"Unknown scenario: {scenario}"
     raise ValueError(msg)
@@ -603,7 +605,7 @@ def run_step(report: RunReport, name: str, func: Any) -> Any:
         report.add(StepRecord(name, StepStatus.OK, detail="success", elapsed_s=elapsed))
         print(f"  OK ({elapsed:.2f}s)")
         return result
-    except Exception as exc:  # noqa: BLE001 — manual harness captures all failures
+    except Exception as exc:
         elapsed = time.perf_counter() - t0
         detail = f"{type(exc).__name__}: {exc}"
         report.add(StepRecord(name, StepStatus.FAIL, detail=detail, elapsed_s=elapsed))
@@ -786,9 +788,7 @@ def run_scenario(
         require_tls=scenario == "require-tls",
         tracker=tracker,
     )
-    store_for_snapshot = (
-        TekHSICredentialStore(path=str(store_path)) if store_path else None
-    )
+    store_for_snapshot = TekHSICredentialStore(path=str(store_path)) if store_path else None
     if store_for_snapshot is None and sec_kw.get("credential_store") is not None:
         store_for_snapshot = sec_kw["credential_store"]
     if store_for_snapshot is None and scenario in {
@@ -823,7 +823,9 @@ def run_scenario(
         if scenario == "second-connect":
             c1 = connect_once("connect_first")
             run_step(report, "list_symbols_first", lambda: list(c1.activesymbols))
-            run_step(report, "waveform_first", lambda: summarize_waveform(pull_waveform(c1, channel)))
+            run_step(
+                report, "waveform_first", lambda: summarize_waveform(pull_waveform(c1, channel))
+            )
             c1.close()
             report.add(StepRecord("close_first", StepStatus.OK, "closed first connection"))
             connect = connect_once("connect_second")
@@ -866,7 +868,7 @@ def run_scenario(
         if connect is not None:
             try:
                 connect.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 report.add(
                     StepRecord(
                         "close",
@@ -915,14 +917,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=int(__import__("os").environ.get("TEKHSI_SCOPE_PULLS", str(DEFAULT_PULLS))),
         help=f"Number of waveform pulls to average (default: {DEFAULT_PULLS})",
     )
-    parser.add_argument("--password", default=DEFAULT_PASSWORD, help="Mode 3 password (default: tek)")
-    parser.add_argument("--login", default=DEFAULT_LOGIN, help="Basic auth username (default: tektronix)")
+    parser.add_argument(
+        "--password", default=DEFAULT_PASSWORD, help="Mode 3 password (default: tek)"
+    )
+    parser.add_argument(
+        "--login", default=DEFAULT_LOGIN, help="Basic auth username (default: tektronix)"
+    )
     parser.add_argument(
         "--store-path",
         type=Path,
         help="Isolated credentials.ini path (recommended for tls-store/token-store/auto-isolated-store)",
     )
-    parser.add_argument("--timeout", type=float, default=15.0, help="Security negotiation timeout (seconds)")
+    parser.add_argument(
+        "--timeout", type=float, default=15.0, help="Security negotiation timeout (seconds)"
+    )
     parser.add_argument(
         "--log-dir",
         type=Path,
@@ -942,8 +950,16 @@ def main(argv: list[str] | None = None) -> int:
         for name, desc in sorted(SCENARIOS.items()):
             print(f"  {name:22}  {desc}")
         print("\nSuggested manual sweep (adjust --url if needed):")
-        for name in ("legacy", "auto-isolated-store", "require-tls", "token-store", "second-connect"):
-            print(f"  python scripts/manual_scope_waveform.py --scenario {name} --store-path %TEMP%\\tekhsi_manual.ini")
+        for name in (
+            "legacy",
+            "auto-isolated-store",
+            "require-tls",
+            "token-store",
+            "second-connect",
+        ):
+            print(
+                f"  python scripts/manual_scope_waveform.py --scenario {name} --store-path %TEMP%\\tekhsi_manual.ini"
+            )
         return 0
 
     try:

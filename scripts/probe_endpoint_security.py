@@ -11,7 +11,7 @@ import grpc
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _build_creds_from_entry,
     _fetch_server_cert,
     _parse_host_port,
@@ -52,7 +52,7 @@ def main() -> int:
         print("Plaintext gRPC:     AVAILABLE (Connect/Disconnect probe succeeded)")
         try:
             plain.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
     else:
         print("Plaintext gRPC:     NOT AVAILABLE (probe failed or timed out)")
@@ -67,7 +67,7 @@ def main() -> int:
     except OSError as e:
         print(f"TLS handshake:      NOT AVAILABLE ({e})")
         cert = None
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         print(f"TLS handshake:      NOT AVAILABLE ({type(e).__name__}: {e})")
         cert = None
 
@@ -82,8 +82,8 @@ def main() -> int:
             "password": None,
         }
         pem_path = None
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".pem", delete=False) as tmp:
             tmp.write(cert.cert_pem or b"")
@@ -109,7 +109,7 @@ def main() -> int:
     store = TekHSICredentialStore()
     entry = store.get(url)
     if entry and entry.get("cert_path"):
-        print(f"Credential store:   entry present ({store._path})")  # noqa: SLF001
+        print(f"Credential store:   entry present ({store._path})")
         mode = "token" if entry.get("password") else "tls"
         try:
             creds = _build_creds_from_entry(entry, mode)
@@ -119,7 +119,7 @@ def main() -> int:
             ch.close()
             label = "TLS + Basic auth" if mode == "token" else "TLS only (stored cert)"
             print(f"{label} Connect: {auth_connect}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"Stored-credentials Connect: FAILED ({type(e).__name__}: {e})")
     else:
         print("Credential store:   no entry for this host")

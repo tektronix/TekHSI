@@ -9,6 +9,7 @@ state when VISA is unavailable.
 from __future__ import annotations
 
 import time
+
 from typing import Any
 
 DEFAULT_VISA_TIMEOUT_MS = 120_000
@@ -47,7 +48,7 @@ def send_command(
                 print(f"  [VISA] Warning: unexpected *OPC? response '{opc}'")
         time.sleep(delay)
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Error sending '{command}': {exc}")
         return None
 
@@ -97,7 +98,7 @@ def setup_scope_via_visa(
         print(f"  [VISA] Connected to {visa_addr}")
         print(f"  [VISA] AFG ON at {afg_frequency / 1e6:.0f} MHz")
         return scope, rm
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Could not connect to {ip}: {exc}")
         return None, None
 
@@ -126,15 +127,12 @@ def configure_record_length(
         if response:
             actual = int(response.strip())
             if actual != record_length:
-                print(
-                    f"  [VISA] Note: scope clamped record length "
-                    f"{record_length:,} -> {actual:,}"
-                )
+                print(f"  [VISA] Note: scope clamped record length {record_length:,} -> {actual:,}")
             else:
                 print(f"  [VISA] Record length confirmed: {actual:,}")
             return actual
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Error configuring record length: {exc}")
         return None
 
@@ -162,15 +160,12 @@ def configure_fastframe(scope: Any, frame_count: int) -> int | None:
         if response:
             actual = int(response.strip())
             if actual != frame_count:
-                print(
-                    f"  [VISA] Note: scope clamped frame count "
-                    f"{frame_count} -> {actual}"
-                )
+                print(f"  [VISA] Note: scope clamped frame count {frame_count} -> {actual}")
             else:
                 print(f"  [VISA] FastFrame count confirmed: {actual}")
             return actual
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Error configuring FastFrame: {exc}")
         return None
 
@@ -190,7 +185,7 @@ def disable_fastframe(scope: Any) -> bool:
         send_command(scope, "HORIZONTAL:FASTFRAME:STATE OFF")
         print("  [VISA] FastFrame disabled.")
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Error disabling FastFrame: {exc}")
         return False
 
@@ -234,7 +229,7 @@ def wait_for_acquisition_complete(
         while time.monotonic() < deadline:
             try:
                 resp = scope.query("ACQuire:STATE?")
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 return False, f"ACQuire:STATE? error: {exc}"
             if resp is not None and resp.strip() == "0":
                 return True, ""
@@ -261,13 +256,12 @@ def close_visa(scope: Any, rm: Any) -> None:
         scope.close()
         rm.close()
         print("  [VISA] Connection closed.")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"  [VISA] Warning during close: {exc}")
+
 
 def arm_sequence_acquisition(scope: Any, acq_count: int) -> None:
     """Configure sequence acquisition and arm the scope."""
     # Replace this with the exact acquisition-count SCPI for your scope model.
     # send_command(scope, f"ACQUIRE:SEQUENCE:NUMSEQUENCE {acq_count}")
     send_command(scope, "ACQUIRE:STOPAfter SEQUENCE")
-
-

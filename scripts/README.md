@@ -29,10 +29,10 @@ often slower (warm-up); averages exclude that effect when `--iterations 10` is u
 [`fastframe_wfm_roundtrip.py`](fastframe_wfm_roundtrip.py) captures **ch1** (analog) and
 **ch2_dall** (digital), saves to `.wfm`, re-reads, and compares sample arrays.
 
-| Channel   | Capture shape        | Data round-trip | Notes |
-| --------- | -------------------- | --------------- | ----- |
-| ch1       | 100 × 5M samples     | **PASS**        | All 100 frames bit-accurate |
-| ch2_dall  | 100 × 5M samples     | **PASS**        | All 100 frames + bitstreams match; `digital_bitmask` restored via tekmeta |
+| Channel  | Capture shape    | Data round-trip | Notes                                                                     |
+| -------- | ---------------- | --------------- | ------------------------------------------------------------------------- |
+| ch1      | 100 × 5M samples | **PASS**        | All 100 frames bit-accurate                                               |
+| ch2_dall | 100 × 5M samples | **PASS**        | All 100 frames + bitstreams match; `digital_bitmask` restored via tekmeta |
 
 Saved files: `sample_waveforms/fastframe_roundtrip/CH1.wfm`, `CH2_DALL.wfm`.
 
@@ -44,10 +44,10 @@ not a native WFM header field.
 [`validate_scope_refs.py`](validate_scope_refs.py) compares scope refs loaded from the saved
 `.wfm` files against the on-disk originals.
 
-| Scope ref   | Source file    | Data compare | Status |
-| ----------- | -------------- | ------------ | ------ |
-| ref1        | CH1.wfm        | 100 frames match | **PASS** |
-| ref2_dall   | CH2_DALL.wfm   | —            | **FAIL** — header reports 100 frames / `hasdata=True`, but `GetWaveform` returns 0 bytes |
+| Scope ref | Source file  | Data compare     | Status                                                                                   |
+| --------- | ------------ | ---------------- | ---------------------------------------------------------------------------------------- |
+| ref1      | CH1.wfm      | 100 frames match | **PASS**                                                                                 |
+| ref2_dall | CH2_DALL.wfm | —                | **FAIL** — header reports 100 frames / `hasdata=True`, but `GetWaveform` returns 0 bytes |
 
 Analog FastFrame refs load and stream correctly. Digital FastFrame refs appear in
 `available_symbols` with a valid header but TekHSI cannot pull waveform bytes from the scope
@@ -105,19 +105,19 @@ stable averages on large captures.
 
 ### Output columns
 
-| Column | Meaning |
-| ------ | ------- |
-| **Run** | Iteration number, or `avg` for the mean row |
-| **Channel** | TekHSI symbol (for example `ch1`, `ch2_DAll`) |
-| **Kind** | Waveform type: `analog`, `digital`, or `iq` |
-| **FastFrame** | `yes` when `num_frames > 1`, else `no` |
-| **RecLen** | Samples per frame (record length) |
+| Column           | Meaning                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| **Run**          | Iteration number, or `avg` for the mean row                                         |
+| **Channel**      | TekHSI symbol (for example `ch1`, `ch2_DAll`)                                       |
+| **Kind**         | Waveform type: `analog`, `digital`, or `iq`                                         |
+| **FastFrame**    | `yes` when `num_frames > 1`, else `no`                                              |
+| **RecLen**       | Samples per frame (record length)                                                   |
 | **Bytes/Sample** | Raw bytes per sample from the waveform header (`sourcewidth`: typically 1, 2, or 4) |
-| **Frames** | Number of frames in the capture |
-| **RawBytes** | Total raw payload size: `RecLen × Bytes/Sample × Frames` |
-| **Transfer** | Time to receive the gRPC stream and assemble sample arrays (ms) |
-| **Publish** | Time to assign arrays into the waveform object (ms; non-zero for FastFrame) |
-| **Mbit/s** | Transfer throughput: `RawBytes × 8 / Transfer` (megabits per second) |
+| **Frames**       | Number of frames in the capture                                                     |
+| **RawBytes**     | Total raw payload size: `RecLen × Bytes/Sample × Frames`                            |
+| **Transfer**     | Time to receive the gRPC stream and assemble sample arrays (ms)                     |
+| **Publish**      | Time to assign arrays into the waveform object (ms; non-zero for FastFrame)         |
+| **Mbit/s**       | Transfer throughput: `RawBytes × 8 / Transfer` (megabits per second)                |
 
 ### Example output
 
@@ -137,19 +137,19 @@ avg  ch2          digital  yes       1000000  1            100     100000000   8
 ### Notes
 
 - **Scope settings drive the numbers.** Record length, FastFrame frame count, and byte width come
-  from the stopped capture on the instrument, not from script arguments.
+    from the stopped capture on the instrument, not from script arguments.
 - **Small payloads under-report throughput.** Fixed gRPC and framing overhead dominates at low
-  `RawBytes`, so Mbit/s will be much lower than on multi-megabyte transfers.
+    `RawBytes`, so Mbit/s will be much lower than on multi-megabyte transfers.
 - **Logging is quiet by default.** TekHSI logs are suppressed to WARNING so the table stays clean.
-  Use [`read_channels.py`](read_channels.py) with `verbose=True` if you need connection and
-  protocol details.
+    Use [`read_channels.py`](read_channels.py) with `verbose=True` if you need connection and
+    protocol details.
 
 ### Related scripts
 
-| Script | Purpose |
-| ------ | ------- |
-| [`read_channels.py`](read_channels.py) | Read and describe waveforms (type, frames, `load_timing`) |
-| [`fastframe_wfm_roundtrip.py`](fastframe_wfm_roundtrip.py) | Capture → save `.wfm` → read-back comparison |
-| [`validate_scope_refs.py`](validate_scope_refs.py) | Compare scope refs to saved `.wfm` files |
-| [`probe_fastframe.py`](probe_fastframe.py) | FastFrame header and frame probe |
-| [`manual_scope_waveform.py`](manual_scope_waveform.py) | Interactive scope waveform tests (TLS scenarios) |
+| Script                                                     | Purpose                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------- |
+| [`read_channels.py`](read_channels.py)                     | Read and describe waveforms (type, frames, `load_timing`) |
+| [`fastframe_wfm_roundtrip.py`](fastframe_wfm_roundtrip.py) | Capture → save `.wfm` → read-back comparison              |
+| [`validate_scope_refs.py`](validate_scope_refs.py)         | Compare scope refs to saved `.wfm` files                  |
+| [`probe_fastframe.py`](probe_fastframe.py)                 | FastFrame header and frame probe                          |
+| [`manual_scope_waveform.py`](manual_scope_waveform.py)     | Interactive scope waveform tests (TLS scenarios)          |

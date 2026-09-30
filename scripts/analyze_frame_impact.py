@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
-import math
+
 from collections import defaultdict
 from pathlib import Path
 
@@ -61,7 +61,9 @@ def main() -> int:
     parser.add_argument(
         "csv",
         nargs="?",
-        default=Path(__file__).resolve().parent.parent / "results" / "hsi_transfer_sweep_20260724_092506.csv",
+        default=Path(__file__).resolve().parent.parent
+        / "results"
+        / "hsi_transfer_sweep_20260724_092506.csv",
         type=Path,
     )
     args = parser.parse_args()
@@ -92,7 +94,11 @@ def main() -> int:
     for total in sorted(by_total):
         pts = sorted(by_total[total], key=lambda r: r["num_frames"])
         low, high = pts[0], pts[-1]
-        drop = 100 * (low["transfer_rate_Mbps"] - high["transfer_rate_Mbps"]) / low["transfer_rate_Mbps"]
+        drop = (
+            100
+            * (low["transfer_rate_Mbps"] - high["transfer_rate_Mbps"])
+            / low["transfer_rate_Mbps"]
+        )
         print(
             f"{total:>12,}: {low['transfer_rate_Mbps']:>7.1f} Mbps @ {int(low['num_frames']):>5,} frames  ->  "
             f"{high['transfer_rate_Mbps']:>7.1f} Mbps @ {int(high['num_frames']):>5,} frames  "
@@ -118,13 +124,15 @@ def main() -> int:
     print("\n=== gRPC transfer only (same model) ===")
     Yg = [row["grpc_transfer_ms"] for row in rows]
     beta_g, r2_g = ols(X, Yg)
-    print(f"  a = {beta_g[0]:.4f} ms/Mbit -> {1000/beta_g[0]:.0f} Mbps wire rate")
-    print(f"  b = {beta_g[1]:.6f} ms/frame -> {beta_g[1]*1000:.1f} us/frame")
+    print(f"  a = {beta_g[0]:.4f} ms/Mbit -> {1000 / beta_g[0]:.0f} Mbps wire rate")
+    print(f"  b = {beta_g[1]:.6f} ms/frame -> {beta_g[1] * 1000:.1f} us/frame")
     print(f"  c = {beta_g[2]:.3f} ms")
     print(f"  R2 = {r2_g:.4f}")
 
     print("\n=== Rate model (derived) ===")
-    print("rate_Mbps = 8000 * total_samples / (a*8*total_samples/1e6 + b*num_frames + c) / 1e6 * 1000")
+    print(
+        "rate_Mbps = 8000 * total_samples / (a*8*total_samples/1e6 + b*num_frames + c) / 1e6 * 1000"
+    )
     print("          = payload_Mbit / (a*payload_Mbit + b*num_frames + c) * 1000")
     print("\nPredictions:")
     print(f"{'total':>12}  {'frames':>8}  {'meas Mbps':>10}  {'pred Mbps':>10}")

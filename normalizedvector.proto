@@ -30,7 +30,7 @@ enum ConnectStatus {
     CONNECTSTATUS_UNSPECIFIED = 0;                  // No status returned
     CONNECTSTATUS_SUCCESS = 1;                      // Request succeeded
     CONNECTSTATUS_NOT_CONNECTED_FAILURE = 2;        // Disconnected when not Connected
-    CONNECTSTATUS_OUTSIDE_SEQUENCE_FAILURE = 3;     // FinishedWithDataAccess when no WaitForDataAccess 
+    CONNECTSTATUS_OUTSIDE_SEQUENCE_FAILURE = 3;     // FinishedWithDataAccess when no WaitForDataAccess
     CONNECTSTATUS_TIMEOUT_FAILURE = 4;              // Timeout occurred before completion of action
     CONNECTSTATUS_INUSE_FAILURE = 5;                // Existing Connection (only one allowed at a time)
     CONNECTSTATUS_UNKNOWN_FAILURE = 6;              // Request failed but the failure mode is not known
@@ -55,7 +55,7 @@ service NormalizedData {
 }
 
 // Returns internal data (which is smaller)
-// However it comes in a byte stream that must be interpreted 
+// However it comes in a byte stream that must be interpreted
 // by the client based on the header definition.
 service NativeData {
     // Query Waveform Samples
@@ -94,7 +94,7 @@ enum WfmReplyStatus
     // name was found
     WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE = 2;
     // Requested waveform when out of sequence.
-    // In sequence is between a successful WaitForDataAccess 
+    // In sequence is between a successful WaitForDataAccess
     // and FinishedWithDataAccess.
     WFMREPLYSTATUS_OUTSIDE_SEQUENCE_FAILURE = 3;
     // Request when no connected service
@@ -103,7 +103,7 @@ enum WfmReplyStatus
     // with the service. For example, a digital request was made
     // on an analog waveform.
     WFMREPLYSTATUS_TYPE_MISMATCH_FAILURE = 5;
-    // The fast frame index provided in the request does 
+    // The fast frame index provided in the request does
     // not exist in the server configuration.
     WFMREPLYSTATUS_INVALID_FRAME_INDEX = 6;
 }
@@ -119,7 +119,7 @@ enum WfmPairType
     WFMPAIRTYPE_PAIR = 2;
 }
 
-enum WfmType 
+enum WfmType
 {
     WFMTYPE_UNSPECIFIED = 0;
     WFMTYPE_ANALOG_8 = 1;
@@ -197,8 +197,8 @@ message WaveformHeader {
     uint32 num_frames = 23;             // Total frame count
     repeated FrameInfo frame_info = 24; // Per-frame timing metadata
     uint32 current_frame_index = 25;    // Which frame is in primary data
-    optional ProbeInfo probe_details = 26; 
-    optional SParam channel_sparam = 27;    
+    optional ProbeInfo probe_details = 26;
+    optional SParam channel_sparam = 27;
 }
 
 // v2.0: Per-frame timing metadata
@@ -229,7 +229,7 @@ message NormalizedReply {
             WaveformHeader header = 1;
             WaveformSampleChunk chunk = 2;
         }
-    } 
+    }
 
     WfmReplyStatus status = 1;
     DataOrHeaderAccess headerordata = 2;

@@ -1,6 +1,6 @@
 # EUCRA implementation changes vs upstream TekHSI
 
-**Baseline:** [tektronix/TekHSI](https://github.com/tektronix/TekHSI) `main` (v1.1.0)  
+**Baseline:** [tektronix/TekHSI](https://github.com/tektronix/TekHSI) `main` (v1.1.0)
 **This tree:** EUCRA security port — TLS, certificate trust, and HTTP Basic authentication for `TekHSIConnect`.
 
 This document covers **core library implementation only** (source under `src/tekhsi/` and the runtime dependency added in `pyproject.toml`). It does not cover CI, docs site, release automation, or other repository infrastructure.
@@ -9,13 +9,13 @@ This document covers **core library implementation only** (source under `src/tek
 
 ## Summary
 
-| Area | Upstream | EUCRA |
-|------|----------|-------|
-| Default connect | Always `grpc.insecure_channel(url)` | Unchanged when no security parameters are passed |
-| Secure connect | Not supported | Opt-in: TLS (Mode 2), TLS + Basic auth (Mode 3), auto-negotiation |
-| Certificate trust | N/A | Trust-on-first-use (TOFU) with pinned SHA-256 fingerprints |
-| Stored credentials | N/A | Platform INI store + sidecar PEM files |
-| New runtime dependency | — | `cryptography>=42.0.0` |
+| Area                   | Upstream                            | EUCRA                                                             |
+| ---------------------- | ----------------------------------- | ----------------------------------------------------------------- |
+| Default connect        | Always `grpc.insecure_channel(url)` | Unchanged when no security parameters are passed                  |
+| Secure connect         | Not supported                       | Opt-in: TLS (Mode 2), TLS + Basic auth (Mode 3), auto-negotiation |
+| Certificate trust      | N/A                                 | Trust-on-first-use (TOFU) with pinned SHA-256 fingerprints        |
+| Stored credentials     | N/A                                 | Platform INI store + sidecar PEM files                            |
+| New runtime dependency | —                                   | `cryptography>=42.0.0`                                            |
 
 **Unchanged from upstream:** gRPC/protobuf stubs (`_tek_highspeed_server_pb2*.py`), helpers, waveform acquisition/read path, parallel-read experimental code, and the pre-existing `close()` registry-cleanup defect (still present; not part of this port).
 
@@ -39,11 +39,11 @@ Used for TLS certificate parsing (SAN/CN extraction), fingerprinting, and secure
 
 HTTP Basic authentication helpers for Mode 3 client auth.
 
-| Symbol | Purpose |
-|--------|---------|
-| `DEFAULT_MODE3_USERNAME` | Default Basic auth username (`"tektronix"`) |
-| `build_basic_authorization_value()` | Builds `Basic <base64>` for gRPC metadata |
-| `parse_basic_authorization()` | Parses a Basic header (used in tests) |
+| Symbol                              | Purpose                                     |
+| ----------------------------------- | ------------------------------------------- |
+| `DEFAULT_MODE3_USERNAME`            | Default Basic auth username (`"tektronix"`) |
+| `build_basic_authorization_value()` | Builds `Basic <base64>` for gRPC metadata   |
+| `parse_basic_authorization()`       | Parses a Basic header (used in tests)       |
 
 ---
 
@@ -51,20 +51,20 @@ HTTP Basic authentication helpers for Mode 3 client auth.
 
 INI-backed credential store for per-instrument TLS trust and passwords.
 
-| Symbol | Purpose |
-|--------|---------|
-| `CertInfo` | Server certificate fingerprint, PEM bytes, TLS server name; `fingerprint` property alias |
-| `TekHSICredentialStore` | Load/save `credentials.ini`, trust hosts, store passwords |
-| `TekCredentialStore` | Alias for `TekHSICredentialStore` |
-| `tls_server_name_from_pem()` | Extract verification name from cert (SAN DNS, else CN) |
+| Symbol                       | Purpose                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `CertInfo`                   | Server certificate fingerprint, PEM bytes, TLS server name; `fingerprint` property alias |
+| `TekHSICredentialStore`      | Load/save `credentials.ini`, trust hosts, store passwords                                |
+| `TekCredentialStore`         | Alias for `TekHSICredentialStore`                                                        |
+| `tls_server_name_from_pem()` | Extract verification name from cert (SAN DNS, else CN)                                   |
 
 **Default store paths:**
 
-| Platform | Path |
-|----------|------|
-| Linux | `~/.tektronix/credentials.ini` |
-| Windows | `%APPDATA%\tektronix\credentials.ini` |
-| macOS | `~/Library/Application Support/tektronix/credentials.ini` |
+| Platform | Path                                                      |
+| -------- | --------------------------------------------------------- |
+| Linux    | `~/.tektronix/credentials.ini`                            |
+| Windows  | `%APPDATA%\tektronix\credentials.ini`                     |
+| macOS    | `~/Library/Application Support/tektronix/credentials.ini` |
 
 **Behavior notes:**
 
@@ -81,44 +81,44 @@ TLS channel negotiation, credential builders, and security exceptions.
 
 ### Public exceptions
 
-| Exception | When raised |
-|-----------|-------------|
-| `TekSecurityError` | Base class; negotiation timeout; TLS required but unavailable |
-| `TekUnknownInstrument` | Unknown host, no trust prompt, or prompt declined at TOFU |
-| `TekHSIUnknownInstrument` | Alias for `TekUnknownInstrument` |
-| `TekCertificateMismatch` | Live cert fingerprint ≠ stored fingerprint |
+| Exception                 | When raised                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| `TekSecurityError`        | Base class; negotiation timeout; TLS required but unavailable    |
+| `TekUnknownInstrument`    | Unknown host, no trust prompt, or prompt declined at TOFU        |
+| `TekHSIUnknownInstrument` | Alias for `TekUnknownInstrument`                                 |
+| `TekCertificateMismatch`  | Live cert fingerprint ≠ stored fingerprint                       |
 | `TekAuthenticationFailed` | Missing/rejected password; prompt declined during Mode 3 upgrade |
 
 ### Public credentials builder
 
-| API | Purpose |
-|-----|---------|
-| `TekHSICredentials.tls(pem_path)` | Mode 2 — TLS with pinned CA/server cert PEM |
-| `TekHSICredentials.tls()` | Mode 2 — resolve cert from `credential_store` |
-| `TekHSICredentials.token(pem_path, password, username=…)` | Mode 3 — TLS + HTTP Basic |
-| `TekHSICredentials.token()` | Mode 3 — resolve cert + password from store |
+| API                                                       | Purpose                                       |
+| --------------------------------------------------------- | --------------------------------------------- |
+| `TekHSICredentials.tls(pem_path)`                         | Mode 2 — TLS with pinned CA/server cert PEM   |
+| `TekHSICredentials.tls()`                                 | Mode 2 — resolve cert from `credential_store` |
+| `TekHSICredentials.token(pem_path, password, username=…)` | Mode 3 — TLS + HTTP Basic                     |
+| `TekHSICredentials.token()`                               | Mode 3 — resolve cert + password from store   |
 
 ### Internal negotiation (used by `TekHSIConnect`)
 
-| Function | Role |
-|----------|------|
-| `_auto_negotiate_channel()` | Plaintext probe, then TLS/TOFU when security params are set |
-| `_try_plain_grpc_channel()` | Tests whether server accepts unencrypted gRPC Connect |
-| `_fetch_server_cert()` | TLS handshake without verification; returns `CertInfo` for TOFU |
-| `_secure_channel()` | Builds `grpc.secure_channel` with cert pinning and optional name override |
-| `_build_creds_from_entry()` | Builds gRPC credentials from store entry (`tls` or `token` mode) |
-| `_resolve_credentials_from_store()` | Store lookup, fingerprint check, TOFU via `on_trust_prompt` |
-| `_call_on_trust()` | Invokes callback with 2- or 3-argument signature |
-| `_parse_host_port()` | Parses `host:port`, IPv6, default port 5000 |
-| `_tls_channel_options()` | Sets `grpc.ssl_target_name_override` for IP / `.local` mismatches |
+| Function                            | Role                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `_auto_negotiate_channel()`         | Plaintext probe, then TLS/TOFU when security params are set               |
+| `_try_plain_grpc_channel()`         | Tests whether server accepts unencrypted gRPC Connect                     |
+| `_fetch_server_cert()`              | TLS handshake without verification; returns `CertInfo` for TOFU           |
+| `_secure_channel()`                 | Builds `grpc.secure_channel` with cert pinning and optional name override |
+| `_build_creds_from_entry()`         | Builds gRPC credentials from store entry (`tls` or `token` mode)          |
+| `_resolve_credentials_from_store()` | Store lookup, fingerprint check, TOFU via `on_trust_prompt`               |
+| `_call_on_trust()`                  | Invokes callback with 2- or 3-argument signature                          |
+| `_parse_host_port()`                | Parses `host:port`, IPv6, default port 5000                               |
+| `_tls_channel_options()`            | Sets `grpc.ssl_target_name_override` for IP / `.local` mismatches         |
 
 **Connection modes (client view):**
 
-| Mode | Transport | Client auth |
-|------|-----------|-------------|
-| 1 | Plain gRPC | None |
-| 2 | TLS | None (pinned server cert) |
-| 3 | TLS | HTTP Basic (username + password) |
+| Mode | Transport  | Client auth                      |
+| ---- | ---------- | -------------------------------- |
+| 1    | Plain gRPC | None                             |
+| 2    | TLS        | None (pinned server cert)        |
+| 3    | TLS        | HTTP Basic (username + password) |
 
 ---
 
@@ -140,13 +140,13 @@ Main integration point. **~174 lines added, 3 removed** (security wiring only; d
 
 ### `TekHSIConnect.__init__` — new optional parameters
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `credentials` | `None` | `TekHSICredentials` or raw `grpc.ChannelCredentials` |
-| `credential_store` | `None` | `TekHSICredentialStore` for trust/password persistence |
-| `on_trust_prompt` | `None` | TOFU / password callback |
-| `require_tls` | `False` | Refuse plaintext fallback during auto-negotiation |
-| `timeout` | `10.0` | Security negotiation timeout (seconds) |
+| Parameter          | Default | Purpose                                                |
+| ------------------ | ------- | ------------------------------------------------------ |
+| `credentials`      | `None`  | `TekHSICredentials` or raw `grpc.ChannelCredentials`   |
+| `credential_store` | `None`  | `TekHSICredentialStore` for trust/password persistence |
+| `on_trust_prompt`  | `None`  | TOFU / password callback                               |
+| `require_tls`      | `False` | Refuse plaintext fallback during auto-negotiation      |
+| `timeout`          | `10.0`  | Security negotiation timeout (seconds)                 |
 
 ### Legacy plain guard
 
@@ -237,12 +237,12 @@ See `EUCRA_USAGE.md` in this directory for full user-facing documentation.
 
 ## Line-count reference
 
-| File | Status | Lines (approx.) |
-|------|--------|-----------------|
-| `auth_basic.py` | New | 38 |
-| `credential_store.py` | New | 257 |
-| `security.py` | New | 412 |
-| `tek_hsi_connect.py` | Modified | +174 / −3 vs upstream |
-| `__init__.py` | Modified | +18 lines |
+| File                  | Status   | Lines (approx.)       |
+| --------------------- | -------- | --------------------- |
+| `auth_basic.py`       | New      | 38                    |
+| `credential_store.py` | New      | 257                   |
+| `security.py`         | New      | 412                   |
+| `tek_hsi_connect.py`  | Modified | +174 / −3 vs upstream |
+| `__init__.py`         | Modified | +18 lines             |
 
 *Compared to [tektronix/TekHSI](https://github.com/tektronix/TekHSI) `main` as of the EUCRA port baseline (release 1.1.0).*

@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import getpass
 import os
-import sys
 import tempfile
 import time
 import uuid
@@ -27,7 +26,7 @@ from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=n
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _build_creds_from_entry,
     _fetch_server_cert,
     _parse_host_port,
@@ -91,7 +90,7 @@ def _tls_connect_result(
     finally:
         try:
             ch.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
 
@@ -114,7 +113,7 @@ def check_endpoint(
     if plain_channel is not None:
         try:
             plain_channel.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
     cert = None
@@ -123,7 +122,7 @@ def check_endpoint(
     try:
         cert = _fetch_server_cert(host, port, timeout=8.0)
         tls_handshake = True
-    except Exception:  # noqa: BLE001
+    except Exception:
         cert = None
 
     tls_no_auth_ok = False
@@ -187,7 +186,7 @@ def check_endpoint(
             with TekHSIConnect(url) as conn:
                 can_connect = True
                 connect_detail = f"plain TekHSIConnect OK (channels: {conn.activesymbols})"
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             connect_detail = f"plain TekHSIConnect failed: {e}"
 
     elif needs_encryption and cert is not None and pem_path:
@@ -204,18 +203,16 @@ def check_endpoint(
             if not supplied_password:
                 connect_detail = "password required but none supplied"
             else:
-                ok, err = _tls_connect_result(
-                    url, entry, password=supplied_password, login=login
-                )
+                ok, err = _tls_connect_result(url, entry, password=supplied_password, login=login)
                 if ok:
-                    creds = TekHSICredentials.token(entry["cert_path"], supplied_password, username=login)
+                    creds = TekHSICredentials.token(
+                        entry["cert_path"], supplied_password, username=login
+                    )
                     try:
                         with TekHSIConnect(url, credentials=creds) as conn:
                             can_connect = True
-                            connect_detail = (
-                                f"TLS + password OK (channels: {conn.activesymbols})"
-                            )
-                    except Exception as e:  # noqa: BLE001
+                            connect_detail = f"TLS + password OK (channels: {conn.activesymbols})"
+                    except Exception as e:
                         connect_detail = f"TLS + password TekHSIConnect failed: {e}"
                 else:
                     connect_detail = f"TLS + password Connect RPC failed: {err}"
@@ -227,7 +224,7 @@ def check_endpoint(
                     with TekHSIConnect(url, credentials=creds) as conn:
                         can_connect = True
                         connect_detail = f"TLS OK (channels: {conn.activesymbols})"
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     connect_detail = f"TLS TekHSIConnect failed: {e}"
             else:
                 connect_detail = f"TLS Connect RPC failed: {err}"
@@ -267,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     host = args.host
-    if ":" not in host or host.count(":") == 1 and host.rsplit(":", 1)[-1].isdigit():
+    if ":" not in host or (host.count(":") == 1 and host.rsplit(":", 1)[-1].isdigit()):
         url = _host_port_arg(host.split(":")[0] if host.count(":") == 1 else host, args.port)
     else:
         url = host

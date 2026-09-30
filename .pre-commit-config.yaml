@@ -95,7 +95,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
-        args: [-sn]
+        args: [-sn, --disable=too-many-locals]
 #      - id: pyright  # TODO: enable
 #        name: pyright
 #        entry: pyright

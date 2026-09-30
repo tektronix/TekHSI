@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 import tempfile
+
 from pathlib import Path
 
 import numpy as np
@@ -35,7 +36,9 @@ def _safe_filename(source_name: str) -> str:
     return "".join(c if c.isalnum() or c in "._-" else "_" for c in source_name)
 
 
-def _print_fastframe_info(label: str, wfm: FastFrameAnalogWaveform | FastFrameDigitalWaveform) -> None:
+def _print_fastframe_info(
+    label: str, wfm: FastFrameAnalogWaveform | FastFrameDigitalWaveform
+) -> None:
     print(f"\n=== {label} ===")
     print(f"  type={type(wfm).__name__}")
     print(f"  source={wfm.source_name!r}")
@@ -108,13 +111,17 @@ def _compare_frame_info(left: list[FrameTimingInfo], right: list[FrameTimingInfo
     for li, ri in zip(left, right):
         prefix = f"frame_info[{li.frame_index}]"
         issues.extend(_compare_scalar(f"{prefix}.frame_index", li.frame_index, ri.frame_index))
-        issues.extend(_compare_scalar(f"{prefix}.time_offset", li.time_offset, ri.time_offset, atol=1e-9))
+        issues.extend(
+            _compare_scalar(f"{prefix}.time_offset", li.time_offset, ri.time_offset, atol=1e-9)
+        )
         issues.extend(_compare_scalar(f"{prefix}.gmt_sec", li.gmt_sec, ri.gmt_sec))
         issues.extend(
             _compare_scalar(f"{prefix}.fract_sec", li.fract_sec, ri.fract_sec, atol=1e-12)
         )
         issues.extend(
-            _compare_scalar(f"{prefix}.real_point_offset", li.real_point_offset, ri.real_point_offset)
+            _compare_scalar(
+                f"{prefix}.real_point_offset", li.real_point_offset, ri.real_point_offset
+            )
         )
         issues.extend(
             _compare_scalar(
@@ -141,15 +148,23 @@ def _compare_fastframe(
         data_issues.append(f"type: {type(original).__name__} != {type(loaded).__name__}")
         return data_issues, meta_issues
 
-    meta_issues.extend(_compare_scalar("record_length", original.record_length, loaded.record_length))
+    meta_issues.extend(
+        _compare_scalar("record_length", original.record_length, loaded.record_length)
+    )
     meta_issues.extend(_compare_scalar("num_frames", original.num_frames, loaded.num_frames))
     meta_issues.extend(
-        _compare_scalar("summary_frame_index", original.summary_frame_index, loaded.summary_frame_index)
+        _compare_scalar(
+            "summary_frame_index", original.summary_frame_index, loaded.summary_frame_index
+        )
     )
     meta_issues.extend(
-        _compare_scalar("summary_frame_type", original.summary_frame_type, loaded.summary_frame_type)
+        _compare_scalar(
+            "summary_frame_type", original.summary_frame_type, loaded.summary_frame_type
+        )
     )
-    meta_issues.extend(_compare_scalar("x_axis_spacing", original.x_axis_spacing, loaded.x_axis_spacing))
+    meta_issues.extend(
+        _compare_scalar("x_axis_spacing", original.x_axis_spacing, loaded.x_axis_spacing)
+    )
     meta_issues.extend(
         _compare_scalar(
             "x_axis_units",
@@ -165,7 +180,9 @@ def _compare_fastframe(
         meta_issues.extend(
             _compare_scalar("y_axis_spacing", original.y_axis_spacing, loaded.y_axis_spacing)
         )
-        meta_issues.extend(_compare_scalar("y_axis_offset", original.y_axis_offset, loaded.y_axis_offset))
+        meta_issues.extend(
+            _compare_scalar("y_axis_offset", original.y_axis_offset, loaded.y_axis_offset)
+        )
         meta_issues.extend(
             _compare_scalar(
                 "y_axis_units",
@@ -189,9 +206,7 @@ def _compare_fastframe(
         orig_by_index = {info.frame_index: info for info in original.frame_info}
         for info in loaded.frame_info:
             if info.frame_index in orig_by_index:
-                meta_issues.extend(
-                    _compare_frame_info([orig_by_index[info.frame_index]], [info])
-                )
+                meta_issues.extend(_compare_frame_info([orig_by_index[info.frame_index]], [info]))
     else:
         meta_issues.append(
             f"frame_info count: scope={len(original.frame_info)} file={len(loaded.frame_info)}"
@@ -254,36 +269,38 @@ def main() -> int:
     saved_paths: dict[str, Path] = {}
 
     print(f"Connecting to {args.url} ...", flush=True)
-    with TekHSIConnect(
-        args.url,
-        activesymbols=channels,
-        on_trust_prompt=_auto_trust_prompt,
-        credential_store=TekHSICredentialStore(path=store_path),
-    ) as conn:
-        with conn.access_stopped_data():
-            print(f"available_symbols={conn.available_symbols}", flush=True)
-            for channel in channels:
-                print(f"\n--- Reading {channel} from scope ---", flush=True)
-                wfm = conn.get_data(channel)
-                if wfm is None:
-                    print(f"ERROR: no waveform for {channel}")
-                    return 1
-                if not isinstance(wfm, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
-                    print(
-                        f"ERROR: {channel} is {type(wfm).__name__}, expected a FastFrame capture "
-                        f"(num_frames > 1 on a stopped scope)"
-                    )
-                    return 1
-                captured[channel] = wfm
-                _print_fastframe_info(f"scope {channel}", wfm)
+    with (
+        TekHSIConnect(
+            args.url,
+            activesymbols=channels,
+            on_trust_prompt=_auto_trust_prompt,
+            credential_store=TekHSICredentialStore(path=store_path),
+        ) as conn,
+        conn.access_stopped_data(),
+    ):
+        print(f"available_symbols={conn.available_symbols}", flush=True)
+        for channel in channels:
+            print(f"\n--- Reading {channel} from scope ---", flush=True)
+            wfm = conn.get_data(channel)
+            if wfm is None:
+                print(f"ERROR: no waveform for {channel}")
+                return 1
+            if not isinstance(wfm, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
+                print(
+                    f"ERROR: {channel} is {type(wfm).__name__}, expected a FastFrame capture "
+                    f"(num_frames > 1 on a stopped scope)"
+                )
+                return 1
+            captured[channel] = wfm
+            _print_fastframe_info(f"scope {channel}", wfm)
 
-                path = output_dir / f"{_safe_filename(wfm.source_name)}.wfm"
-                print(f"  saving -> {path}")
-                if isinstance(wfm, FastFrameDigitalWaveform):
-                    write_digital_wfm(str(path), wfm)
-                else:
-                    write_file(str(path), wfm)
-                saved_paths[channel] = path
+            path = output_dir / f"{_safe_filename(wfm.source_name)}.wfm"
+            print(f"  saving -> {path}")
+            if isinstance(wfm, FastFrameDigitalWaveform):
+                write_digital_wfm(str(path), wfm)
+            else:
+                write_file(str(path), wfm)
+            saved_paths[channel] = path
 
     print("\n--- Reading back saved .wfm files ---")
     all_data_ok = True
@@ -296,7 +313,9 @@ def main() -> int:
         _print_fastframe_info(f"file {path.name}", loaded)
 
         if not isinstance(loaded, (FastFrameAnalogWaveform, FastFrameDigitalWaveform)):
-            print(f"FAIL {channel}: read_file returned {type(loaded).__name__}, expected FastFrame type")
+            print(
+                f"FAIL {channel}: read_file returned {type(loaded).__name__}, expected FastFrame type"
+            )
             all_data_ok = False
             continue
 

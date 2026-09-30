@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import base64
-import binascii
 import hashlib
 import os
 import stat
 import sys
 import tempfile
+
 from configparser import ConfigParser
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 
@@ -22,8 +22,11 @@ _OBFUSCATION_KEY = b"tekhsi-credstore-v1"
 def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
     """Return TLS verification name from server cert PEM (SAN DNS, else CN)."""
     try:
-        from cryptography import x509
-        from cryptography.x509.oid import ExtensionOID, NameOID
+        from cryptography import x509  # pylint: disable=import-outside-toplevel
+        from cryptography.x509.oid import (  # pylint: disable=import-outside-toplevel
+            ExtensionOID,
+            NameOID,
+        )
     except ImportError:
         return None
     try:
@@ -91,7 +94,9 @@ def _reveal_password(stored: str | None) -> str | None:
     try:
         raw = base64.b64decode(b64, validate=True)
         return _xor_bytes(raw, _OBFUSCATION_KEY).decode("utf-8")
-    except (binascii.Error, ValueError, UnicodeDecodeError):
+    except ValueError:
+        # base64.b64decode raises binascii.Error (a ValueError subclass) on bad padding;
+        # str.decode("utf-8") raises UnicodeDecodeError (also a ValueError subclass).
         return stored
 
 
@@ -212,9 +217,9 @@ class TekHSICredentialStore:
         if login is not None:
             entry["login"] = login
         if password is not None:
-            entry["password"] = _obscure_password(password) if password != "" else ""
+            entry["password"] = _obscure_password(password) if password else ""
         for k in list(entry):
-            if entry[k] == "":
+            if not entry[k]:
                 del entry[k]
 
     def trust(

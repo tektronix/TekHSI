@@ -31,26 +31,32 @@ class WaveformTransferTiming:
 
     @property
     def fastframe(self) -> bool:
+        """True if this transfer captured more than one frame."""
         return self.num_frames > 1
 
     @property
     def total_samples(self) -> int:
+        """Total samples across all frames."""
         return self.num_frames * self.record_length
 
     @property
     def total_ms(self) -> float:
+        """Total client-observed time: transfer plus publish."""
         return self.transfer_ms + self.publish_ms
 
     @property
     def total_raw_bytes(self) -> int:
+        """Total raw sample bytes across all frames."""
         return self.total_samples * self.bytes_per_sample
 
     @property
     def data_frame_count(self) -> int:
+        """Number of non-summary (data) frames."""
         return self.num_frames - self.summary_frame_count
 
     @property
     def transfer_mbps(self) -> float:
+        """Effective transfer throughput in megabits/second."""
         if self.transfer_ms <= 0:
             return 0.0
         return (self.total_raw_bytes * 8 / 1e6) / (self.transfer_ms / 1000)
@@ -61,7 +67,9 @@ class WaveformTransferTiming:
         ff = "FastFrame" if self.fastframe else "single-frame"
         if self.fastframe:
             if self.summary_frame_count:
-                summary_label = "summary frame" if self.summary_frame_count == 1 else "summary frames"
+                summary_label = (
+                    "summary frame" if self.summary_frame_count == 1 else "summary frames"
+                )
                 frame_desc = (
                     f"{self.data_frame_count} data frames + {self.summary_frame_count} "
                     f"{summary_label} = {self.num_frames} total"

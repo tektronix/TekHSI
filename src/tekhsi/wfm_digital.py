@@ -3,7 +3,7 @@
 TekHSI populates ``digital_bitmask`` from ``WaveformHeader.bitmask`` (bit *n* set
 means digital line *n* is present in the packed byte stream). The standard WFM
 tekmeta block does not define a dedicated bitmask field, but it does carry
-``d0``–``d7`` digital-probe state keys. We persist the integer bitmask in
+``d0``-``d7`` digital-probe state keys. We persist the integer bitmask in
 tekmeta ``extended_metadata`` under ``digital_bitmask`` and mirror active lines
 into ``digital_probe_*_state`` for scope/ref compatibility.
 """

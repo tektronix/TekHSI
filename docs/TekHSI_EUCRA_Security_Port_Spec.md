@@ -33,13 +33,13 @@ This creates a deliberate tension with the verbatim v2 copies below, which *do* 
 
 ## 2. Files to create vs. modify in EUCRA
 
-| Action | Path (EUCRA) | Contents |
-|--------|--------------|----------|
-| **Create** | `src/tekhsi/auth_basic.py` | §3 — Basic-auth value builder/parser + `DEFAULT_MODE3_USERNAME` |
-| **Create** | `src/tekhsi/credential_store.py` | §4 — `CertInfo`, `TekHSICredentialStore`, `tls_server_name_from_pem`, `_default_store_path` |
+| Action     | Path (EUCRA)                                      | Contents                                                                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Create** | `src/tekhsi/auth_basic.py`                        | §3 — Basic-auth value builder/parser + `DEFAULT_MODE3_USERNAME`                                                                                                                                                                                |
+| **Create** | `src/tekhsi/credential_store.py`                  | §4 — `CertInfo`, `TekHSICredentialStore`, `tls_server_name_from_pem`, `_default_store_path`                                                                                                                                                    |
 | **Create** | `src/tekhsi/security.py` *(recommended new home)* | §5 (exceptions), §6 (channel/negotiation helpers), §7 (`TekHSICredentials`). In v2 these live at the top of `connect.py`; isolating them in EUCRA keeps the security unit self-contained and avoids importing v2's other `connect.py` changes. |
-| **Modify** | `src/tekhsi/tek_hsi_connect.py` | §8 — new `__init__` params + channel branch; `_connect` UNAUTHENTICATED upgrade; new method `_upgrade_channel_with_token_after_unauthenticated`; store `_credential_store_ref`/`_on_trust_ref`/`_auto_security` |
-| **Modify** | `src/tekhsi/__init__.py` | §9 — export the public security symbols |
+| **Modify** | `src/tekhsi/tek_hsi_connect.py`                   | §8 — new `__init__` params + channel branch; `_connect` UNAUTHENTICATED upgrade; new method `_upgrade_channel_with_token_after_unauthenticated`; store `_credential_store_ref`/`_on_trust_ref`/`_auto_security`                                |
+| **Modify** | `src/tekhsi/__init__.py`                          | §9 — export the public security symbols                                                                                                                                                                                                        |
 
 > **Import-path note.** v2 uses a flat `tekhsi` package. EUCRA's source lives under `src/tekhsi/` on disk but is installed/imported as the top-level package `tekhsi` (src-layout). So **file paths** in this spec are `src/tekhsi/...`, but **import statements** must use `tekhsi.*` (e.g. `from tekhsi.security import ...`), matching every existing import in EUCRA — *not* `src.tekhsi.*`, which would break at runtime and fail lint/type-check. The code bodies below are shown as they exist in v2; only the flat-vs-`tekhsi` import prefixes apply.
 
@@ -86,11 +86,11 @@ def parse_basic_authorization(header_value: str) -> Optional[Tuple[str, str]]:
     return user, pw
 ```
 
-| Symbol | Role |
-|--------|------|
-| `DEFAULT_MODE3_USERNAME` | `"tektronix"` — used when the store omits `login`, or a password is stored without a login. |
+| Symbol                                                | Role                                                                                                        |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_MODE3_USERNAME`                              | `"tektronix"` — used when the store omits `login`, or a password is stored without a login.                 |
 | `build_basic_authorization_value(username, password)` | Returns the **value only** (no key): `Basic <base64(UTF-8 "user:password")>`. This is the client send path. |
-| `parse_basic_authorization(header_value)` | Server/test helper. **Not** used on the client send path; include it for symmetry/tests only. |
+| `parse_basic_authorization(header_value)`             | Server/test helper. **Not** used on the client send path; include it for symmetry/tests only.               |
 
 ---
 
@@ -158,7 +158,7 @@ def _default_store_path() -> str:
 > **Honesty label — this is obfuscation, not security.** The XOR pad is a fixed constant in the source. Anyone with the code (it's open) can reverse an `obf1:` value in seconds. This deters shoulder-surfing and keeps the password from sitting in literally-readable form in the INI; it provides **no** protection against an attacker who has the file *and* the library. Real at-rest protection requires an OS keystore (DPAPI / Keychain / Secret Service), which is out of scope here. The actual security boundary remains OS user isolation (`%APPDATA%` / `~/.tektronix` + `chmod 0600`).
 
 ```python
-_OBFUSCATION_PREFIX = "obf1:"              # marks an APP-written (obscured) value
+_OBFUSCATION_PREFIX = "obf1:"  # marks an APP-written (obscured) value
 _OBFUSCATION_KEY = b"tekhsi-credstore-v1"  # fixed XOR pad; NOT a secret, NOT security
 
 
@@ -185,7 +185,7 @@ def _reveal_password(stored: Optional[str]) -> Optional[str]:
         return None
     if not stored.startswith(_OBFUSCATION_PREFIX):
         return stored  # user typed it by hand — accept as-is
-    b64 = stored[len(_OBFUSCATION_PREFIX):]
+    b64 = stored[len(_OBFUSCATION_PREFIX) :]
     try:
         raw = base64.b64decode(b64, validate=True)
         return _xor_bytes(raw, _OBFUSCATION_KEY).decode("utf-8")
@@ -216,17 +216,18 @@ class CertInfo:
 (Confirm the exact decorator/field metadata against v2 `credential_store.py:63–70` — see §12 note — but this is the only shape consistent with all callers.) The methods (verified verbatim):
 
 ```python
-    @property
-    def fingerprint(self) -> str:
-        """Alias for cert_fingerprint (API doc naming)."""
-        return self.cert_fingerprint
+@property
+def fingerprint(self) -> str:
+    """Alias for cert_fingerprint (API doc naming)."""
+    return self.cert_fingerprint
 
-    @staticmethod
-    def from_pem(cert_pem: bytes) -> "CertInfo":
-        """Build CertInfo from certificate PEM bytes (e.g. from TLS handshake)."""
-        digest = hashlib.sha256(cert_pem).hexdigest()
-        tls_name = tls_server_name_from_pem(cert_pem)
-        return CertInfo(cert_fingerprint=digest, cert_pem=cert_pem, tls_server_name=tls_name)
+
+@staticmethod
+def from_pem(cert_pem: bytes) -> "CertInfo":
+    """Build CertInfo from certificate PEM bytes (e.g. from TLS handshake)."""
+    digest = hashlib.sha256(cert_pem).hexdigest()
+    tls_name = tls_server_name_from_pem(cert_pem)
+    return CertInfo(cert_fingerprint=digest, cert_pem=cert_pem, tls_server_name=tls_name)
 ```
 
 Fingerprint is the **SHA-256 hex digest of the certificate PEM bytes**.
@@ -240,153 +241,160 @@ Backed by `ConfigParser`, UTF-8, one INI section per host endpoint. Sidecar PEMs
 **Per-section options:** `cert_fingerprint`, `cert_path`, `tls_server_name`, `login`, `password`.
 
 ```python
-    def __init__(self, path: Optional[str] = None) -> None:
-        self._path = path or _default_store_path()
-        self._data: Dict[str, Dict[str, str]] = {}
-        self._certs_dir = os.path.join(os.path.dirname(self._path), "certs")
-        self.load()
+def __init__(self, path: Optional[str] = None) -> None:
+    self._path = path or _default_store_path()
+    self._data: Dict[str, Dict[str, str]] = {}
+    self._certs_dir = os.path.join(os.path.dirname(self._path), "certs")
+    self.load()
 
-    def _normalize_host(self, host: str) -> str:
-        """Normalize host for section key (e.g. ensure port if present)."""
-        return host.strip().lower()
 
-    def load(self) -> None:
-        """Load store from file. No-op if file does not exist."""
-        self._data = {}
-        if not os.path.isfile(self._path):
-            return
-        parser = ConfigParser()
+def _normalize_host(self, host: str) -> str:
+    """Normalize host for section key (e.g. ensure port if present)."""
+    return host.strip().lower()
+
+
+def load(self) -> None:
+    """Load store from file. No-op if file does not exist."""
+    self._data = {}
+    if not os.path.isfile(self._path):
+        return
+    parser = ConfigParser()
+    try:
+        with open(self._path, "r", encoding="utf-8") as f:
+            parser.read_file(f)
+    except OSError:
+        return
+    for section in parser.sections():
+        host = self._normalize_host(section)
+        self._data[host] = dict(parser[section])
+
+
+def save(self) -> None:
+    """Write store atomically (temp + rename). Creates parent directory if needed."""
+    dirpath = os.path.dirname(self._path)
+    if dirpath:
+        os.makedirs(dirpath, exist_ok=True)
+    parser = ConfigParser()
+    for host, opts in sorted(self._data.items()):
+        parser[host] = opts
+    fd, tmp_path = tempfile.mkstemp(
+        suffix=".ini.tmp",
+        dir=dirpath or ".",
+        text=True,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            parser.write(f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, self._path)
+    except OSError:
         try:
-            with open(self._path, "r", encoding="utf-8") as f:
-                parser.read_file(f)
+            os.unlink(tmp_path)
         except OSError:
-            return
-        for section in parser.sections():
-            host = self._normalize_host(section)
-            self._data[host] = dict(parser[section])
-
-    def save(self) -> None:
-        """Write store atomically (temp + rename). Creates parent directory if needed."""
-        dirpath = os.path.dirname(self._path)
-        if dirpath:
-            os.makedirs(dirpath, exist_ok=True)
-        parser = ConfigParser()
-        for host, opts in sorted(self._data.items()):
-            parser[host] = opts
-        fd, tmp_path = tempfile.mkstemp(
-            suffix=".ini.tmp",
-            dir=dirpath or ".",
-            text=True,
-        )
+            pass
+        raise
+    if os.name != "nt":
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                parser.write(f)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_path, self._path)
+            os.chmod(self._path, stat.S_IRUSR | stat.S_IWUSR)
         except OSError:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-            raise
-        if os.name != "nt":
-            try:
-                os.chmod(self._path, stat.S_IRUSR | stat.S_IWUSR)
-            except OSError:
-                pass
+            pass
 
-    def get(self, host: str) -> Optional[Dict[str, Optional[str]]]:
-        """Return entry for host (cert_fingerprint, cert_path, tls_server_name, login, password). None if not found.
 
-        PORT CHANGE: password is revealed via _reveal_password so callers always
-        receive usable cleartext, whether the stored value was app-obscured (obf1:)
-        or hand-entered plaintext.
-        """
-        key = self._normalize_host(host)
-        raw = self._data.get(key)
-        if raw is None:
-            return None
-        return {
-            "cert_fingerprint": raw.get("cert_fingerprint") or None,
-            "cert_path": raw.get("cert_path") or None,
-            "tls_server_name": raw.get("tls_server_name") or None,
-            "login": raw.get("login") or None,
-            "password": _reveal_password(raw.get("password") or None),  # PORT CHANGE
-        }
+def get(self, host: str) -> Optional[Dict[str, Optional[str]]]:
+    """Return entry for host (cert_fingerprint, cert_path, tls_server_name, login, password). None if not found.
 
-    def set(
-        self,
-        host: str,
-        cert_fingerprint: Optional[str] = None,
-        cert_path: Optional[str] = None,
-        tls_server_name: Optional[str] = None,
-        login: Optional[str] = None,
-        password: Optional[str] = None,
-    ):
-        """Write or update entry for host. Omitted keys left unchanged; explicit None clears.
+    PORT CHANGE: password is revealed via _reveal_password so callers always
+    receive usable cleartext, whether the stored value was app-obscured (obf1:)
+    or hand-entered plaintext.
+    """
+    key = self._normalize_host(host)
+    raw = self._data.get(key)
+    if raw is None:
+        return None
+    return {
+        "cert_fingerprint": raw.get("cert_fingerprint") or None,
+        "cert_path": raw.get("cert_path") or None,
+        "tls_server_name": raw.get("tls_server_name") or None,
+        "login": raw.get("login") or None,
+        "password": _reveal_password(raw.get("password") or None),  # PORT CHANGE
+    }
 
-        PORT CHANGE: a non-empty password (always app-written here) is stored obscured
-        as obf1:... . Empty string still clears the key (unchanged from v2).
-        """
-        key = self._normalize_host(host)
-        if key not in self._data:
-            self._data[key] = {}
-        entry = self._data[key]
-        if cert_fingerprint is not None:
-            entry["cert_fingerprint"] = cert_fingerprint
-        if cert_path is not None:
-            entry["cert_path"] = cert_path
-        if tls_server_name is not None:
-            entry["tls_server_name"] = tls_server_name
-        if login is not None:
-            entry["login"] = login
-        if password is not None:
-            # PORT CHANGE: obscure app-written passwords; "" falls through to the
-            # empty-clears loop below and deletes the key.
-            entry["password"] = _obscure_password(password) if password != "" else ""
-        for k in list(entry):
-            if entry[k] == "":
-                del entry[k]
 
-    def trust(
-        self,
-        host: str,
-        cert_info: CertInfo,
-        password: Optional[str] = None,
-        login: Optional[str] = None,
-    ):
-        """Record trust for host: fingerprint, optional cert file, password, and optional Basic-auth login."""
-        if password and login is None:
-            login = DEFAULT_MODE3_USERNAME
-        key = self._normalize_host(host)
-        self.set(
-            host,
-            cert_fingerprint=cert_info.cert_fingerprint,
-            tls_server_name=cert_info.tls_server_name,
-            password=password or None,
-            login=login,
-        )
-        if cert_info.cert_pem:
-            os.makedirs(self._certs_dir, exist_ok=True)
-            safe_name = key.replace(":", "_").replace("/", "_")
-            cert_path = os.path.join(self._certs_dir, f"{safe_name}.pem")
-            with open(cert_path, "wb") as f:
-                f.write(cert_info.cert_pem)
-            self.set(host, cert_path=cert_path)
+def set(
+    self,
+    host: str,
+    cert_fingerprint: Optional[str] = None,
+    cert_path: Optional[str] = None,
+    tls_server_name: Optional[str] = None,
+    login: Optional[str] = None,
+    password: Optional[str] = None,
+):
+    """Write or update entry for host. Omitted keys left unchanged; explicit None clears.
+
+    PORT CHANGE: a non-empty password (always app-written here) is stored obscured
+    as obf1:... . Empty string still clears the key (unchanged from v2).
+    """
+    key = self._normalize_host(host)
+    if key not in self._data:
+        self._data[key] = {}
+    entry = self._data[key]
+    if cert_fingerprint is not None:
+        entry["cert_fingerprint"] = cert_fingerprint
+    if cert_path is not None:
+        entry["cert_path"] = cert_path
+    if tls_server_name is not None:
+        entry["tls_server_name"] = tls_server_name
+    if login is not None:
+        entry["login"] = login
+    if password is not None:
+        # PORT CHANGE: obscure app-written passwords; "" falls through to the
+        # empty-clears loop below and deletes the key.
+        entry["password"] = _obscure_password(password) if password != "" else ""
+    for k in list(entry):
+        if entry[k] == "":
+            del entry[k]
+
+
+def trust(
+    self,
+    host: str,
+    cert_info: CertInfo,
+    password: Optional[str] = None,
+    login: Optional[str] = None,
+):
+    """Record trust for host: fingerprint, optional cert file, password, and optional Basic-auth login."""
+    if password and login is None:
+        login = DEFAULT_MODE3_USERNAME
+    key = self._normalize_host(host)
+    self.set(
+        host,
+        cert_fingerprint=cert_info.cert_fingerprint,
+        tls_server_name=cert_info.tls_server_name,
+        password=password or None,
+        login=login,
+    )
+    if cert_info.cert_pem:
+        os.makedirs(self._certs_dir, exist_ok=True)
+        safe_name = key.replace(":", "_").replace("/", "_")
+        cert_path = os.path.join(self._certs_dir, f"{safe_name}.pem")
+        with open(cert_path, "wb") as f:
+            f.write(cert_info.cert_pem)
+        self.set(host, cert_path=cert_path)
 ```
 
 Also present in v2 (verified verbatim) — copy for completeness:
 
 ```python
-    def list_hosts(self) -> List[str]:
-        """Return all stored host keys."""
-        return sorted(self._data.keys())
+def list_hosts(self) -> List[str]:
+    """Return all stored host keys."""
+    return sorted(self._data.keys())
 
-    def remove(self, host: str) -> None:
-        """Remove entry for host."""
-        key = self._normalize_host(host)
-        self._data.pop(key, None)
+
+def remove(self, host: str) -> None:
+    """Remove entry for host."""
+    key = self._normalize_host(host)
+    self._data.pop(key, None)
 ```
 
 **Atomicity & permissions:** `save()` writes to a temp file, `fsync`s, then `os.replace` (atomic rename). On non-Windows it `chmod 0600`. PEMs and any hand-entered passwords are stored as written; app-written passwords are obscured (`obf1:`, §4.2a) — but obscuration is **not** a security control. On Windows, OS user isolation under `%APPDATA%` is the real boundary.
@@ -426,6 +434,7 @@ From v2 `connect.py` lines 100–146. **Verified verbatim from working code.** `
 ```python
 class TekSecurityError(Exception):
     """Base class for all security-related errors."""
+
     pass
 
 
@@ -520,7 +529,9 @@ def _tls_server_name_for_entry(entry: Dict[str, Optional[str]]) -> Optional[str]
         return None
 
 
-def _tls_channel_options(connect_host: str, tls_server_name: Optional[str]) -> Tuple[Tuple[str, str], ...]:
+def _tls_channel_options(
+    connect_host: str, tls_server_name: Optional[str]
+) -> Tuple[Tuple[str, str], ...]:
     """gRPC channel options when URL host differs from the cert name (IP or .local)."""
     if not tls_server_name:
         return ()
@@ -573,10 +584,14 @@ def _build_creds_from_entry(entry: Dict[str, Optional[str]], mode: str) -> grpc.
         password = entry.get("password") or ""
         login = entry.get("login") or DEFAULT_MODE3_USERNAME
         ssl_creds = grpc.ssl_channel_credentials(root_certificates=root)
+
         def meta_cb(ctx, cb):
             val = build_basic_authorization_value(login, password)
             cb((("authorization", val),), None)
-        return grpc.composite_channel_credentials(ssl_creds, grpc.metadata_call_credentials(meta_cb))
+
+        return grpc.composite_channel_credentials(
+            ssl_creds, grpc.metadata_call_credentials(meta_cb)
+        )
     return grpc.ssl_channel_credentials(root_certificates=root)
 ```
 
@@ -645,9 +660,12 @@ def _try_plain_grpc_channel(url: str, deadline: float) -> Optional[grpc.Channel]
 The `on_trust_prompt` callback supports two signatures — `(host, cert_info)` or `(host, cert_info, auth_required)` — dispatched by arity:
 
 ```python
-def _call_on_trust(cb: Callable[..., Any], host_port: str, cert_info: CertInfo, auth_required: bool):
+def _call_on_trust(
+    cb: Callable[..., Any], host_port: str, cert_info: CertInfo, auth_required: bool
+):
     """Invoke on_trust_prompt with (host, cert_info) or (host, cert_info, auth_required)."""
     import inspect
+
     try:
         sig = inspect.signature(cb)
         if len(sig.parameters) >= 3:
@@ -659,12 +677,12 @@ def _call_on_trust(cb: Callable[..., Any], host_port: str, cert_info: CertInfo, 
 
 **Return shapes** (`auth_required=False`, first trust / TOFU):
 
-| Return | Meaning |
-|--------|---------|
-| `True` | Trust cert, Mode 2 (no password). |
-| `(True, password)` | Trust cert + store password; login defaults to `tektronix`. Mode 3. |
-| `(True, password, login)` | Trust cert + store password + explicit login. Mode 3. |
-| `False` / anything else | Decline → `TekUnknownInstrument`. |
+| Return                    | Meaning                                                             |
+| ------------------------- | ------------------------------------------------------------------- |
+| `True`                    | Trust cert, Mode 2 (no password).                                   |
+| `(True, password)`        | Trust cert + store password; login defaults to `tektronix`. Mode 3. |
+| `(True, password, login)` | Trust cert + store password + explicit login. Mode 3.               |
+| `False` / anything else   | Decline → `TekUnknownInstrument`.                                   |
 
 When `auth_required=True` (server returned `UNAUTHENTICATED` on an already-trusted TLS cert), only the `(True, password[, login])` shapes are meaningful; returning `True` alone or declining raises `TekAuthenticationFailed`.
 
@@ -681,9 +699,7 @@ def _resolve_credentials_from_store(
     """Resolve gRPC credentials from store or TOFU."""
     host, port = _parse_host_port(host_port)
     if time.time() > deadline:
-        raise TekSecurityError(
-            f"Connection to {host_port} timed out during security negotiation."
-        )
+        raise TekSecurityError(f"Connection to {host_port} timed out during security negotiation.")
     entry = store.get(host_port)
     if entry and entry.get("cert_path"):
         tmo = max(0.5, min(5.0, deadline - time.time()))
@@ -932,9 +948,7 @@ if credentials is not None:
         else:
             creds = credentials
         tls_name = (
-            credentials._tls_server_name
-            if isinstance(credentials, TekHSICredentials)
-            else None
+            credentials._tls_server_name if isinstance(credentials, TekHSICredentials) else None
         )
         self.channel = _secure_channel(url, creds, tls_server_name=tls_name)
         self._credential_store_ref = store_for_auto
@@ -1165,11 +1179,11 @@ TekHSIUnknownInstrument = TekUnknownInstrument
 __all__ += [
     "TekHSICredentials",
     "TekHSICredentialStore",
-    "TekCredentialStore",          # alias
+    "TekCredentialStore",  # alias
     "CertInfo",
     "TekSecurityError",
     "TekUnknownInstrument",
-    "TekHSIUnknownInstrument",     # alias
+    "TekHSIUnknownInstrument",  # alias
     "TekCertificateMismatch",
     "TekAuthenticationFailed",
 ]
@@ -1230,33 +1244,34 @@ The clean test that a line belongs in this port: it must touch TLS, certificates
 
 All code bodies in §3–§8 were extracted from the indexed `TekHSI_v2` project (`C:\Users\keith\Desktop\TekHSI_v2\`):
 
-| Symbol | v2 file:line |
-|--------|--------------|
-| `build_basic_authorization_value`, `parse_basic_authorization`, `DEFAULT_MODE3_USERNAME` | `tekhsi/auth_basic.py:13,20` |
-| `tls_server_name_from_pem` | `tekhsi/credential_store.py:17` |
-| `_default_store_path` | `tekhsi/credential_store.py:41` |
-| `CertInfo`, `.fingerprint`, `.from_pem` | `tekhsi/credential_store.py:63,71,76` |
-| `TekHSICredentialStore` (all methods) | `tekhsi/credential_store.py:83–221` |
+| Symbol                                                                                                            | v2 file:line                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `build_basic_authorization_value`, `parse_basic_authorization`, `DEFAULT_MODE3_USERNAME`                          | `tekhsi/auth_basic.py:13,20`                                                                          |
+| `tls_server_name_from_pem`                                                                                        | `tekhsi/credential_store.py:17`                                                                       |
+| `_default_store_path`                                                                                             | `tekhsi/credential_store.py:41`                                                                       |
+| `CertInfo`, `.fingerprint`, `.from_pem`                                                                           | `tekhsi/credential_store.py:63,71,76`                                                                 |
+| `TekHSICredentialStore` (all methods)                                                                             | `tekhsi/credential_store.py:83–221`                                                                   |
 | **Password obfuscation** (`_obscure_password`, `_reveal_password`, `_xor_bytes`, `obf1:` handling in `get`/`set`) | **PORT ADDITION — not in v2.** §4.2a. v2 stores raw plaintext; v2 doc §3.8 defers at-rest protection. |
-| `TekSecurityError` & subclasses | `tekhsi/connect.py:100,109,130,145` |
-| `_parse_host_port`, `_is_ip_literal`, `_tls_server_name_for_entry`, `_tls_channel_options` | `tekhsi/connect.py:150,164,176,190` |
-| `_secure_channel` | `tekhsi/connect.py:211` |
-| `_try_plain_grpc_channel` | `tekhsi/connect.py:227` |
-| `_fetch_server_cert`, `_call_on_trust` | `tekhsi/connect.py:270,284` |
-| `_build_creds_from_entry` | `tekhsi/connect.py:302` |
-| `_resolve_credentials_from_store` | `tekhsi/connect.py:320` |
-| `_auto_negotiate_channel` | `tekhsi/connect.py:368` |
-| `TekHSICredentials` (all methods) | `tekhsi/connect.py:477–544` |
-| `TekHSIConnect.__init__` (security block) | `tekhsi/connect.py:568` |
-| `_upgrade_channel_with_token_after_unauthenticated` | `tekhsi/connect.py:1230` |
-| `TekHSIConnect._connect` | `tekhsi/connect.py:1285` |
-| EUCRA target `__init__` / `_connect` | `tekhsi_github_EUCRA/src/tekhsi/tek_hsi_connect.py:114,666` |
+| `TekSecurityError` & subclasses                                                                                   | `tekhsi/connect.py:100,109,130,145`                                                                   |
+| `_parse_host_port`, `_is_ip_literal`, `_tls_server_name_for_entry`, `_tls_channel_options`                        | `tekhsi/connect.py:150,164,176,190`                                                                   |
+| `_secure_channel`                                                                                                 | `tekhsi/connect.py:211`                                                                               |
+| `_try_plain_grpc_channel`                                                                                         | `tekhsi/connect.py:227`                                                                               |
+| `_fetch_server_cert`, `_call_on_trust`                                                                            | `tekhsi/connect.py:270,284`                                                                           |
+| `_build_creds_from_entry`                                                                                         | `tekhsi/connect.py:302`                                                                               |
+| `_resolve_credentials_from_store`                                                                                 | `tekhsi/connect.py:320`                                                                               |
+| `_auto_negotiate_channel`                                                                                         | `tekhsi/connect.py:368`                                                                               |
+| `TekHSICredentials` (all methods)                                                                                 | `tekhsi/connect.py:477–544`                                                                           |
+| `TekHSIConnect.__init__` (security block)                                                                         | `tekhsi/connect.py:568`                                                                               |
+| `_upgrade_channel_with_token_after_unauthenticated`                                                               | `tekhsi/connect.py:1230`                                                                              |
+| `TekHSIConnect._connect`                                                                                          | `tekhsi/connect.py:1285`                                                                              |
+| EUCRA target `__init__` / `_connect`                                                                              | `tekhsi_github_EUCRA/src/tekhsi/tek_hsi_connect.py:114,666`                                           |
 
 The authoritative narrative reference in v2 is `client_security_changes.md` (29 sections); the exception hierarchy is documented in `archive/TekHSI_Security_Python_API.md` §6.
 
 > **Verification status:** All function and method bodies in §3–§8, **including the four exception classes (§5)**, were confirmed verbatim against the working v2 index — **except** `get()` and `set()`, which carry a port modification for password obfuscation (§4.2a, clearly marked `PORT CHANGE` inline), and the obfuscation helpers themselves, which are new and not from v2. The store keys, the five-key `get()` return, and the `TekCredentialStore`/`TekHSIUnknownInstrument` aliases were cross-checked against the code (where the older `client_security_changes.md` doc disagreed — e.g. it claims "four option names" — the **working code wins**: `get()`/`set()` handle five keys including `tls_server_name`).
 >
 > **One item determined by usage rather than pulled verbatim:** the `CertInfo` dataclass *field declarations* (`credential_store.py:63–70`). The index exposes attributes only through methods, not raw field lines. The field set and defaults are nonetheless fully constrained by confirmed call sites: `from_pem` builds `CertInfo(cert_fingerprint=digest, cert_pem=cert_pem, tls_server_name=tls_name)`, and `_resolve_credentials_from_store` builds `CertInfo(cert_fingerprint="")` — so the declaration must be:
+>
 > ```python
 > @dataclass
 > class CertInfo:
@@ -1264,6 +1279,7 @@ The authoritative narrative reference in v2 is `client_security_changes.md` (29 
 >     cert_pem: Optional[bytes] = None
 >     tls_server_name: Optional[str] = None
 > ```
+>
 > Confirm the decorator and any field metadata against the live file, but the shape above is the only one consistent with all working call sites.
 
 ---
@@ -1273,16 +1289,19 @@ The authoritative narrative reference in v2 is `client_security_changes.md` (29 
 §11 is a behavioral checklist; EUCRA CI enforces coverage, so the new modules need unit tests landed *with* the implementation, not after. The existing test server (`tests/server/`) is **plaintext-only**, so TLS/Mode-2/Mode-3 integration needs new fixtures.
 
 **Unit tests (no server needed):**
+
 - `auth_basic`: `build_basic_authorization_value` round-trips with `parse_basic_authorization`; edge cases — empty password, `:` in password, non-ASCII (UTF-8), malformed/short/non-base64 headers return `None`, missing `Basic ` prefix.
 - `credential_store`: `set`/`get`/`save`/`load` round-trip preserving all five keys; `_normalize_host` lowercasing; atomic-write leaves no `.tmp` on success; POSIX `chmod 0600`; `trust()` writes the sidecar PEM and sets `cert_path`.
 - **Obfuscation:** `_reveal_password(_obscure_password(s)) == s` over the representative set (unicode, `:`, `=`, spaces, empty); app-written value is `obf1:`-tagged and ≠ plaintext on disk; untagged (hand-entered) value returned verbatim and **never rewritten** after an unrelated `set()`+`save()`; malformed `obf1:` returned literally, no raise.
 - Helpers: `_parse_host_port` (host, host:port, bracketed IPv6, default-port fallback); `_is_ip_literal`; `_tls_channel_options` (matching name → no override; IP/.local → override); the four exception classes' `.host`/fingerprint attributes and message text.
 
 **Wiring tests (mock gRPC / channel):**
+
 - **`_legacy_plain` guard** — the load-bearing one: `TekHSIConnect(url)` with no security args makes **no** store read and **no** probe RPC, sets `self.channel = grpc.insecure_channel(url)` and `_auto_security is False`. Assert via mock that `TekHSICredentialStore` is never constructed and `_try_plain_grpc_channel` is never called on this path.
 - Run the existing suite twice — with no `credentials.ini` and with a stale entry for the test host — and confirm identical results (the guard must ignore the store).
 
 **Integration tests (new infra required):**
+
 - A TLS-enabled mock server (self-signed cert) to exercise: TOFU first-trust → fingerprint pinned; cert-mismatch → `TekCertificateMismatch`; Mode 3 `UNAUTHENTICATED` → upgrade → authenticated `GetHeader`/`GetWaveform` succeed (this is the test that would have caught the §8.4 `self.native` rebind bug — assert a data-plane RPC works *after* upgrade, not just `Connect`).
 - These need a cert fixture and a server that can demand Basic auth; budget for standing this up since `tests/server/` can't.
 

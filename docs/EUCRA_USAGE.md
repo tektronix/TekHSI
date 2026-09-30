@@ -19,11 +19,11 @@ Security is **opt-in**. You enable it by passing one or more security parameters
 
 ## The three connection modes
 
-| Mode | Transport | Client authentication | When it's used |
-|------|-----------|----------------------|----------------|
-| **1 — Plain** | Unencrypted gRPC | None | Default; or when a plaintext probe succeeds and TLS isn't required. |
-| **2 — TLS** | Encrypted (TLS) | None | Server presents a certificate you trust; no password needed. |
-| **3 — TLS + Password** | Encrypted (TLS) | HTTP Basic (username + password) | Server requires a password in addition to TLS. |
+| Mode                   | Transport        | Client authentication            | When it's used                                                      |
+| ---------------------- | ---------------- | -------------------------------- | ------------------------------------------------------------------- |
+| **1 — Plain**          | Unencrypted gRPC | None                             | Default; or when a plaintext probe succeeds and TLS isn't required. |
+| **2 — TLS**            | Encrypted (TLS)  | None                             | Server presents a certificate you trust; no password needed.        |
+| **3 — TLS + Password** | Encrypted (TLS)  | HTTP Basic (username + password) | Server requires a password in addition to TLS.                      |
 
 The library negotiates the appropriate mode automatically based on what the server offers and what you've configured. You don't pick a mode by name; you provide credentials/trust settings and the right mode follows.
 
@@ -43,11 +43,11 @@ Because trust is pinned to the exact certificate, the connection trusts *only* t
 
 When the library encounters an instrument it hasn't trusted yet (or a server that demands a password), it calls the function you pass as `on_trust_prompt`. Your callback decides what to do and returns one of these:
 
-| Return value | Meaning |
-|--------------|---------|
-| `True` | Trust the certificate. Use **Mode 2** (TLS, no password). *(During a password upgrade — `auth_required=True` — bare `True` is treated as a decline; see below.)* |
-| `(True, password)` | Trust the certificate **and** store this password. Username defaults to `tektronix`. Use **Mode 3**. |
-| `(True, password, login)` | Trust the certificate, store the password with an explicit username. Use **Mode 3**. |
+| Return value               | Meaning                                                                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `True`                     | Trust the certificate. Use **Mode 2** (TLS, no password). *(During a password upgrade — `auth_required=True` — bare `True` is treated as a decline; see below.)*                            |
+| `(True, password)`         | Trust the certificate **and** store this password. Username defaults to `tektronix`. Use **Mode 3**.                                                                                        |
+| `(True, password, login)`  | Trust the certificate, store the password with an explicit username. Use **Mode 3**.                                                                                                        |
 | `False` (or anything else) | Decline. The connection is refused — `TekUnknownInstrument` during first-time trust (`auth_required=False`), or `TekAuthenticationFailed` during a password upgrade (`auth_required=True`). |
 
 Your callback receives the host and a `CertInfo` object so you can show the fingerprint to the user before deciding:
@@ -89,11 +89,13 @@ from tekhsi import TekHSIConnect, TekHSICredentialStore
 
 store = TekHSICredentialStore()  # default platform location (see below)
 
+
 def trust_prompt(host, cert_info, auth_required=False):
     print(f"Fingerprint for {host}: {cert_info.fingerprint}")
     if auth_required:
         return (True, input("Password: "))
     return input("Trust? [y/N] ").strip().lower() == "y"
+
 
 with TekHSIConnect(
     "192.168.1.50:5000",
@@ -163,14 +165,16 @@ If TLS can't be established (unknown instrument, no prompt, no credentials), the
 ```python
 # Resolve cert from the store; TLS only (Mode 2):
 creds = TekHSICredentials.tls()
-with TekHSIConnect("192.168.1.50:5000", credentials=creds,
-                   credential_store=store, on_trust_prompt=trust_prompt) as scope:
+with TekHSIConnect(
+    "192.168.1.50:5000", credentials=creds, credential_store=store, on_trust_prompt=trust_prompt
+) as scope:
     ...
 
 # Resolve cert + password from the store (Mode 3):
 creds = TekHSICredentials.token()
-with TekHSIConnect("192.168.1.50:5000", credentials=creds,
-                   credential_store=store, on_trust_prompt=trust_prompt) as scope:
+with TekHSIConnect(
+    "192.168.1.50:5000", credentials=creds, credential_store=store, on_trust_prompt=trust_prompt
+) as scope:
     ...
 ```
 
@@ -178,12 +182,12 @@ A no-argument `TekHSICredentials.tls()` / `.token()` **requires** a `credential_
 
 ### Other parameters and imports
 
-| Item | Notes |
-|------|-------|
+| Item                       | Notes                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `timeout` (default `10.0`) | Seconds allowed for security negotiation. Only applies when a security path is active; has no effect on a plain default connection, and passing it alone does not enable security. |
-| `TekCredentialStore` | Alias for `TekHSICredentialStore` (both are exported). Either name works. |
-| `CertInfo` | Importable for typing your trust-prompt callback: `from tekhsi import CertInfo`. |
-| Host-key normalization | Store section keys are lowercased and stripped, so `192.168.1.50:5000` and any mixed-case variant map to the same entry. |
+| `TekCredentialStore`       | Alias for `TekHSICredentialStore` (both are exported). Either name works.                                                                                                          |
+| `CertInfo`                 | Importable for typing your trust-prompt callback: `from tekhsi import CertInfo`.                                                                                                   |
+| Host-key normalization     | Store section keys are lowercased and stripped, so `192.168.1.50:5000` and any mixed-case variant map to the same entry.                                                           |
 
 ## The credential store
 
@@ -191,11 +195,11 @@ Trusted certificates and passwords are stored in an INI file plus a `certs/` fol
 
 ### Default location
 
-| Platform | Path |
-|----------|------|
-| Linux | `~/.tektronix/credentials.ini` |
-| Windows | `%APPDATA%\tektronix\credentials.ini` |
-| macOS | `~/Library/Application Support/tektronix/credentials.ini` |
+| Platform | Path                                                      |
+| -------- | --------------------------------------------------------- |
+| Linux    | `~/.tektronix/credentials.ini`                            |
+| Windows  | `%APPDATA%\tektronix\credentials.ini`                     |
+| macOS    | `~/Library/Application Support/tektronix/credentials.ini` |
 
 Use a custom path by constructing the store explicitly:
 
@@ -218,13 +222,13 @@ login = tektronix
 password = obf1:Bx5eX1tcWw==
 ```
 
-| Key | Meaning |
-|-----|---------|
-| `cert_fingerprint` | SHA-256 of the trusted certificate. Checked on every connect. |
-| `cert_path` | Path to the saved certificate PEM. |
-| `tls_server_name` | Name used for TLS verification (handles IP / `.local` addressing). |
-| `login` | Username for Basic auth (Mode 3). Defaults to `tektronix` if absent. |
-| `password` | Password for Basic auth (Mode 3). See obfuscation below. |
+| Key                | Meaning                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `cert_fingerprint` | SHA-256 of the trusted certificate. Checked on every connect.        |
+| `cert_path`        | Path to the saved certificate PEM.                                   |
+| `tls_server_name`  | Name used for TLS verification (handles IP / `.local` addressing).   |
+| `login`            | Username for Basic auth (Mode 3). Defaults to `tektronix` if absent. |
+| `password`         | Password for Basic auth (Mode 3). See obfuscation below.             |
 
 On non-Windows systems the file is written with owner-only permissions (`0600`). On Windows it relies on your user account's `%APPDATA%` isolation.
 
@@ -259,8 +263,9 @@ All security errors derive from `TekSecurityError`, so you can catch the whole c
 from tekhsi import TekSecurityError, TekCertificateMismatch
 
 try:
-    with TekHSIConnect("192.168.1.50:5000", credential_store=store,
-                       on_trust_prompt=trust_prompt) as scope:
+    with TekHSIConnect(
+        "192.168.1.50:5000", credential_store=store, on_trust_prompt=trust_prompt
+    ) as scope:
         ...
 except TekCertificateMismatch as e:
     print("The instrument's certificate changed — possible MITM or reconfigured device.")
@@ -268,11 +273,11 @@ except TekSecurityError as e:
     print(f"Security negotiation failed: {e}")
 ```
 
-| Exception | Raised when |
-|-----------|-------------|
-| `TekSecurityError` | Base class for all of the below; also raised on negotiation timeout or when TLS is required but can't be established. |
-| `TekUnknownInstrument` | The instrument isn't trusted and no prompt was provided (or the prompt declined). Carries the `cert_info` so you can inspect the fingerprint. |
-| `TekCertificateMismatch` | The live certificate's fingerprint doesn't match the stored one. Carries both fingerprints. |
+| Exception                 | Raised when                                                                                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TekSecurityError`        | Base class for all of the below; also raised on negotiation timeout or when TLS is required but can't be established.                                          |
+| `TekUnknownInstrument`    | The instrument isn't trusted and no prompt was provided (or the prompt declined). Carries the `cert_info` so you can inspect the fingerprint.                  |
+| `TekCertificateMismatch`  | The live certificate's fingerprint doesn't match the stored one. Carries both fingerprints.                                                                    |
 | `TekAuthenticationFailed` | The password was missing or rejected by the server, or the trust prompt declined to supply a password during a Mode-2 → Mode-3 upgrade (`auth_required=True`). |
 
 ### Handling a certificate mismatch
@@ -281,7 +286,7 @@ A `TekCertificateMismatch` means the instrument is presenting a different certif
 
 ```python
 store.remove("192.168.1.50:5000")  # drops the in-memory entry
-store.save()                        # required to persist the removal to disk
+store.save()  # required to persist the removal to disk
 # then reconnect to re-trust the new certificate
 ```
 

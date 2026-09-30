@@ -26,6 +26,7 @@ import sys
 import tempfile
 import time
 import traceback
+
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -36,22 +37,20 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
 
-from tekhsi import TekHSIConnect
-from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.helpers.logging import LoggingLevels, configure_logging
-from tm_data_types import FastFrameAnalogWaveform
-
 from scope_visa import (
     arm_sequence_acquisition,
     close_visa,
     configure_fastframe,
     configure_record_length,
-    send_command,
     setup_scope_via_visa,
     start_scope_acquisition,
     wait_for_acquisition_complete,
 )
+from tekhsi import TekHSIConnect
+from tekhsi.credential_store import TekHSICredentialStore
+from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+from tm_data_types import FastFrameAnalogWaveform
 
 # Default total sample counts: ~x2.5 steps toward 100M.
 # Smallest totals need rl>=2500 and frames>=2, so 15_000 is the first with 3+ layouts.
@@ -286,7 +285,7 @@ def _run_one_acquisition(
 ) -> tuple[float, float, float | None, float | None, float, float, int, int, int, str]:
     """Return timing metrics and optional error text from one stopped-data read."""
     acq_wait_s = 0.0
-    acq_before = conn._acqcount  # noqa: SLF001
+    acq_before = conn._acqcount
 
     if visa_scope is not None:
         t_acq_start = time.perf_counter()
@@ -304,8 +303,19 @@ def _run_one_acquisition(
     if waveform is None:
         return 0.0, 0.0, None, None, app_wait_ms, acq_wait_s, 0, 0, 0, "no waveform from get_data"
 
-    if conn._acqcount <= acq_before:  # noqa: SLF001
-        return 0.0, 0.0, None, None, app_wait_ms, acq_wait_s, 0, 0, 0, "no new acquisition (stale cache)"
+    if conn._acqcount <= acq_before:
+        return (
+            0.0,
+            0.0,
+            None,
+            None,
+            app_wait_ms,
+            acq_wait_s,
+            0,
+            0,
+            0,
+            "no new acquisition (stale cache)",
+        )
 
     timing = waveform.load_timing
     if timing is not None:
@@ -326,7 +336,18 @@ def _run_one_acquisition(
     frames = waveform.num_frames or 0
     total_bytes = waveform.record_length * frames * bps
     rate = (total_bytes * 8 / 1_000_000) / (app_wait_ms / 1000) if app_wait_ms > 0 else 0.0
-    return app_wait_ms, rate, None, None, app_wait_ms, acq_wait_s, total_bytes, bps, frames, "no load_timing"
+    return (
+        app_wait_ms,
+        rate,
+        None,
+        None,
+        app_wait_ms,
+        acq_wait_s,
+        total_bytes,
+        bps,
+        frames,
+        "no load_timing",
+    )
 
 
 def measure_point(
@@ -492,8 +513,12 @@ def result_to_csv_row(result: SweepResult, scope_ip: str, channel: str, server_m
         "layout": p.layout,
         "transfer_time_ms": round(result.transfer_time_ms, 3),
         "transfer_rate_Mbps": round(result.transfer_rate_mbps, 2),
-        "grpc_transfer_ms": "" if result.grpc_transfer_ms is None else round(result.grpc_transfer_ms, 3),
-        "grpc_publish_ms": "" if result.grpc_publish_ms is None else round(result.grpc_publish_ms, 3),
+        "grpc_transfer_ms": ""
+        if result.grpc_transfer_ms is None
+        else round(result.grpc_transfer_ms, 3),
+        "grpc_publish_ms": ""
+        if result.grpc_publish_ms is None
+        else round(result.grpc_publish_ms, 3),
         "app_wait_ms": round(result.app_wait_ms, 3),
         "acq_wait_s": round(result.acq_wait_s, 6),
         "total_bytes": result.total_bytes,
@@ -530,7 +555,9 @@ def main() -> int:
     parser.add_argument("--ip", default="169.254.6.254")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--channel", default="ch1")
-    parser.add_argument("--repeats", type=int, default=2, help="Acquisitions averaged per sweep point")
+    parser.add_argument(
+        "--repeats", type=int, default=2, help="Acquisitions averaged per sweep point"
+    )
     parser.add_argument("--min-total", type=int, default=15_000)
     parser.add_argument("--max-total", type=int, default=100_000_000)
     parser.add_argument(
@@ -561,7 +588,7 @@ def main() -> int:
     url = f"{args.ip}:{args.port}"
     channel = args.channel.lower()
 
-    totals = args.totals if args.totals else default_total_samples(args.min_total, args.max_total)
+    totals = args.totals or default_total_samples(args.min_total, args.max_total)
 
     print("=" * 72)
     print("HSI FastFrame transfer sweep (Excel CSV)")
@@ -603,6 +630,7 @@ def main() -> int:
                 layout=_layout_label(args.num_frames),
             )
         ]
+        plan_warnings: list[str] = []
     else:
         plan, plan_warnings = build_sweep_plan(
             totals,
@@ -620,7 +648,9 @@ def main() -> int:
         print("\nNo sweep points in plan (check --max-total or scope limits).")
         return 1
 
-    print(f"\n[plan] {len(plan)} sweep points ({MIN_COMBOS_PER_TOTAL}+ layouts per total when possible):")
+    print(
+        f"\n[plan] {len(plan)} sweep points ({MIN_COMBOS_PER_TOTAL}+ layouts per total when possible):"
+    )
     per_total = Counter(p.total_samples for p in plan)
     for total in sorted(per_total):
         print(f"  total={total:>12,}: {per_total[total]} layout(s)")

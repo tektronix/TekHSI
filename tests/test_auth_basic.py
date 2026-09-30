@@ -1,8 +1,8 @@
 """Unit tests for auth_basic helpers."""
 
 from tekhsi.auth_basic import (
-    DEFAULT_MODE3_USERNAME,
     build_basic_authorization_value,
+    DEFAULT_MODE3_USERNAME,
     parse_basic_authorization,
 )
 
@@ -42,6 +42,19 @@ def test_parse_invalid_inputs() -> None:
     assert parse_basic_authorization("Basic dGVzdA==") is None  # no colon in decoded
 
 
+def test_parse_empty_base64_after_prefix() -> None:
+    """Whitespace-only payload after 'Basic ' is treated as empty and invalid."""
+    assert parse_basic_authorization("Basic    ") is None
+
+
+def test_parse_invalid_utf8_decoded_payload() -> None:
+    """Valid base64 that decodes to non-UTF-8 bytes returns None."""
+    import base64
+
+    b64 = base64.b64encode(b"\xff\xfe\xfd").decode("ascii")
+    assert parse_basic_authorization(f"Basic {b64}") is None
+
+
 def test_default_username_constant() -> None:
     """Default Mode 3 username is tektronix."""
-    assert DEFAULT_MODE3_USERNAME == "tektronix"
+    assert DEFAULT_MODE3_USERNAME == "Tektronix"

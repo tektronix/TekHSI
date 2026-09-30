@@ -1,5 +1,7 @@
 """Module for connecting to Tektronix instruments and retrieving waveform data using gRPC."""
 
+# pylint: disable=too-many-locals
+
 from __future__ import annotations
 
 import contextlib
@@ -35,7 +37,7 @@ from tekhsi.load_timing import (
     REPLY_CONTENT_MASK_FRAME_METADATA,
     WaveformTransferTiming,
 )
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _auto_negotiate_channel,
     _build_creds_from_entry,
     _call_on_trust,
@@ -919,7 +921,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             if len(result) >= 1 and result[0]:
                 password = result[1] if len(result) > 1 else None
                 login = result[2] if len(result) > 2 else None
-                if login == "":
+                if not login:
                     login = None
         elif result is True:
             password = None
@@ -1657,7 +1659,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return False
 
     # pylint: disable= too-many-locals
-    def _read_waveform(  # noqa: PLR0915, PLR0912, C901
+    def _read_waveform(  # noqa: PLR0915, PLR0912
         self, header: WaveformHeader
     ) -> Waveform:
         """Reads the analog waveform associated with the passed header.
@@ -1670,7 +1672,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         waveform: Waveform | None = None
         try:
-            if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
+            if 0 < header.wfmtype <= 3:  # Vector
                 waveform = self._read_analog_native(header, self.native)
             elif header.wfmtype in {
                 WaveformType.ANALOG_IQ,
@@ -1852,7 +1854,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         return datasize
 
-    def _read_waveform_with_stub(  # noqa: C901, PLR0912, PLR0915
+    def _read_waveform_with_stub(  # noqa: PLR0912, PLR0915
         self, header: WaveformHeader, native_stub: NativeDataStub
     ) -> Waveform:
         """Reads a waveform using a provided stub (thread-safe version).
@@ -1870,7 +1872,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         # We'll need to replicate _read_waveform logic but with the stub parameter
         # For now, let's use a wrapper that creates a new stub per call
         try:
-            if 0 < header.wfmtype <= 3:  # Vector  # noqa: PLR2004
+            if 0 < header.wfmtype <= 3:  # Vector
                 waveform = self._read_analog_native(header, native_stub)
             elif header.wfmtype in {
                 WaveformType.ANALOG_IQ,
@@ -1945,7 +1947,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 waveform = self._read_digital_native(header, native_stub)
             else:
                 msg = f"Unknown waveform type: {header.wfmtype}"
-                raise ValueError(msg)  # noqa: TRY301
+                raise ValueError(msg)
 
             waveform.record_length = header.noofsamples
             return waveform  # noqa: TRY300
@@ -1953,7 +1955,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)  # noqa: TRY400
             raise
 
-    def _read_waveforms_parallel(  # noqa: PLR0912, C901
+    def _read_waveforms_parallel(  # noqa: PLR0912
         self, headers: list[WaveformHeader], waveforms: list[Waveform]
     ) -> int:
         """Reads waveforms in parallel using ThreadPoolExecutor.
@@ -2092,7 +2094,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
                 return
 
-    def _run_inner(  # noqa: C901, PLR0912
+    def _run_inner(  # noqa: PLR0912
         self, headers: list[WaveformHeader], waveforms: list[Waveform], startwait: float
     ) -> None:
         """Background thread for participating in the instruments sequence.
@@ -2247,7 +2249,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         for key in TekHSIConnect._connections:  # pylint:disable=consider-using-dict-items
             with contextlib.suppress(Exception):
-                if TekHSIConnect._connections[key]._holding_scope_open:  # noqa: SLF001
-                    TekHSIConnect._connections[key]._finished_with_data_access()  # noqa: SLF001
+                if TekHSIConnect._connections[key]._holding_scope_open:
+                    TekHSIConnect._connections[key]._finished_with_data_access()
             with contextlib.suppress(Exception):
                 TekHSIConnect._connections[key].close()

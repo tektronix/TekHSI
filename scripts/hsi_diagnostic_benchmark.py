@@ -36,6 +36,7 @@ import sys
 import tempfile
 import time
 import traceback
+
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -45,31 +46,30 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
 
-from tekhsi import TekHSIConnect
-from tekhsi._tek_highspeed_server_pb2 import WfmReplyStatus
-from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.helpers.logging import LoggingLevels, configure_logging
-from tm_data_types import FastFrameAnalogWaveform
-
 from hsi_network_diagnostics import (
     LinkCheckResult,
-    SsSampler,
     record_link_after_transfer,
     resolve_iface_for_host,
+    SsSampler,
     verify_link_before_sweeps,
 )
 from scope_visa import (
-    DEFAULT_ACQ_WAIT_TIMEOUT_S,
     arm_sequence_acquisition,
     close_visa,
     configure_fastframe,
     configure_record_length,
+    DEFAULT_ACQ_WAIT_TIMEOUT_S,
     disable_fastframe,
     setup_scope_via_visa,
     start_scope_acquisition,
     wait_for_acquisition_complete,
 )
+from tekhsi import TekHSIConnect
+from tekhsi._tek_highspeed_server_pb2 import WfmReplyStatus
+from tekhsi.credential_store import TekHSICredentialStore
+from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+from tm_data_types import FastFrameAnalogWaveform
 
 SWEEP_A_RL = 100_000
 SWEEP_A_FRAMES = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500]
@@ -197,7 +197,7 @@ def run_acquisition_and_read(
     expected_nf: int,
     acq_timeout_s: float,
 ) -> tuple[float, float | None, float | None, float, str]:
-    acq_before = conn._acqcount  # noqa: SLF001
+    acq_before = conn._acqcount
 
     if visa_scope is not None:
         start_scope_acquisition(visa_scope)
@@ -213,7 +213,7 @@ def run_acquisition_and_read(
     if waveform is None:
         return wall_ms, None, None, wall_ms, "no waveform from get_data"
 
-    if conn._acqcount <= acq_before:  # noqa: SLF001
+    if conn._acqcount <= acq_before:
         return wall_ms, None, None, wall_ms, "no new acquisition (stale cache)"
 
     timing = waveform.load_timing
@@ -268,7 +268,7 @@ def measure_config(
         if err:
             status = "failed"
             notes.append(err)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         status = "failed"
         notes.append(str(exc))
         wall_ms = 0.0
@@ -317,59 +317,58 @@ def dump_per_frame_arrivals(
         if not ok:
             raise RuntimeError(reason)
 
-    with TekHSIConnect(url, **connect_kwargs) as conn:
-        with conn.access_stopped_data():
-            header = conn._read_header(channel)  # noqa: SLF001
-            request = conn._waveform_request_for_header(header)  # noqa: SLF001
-            expected_bytes = int(header.num_frames) * int(header.noofsamples) * int(header.sourcewidth)
-            timeout_sec = min(120.0, max(15.0, expected_bytes / (5 * 1024 * 1024)))
-            iterator = conn.native.GetWaveform(request, timeout=timeout_sec)
+    with TekHSIConnect(url, **connect_kwargs) as conn, conn.access_stopped_data():
+        header = conn._read_header(channel)
+        request = conn._waveform_request_for_header(header)
+        expected_bytes = int(header.num_frames) * int(header.noofsamples) * int(header.sourcewidth)
+        timeout_sec = min(120.0, max(15.0, expected_bytes / (5 * 1024 * 1024)))
+        iterator = conn.native.GetWaveform(request, timeout=timeout_sec)
 
-            t0 = time.perf_counter()
-            cumulative = 0
-            prev_arrival = 0.0
-            frame_index = -1
+        t0 = time.perf_counter()
+        cumulative = 0
+        prev_arrival = 0.0
+        frame_index = -1
 
-            try:
-                for message_index, response in enumerate(iterator):
-                    arrival_ms = (time.perf_counter() - t0) * 1000.0
-                    delta_ms = arrival_ms - prev_arrival if message_index else 0.0
-                    prev_arrival = arrival_ms
+        try:
+            for message_index, response in enumerate(iterator):
+                arrival_ms = (time.perf_counter() - t0) * 1000.0
+                delta_ms = arrival_ms - prev_arrival if message_index else 0.0
+                prev_arrival = arrival_ms
 
-                    is_boundary = response.HasField("frame_boundary")
-                    chunk_bytes = 0
-                    if response.headerordata.WhichOneof("value") == "chunk":
-                        chunk_bytes = len(response.headerordata.chunk.data)
-                        cumulative += chunk_bytes
+                is_boundary = response.HasField("frame_boundary")
+                chunk_bytes = 0
+                if response.headerordata.WhichOneof("value") == "chunk":
+                    chunk_bytes = len(response.headerordata.chunk.data)
+                    cumulative += chunk_bytes
 
-                    if is_boundary:
-                        frame_index = int(response.frame_boundary.frame_info.frame_index)
+                if is_boundary:
+                    frame_index = int(response.frame_boundary.frame_info.frame_index)
 
-                    rows.append(
-                        {
-                            "record_length": record_length,
-                            "num_frames": num_frames,
-                            "message_index": message_index,
-                            "frame_index": frame_index if is_boundary else "",
-                            "is_frame_boundary": int(is_boundary),
-                            "chunk_bytes": chunk_bytes,
-                            "cumulative_bytes": cumulative,
-                            "arrival_ms": round(arrival_ms, 6),
-                            "delta_ms": round(delta_ms, 6),
-                            "status": WfmReplyStatus.Name(response.status),
-                        }
-                    )
+                rows.append(
+                    {
+                        "record_length": record_length,
+                        "num_frames": num_frames,
+                        "message_index": message_index,
+                        "frame_index": frame_index if is_boundary else "",
+                        "is_frame_boundary": int(is_boundary),
+                        "chunk_bytes": chunk_bytes,
+                        "cumulative_bytes": cumulative,
+                        "arrival_ms": round(arrival_ms, 6),
+                        "delta_ms": round(delta_ms, 6),
+                        "status": WfmReplyStatus.Name(response.status),
+                    }
+                )
 
-                    if not _is_wfm_data_status(response.status):
-                        continue
-                    if cumulative >= expected_bytes and is_boundary:
-                        if frame_index >= int(header.num_frames) - 1:
-                            break
-            finally:
-                import contextlib
+                if not _is_wfm_data_status(response.status):
+                    continue
+                if cumulative >= expected_bytes and is_boundary:
+                    if frame_index >= int(header.num_frames) - 1:
+                        break
+        finally:
+            import contextlib
 
-                with contextlib.suppress(Exception):
-                    iterator.cancel()
+            with contextlib.suppress(Exception):
+                iterator.cancel()
 
     with output_path.open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, fieldnames=FRAME_ARRIVAL_FIELDS)
@@ -402,7 +401,8 @@ def run_transfer_with_ss(
             acq_timeout_s=acq_timeout_s,
         )
     finally:
-        return sampler.stop()
+        result = sampler.stop()
+    return result
 
 
 def write_sweep_csv(path: Path, rows: list[dict], sweep_label: str) -> None:
@@ -411,7 +411,10 @@ def write_sweep_csv(path: Path, rows: list[dict], sweep_label: str) -> None:
         writer = csv.DictWriter(handle, fieldnames=SWEEP_CSV_FIELDS)
         writer.writeheader()
         writer.writerows(
-            sorted(filtered, key=lambda r: (int(r["record_length"]), int(r["num_frames"]), int(r["run_index"])))
+            sorted(
+                filtered,
+                key=lambda r: (int(r["record_length"]), int(r["num_frames"]), int(r["run_index"])),
+            )
         )
 
 
@@ -426,12 +429,16 @@ def large_link_test_transfer(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--ip", default="169.254.6.254")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--channel", default="ch1")
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--seed", type=int, default=None, help="Random order seed (default: random)")
+    parser.add_argument(
+        "--seed", type=int, default=None, help="Random order seed (default: random)"
+    )
     parser.add_argument("--output-dir", type=Path, default=ROOT / "results")
     parser.add_argument("--no-visa", action="store_true")
     parser.add_argument("--skip-link-check", action="store_true")
@@ -506,7 +513,14 @@ def main() -> int:
     store_path = str(Path(tempfile.gettempdir()) / "tekhsi_diagnostic_credentials.ini")
     credential_store = TekHSICredentialStore(path=store_path)
     credentials = (
-        build_credentials(url, None, needs_encryption=needs_enc, needs_password=needs_pwd, cert=cert, pem_path=pem_path)
+        build_credentials(
+            url,
+            None,
+            needs_encryption=needs_enc,
+            needs_password=needs_pwd,
+            cert=cert,
+            pem_path=pem_path,
+        )
         if needs_enc or needs_pwd
         else None
     )
@@ -547,7 +561,9 @@ def main() -> int:
                     print(f"    FAILED: {row['notes']}")
 
             if not args.skip_frame_dump:
-                print(f"\n[3/7] Per-frame arrival dump (RL={FALLOFF_RL:,}, N={FALLOFF_FRAMES:,})...")
+                print(
+                    f"\n[3/7] Per-frame arrival dump (RL={FALLOFF_RL:,}, N={FALLOFF_FRAMES:,})..."
+                )
                 dump_per_frame_arrivals(
                     url,
                     connect_kwargs,
@@ -602,15 +618,26 @@ def main() -> int:
                         pcap_notes.append("tcpdump ended without pcap file")
                 else:
                     pcap_notes.append("tcpdump not available")
-                (run_dir / "falloff_capture.txt").write_text("\n".join(pcap_notes) + "\n", encoding="utf-8")
+                (run_dir / "falloff_capture.txt").write_text(
+                    "\n".join(pcap_notes) + "\n", encoding="utf-8"
+                )
             elif not args.skip_pcap:
-                (run_dir / "falloff_capture.txt").write_text("pcap skipped: no iface\n", encoding="utf-8")
+                (run_dir / "falloff_capture.txt").write_text(
+                    "pcap skipped: no iface\n", encoding="utf-8"
+                )
 
             if not args.skip_ss:
                 print("\n[5/7] ss -ti during long transfer...")
                 long_rl = min(LONG_RL, max_rl) if max_rl else LONG_RL
                 ss_long = run_transfer_with_ss(
-                    conn, visa_scope, channel, args.ip, args.port, long_rl, LONG_FRAMES, args.acq_timeout
+                    conn,
+                    visa_scope,
+                    channel,
+                    args.ip,
+                    args.port,
+                    long_rl,
+                    LONG_FRAMES,
+                    args.acq_timeout,
                 )
                 (run_dir / "ss_long_transfer.txt").write_text(ss_long + "\n", encoding="utf-8")
 
@@ -625,7 +652,9 @@ def main() -> int:
                     FALLOFF_FRAMES,
                     args.acq_timeout,
                 )
-                (run_dir / "ss_falloff_transfer.txt").write_text(ss_falloff + "\n", encoding="utf-8")
+                (run_dir / "ss_falloff_transfer.txt").write_text(
+                    ss_falloff + "\n", encoding="utf-8"
+                )
 
     except Exception:
         traceback.print_exc()

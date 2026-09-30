@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
+import contextlib
 import ipaddress
 import socket
 import ssl
 import time
 import uuid
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+
+from typing import Any, Dict, Tuple, TYPE_CHECKING, Union
 
 import grpc
 
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
-from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME, build_basic_authorization_value
+from tekhsi.auth_basic import build_basic_authorization_value, DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import CertInfo, TekHSICredentialStore, tls_server_name_from_pem
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class TekSecurityError(Exception):
@@ -90,7 +95,7 @@ def _is_ip_literal(host: str) -> bool:
         return False
 
 
-def _tls_server_name_for_entry(entry: Dict[str, Optional[str]]) -> Optional[str]:
+def _tls_server_name_for_entry(entry: Dict[str, str | None]) -> str | None:
     name = entry.get("tls_server_name")
     if name:
         return name
@@ -105,9 +110,9 @@ def _tls_server_name_for_entry(entry: Dict[str, Optional[str]]) -> Optional[str]
 
 
 def _tls_channel_options(
-    connect_host: str, tls_server_name: Optional[str]
+    connect_host: str, tls_server_name: str | None
 ) -> Tuple[Tuple[str, str], ...]:
-    """gRPC channel options when URL host differs from the cert name (IP or .local)."""
+    """GRPC channel options when URL host differs from the cert name (IP or .local)."""
     if not tls_server_name:
         return ()
     cert_name = tls_server_name.strip()
@@ -130,8 +135,8 @@ def _tls_channel_options(
 def _secure_channel(
     url: str,
     creds: grpc.ChannelCredentials,
-    entry: Optional[Dict[str, Optional[str]]] = None,
-    tls_server_name: Optional[str] = None,
+    entry: Dict[str, str | None] | None = None,
+    tls_server_name: str | None = None,
 ) -> grpc.Channel:
     host, _ = _parse_host_port(url)
     if tls_server_name is None and entry is not None:
@@ -142,7 +147,7 @@ def _secure_channel(
     return grpc.secure_channel(url, creds)
 
 
-def _build_creds_from_entry(entry: Dict[str, Optional[str]], mode: str) -> grpc.ChannelCredentials:
+def _build_creds_from_entry(entry: Dict[str, str | None], mode: str) -> grpc.ChannelCredentials:
     """Build gRPC credentials from a store entry (must have cert_path)."""
     ca_path = entry.get("cert_path")
     if not ca_path:
@@ -180,7 +185,7 @@ def _fetch_server_cert(host: str, port: int, timeout: float = 5.0) -> CertInfo:
     return CertInfo.from_pem(pem.encode() if isinstance(pem, str) else pem)
 
 
-def _try_plain_grpc_channel(url: str, deadline: float) -> Optional[grpc.Channel]:
+def _try_plain_grpc_channel(url: str, deadline: float) -> grpc.Channel | None:
     """If the server accepts plain gRPC Connect, return a new insecure channel; else None."""
     ch = grpc.insecure_channel(url)
     probe = str(uuid.uuid4())
@@ -189,31 +194,29 @@ def _try_plain_grpc_channel(url: str, deadline: float) -> Optional[grpc.Channel]
         if rem <= 0:
             try:
                 ch.close()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
             return None
         stub = ConnectStub(ch)
         stub.Connect(ConnectRequest(name=probe), timeout=rem)
-        try:
+        with contextlib.suppress(grpc.RpcError):
             stub.Disconnect(ConnectRequest(name=probe), timeout=min(rem, 3.0))
-        except grpc.RpcError:
-            pass
     except grpc.RpcError:
         try:
             ch.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return None
     except Exception:
         try:
             ch.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return None
-    else:
+    else:  # pylint: disable=no-else-return  # else only runs when Connect/Disconnect succeeded
         try:
             ch.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return grpc.insecure_channel(url)
 
@@ -222,7 +225,7 @@ def _call_on_trust(
     cb: Callable[..., Any], host_port: str, cert_info: CertInfo, auth_required: bool
 ) -> Any:
     """Invoke on_trust_prompt with (host, cert_info) or (host, cert_info, auth_required)."""
-    import inspect
+    import inspect  # pylint: disable=import-outside-toplevel  # avoid cost on the hot path
 
     try:
         sig = inspect.signature(cb)
@@ -237,7 +240,7 @@ def _resolve_credentials_from_store(
     host_port: str,
     store: TekHSICredentialStore,
     mode: str,
-    on_trust_prompt: Optional[Callable[..., Union[bool, Tuple[bool, Optional[str]]]]],
+    on_trust_prompt: Callable[..., Union[bool, Tuple[bool, str | None]]] | None,
     deadline: float,
 ) -> grpc.ChannelCredentials:
     """Resolve gRPC credentials from store or TOFU."""
@@ -283,7 +286,7 @@ def _resolve_credentials_from_store(
 def _auto_negotiate_channel(
     url: str,
     store: TekHSICredentialStore,
-    on_trust_prompt: Optional[Callable[..., Any]],
+    on_trust_prompt: Callable[..., Any] | None,
     require_tls: bool,
     deadline: float,
     timeout: float,
@@ -335,7 +338,7 @@ def _auto_negotiate_channel(
     elif isinstance(result, (list, tuple)) and len(result) >= 1 and result[0]:
         pwd = result[1] if len(result) > 1 else None
         login = result[2] if len(result) > 2 else None
-        if login == "":
+        if not login:
             login = None
         store.trust(url, cert_info, password=pwd, login=login)
         store.save()

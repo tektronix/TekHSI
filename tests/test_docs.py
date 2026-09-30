@@ -74,6 +74,13 @@ class TestDocs:  # pylint: disable=no-self-use
     @pytest.mark.depends(on=["test_docs_html"])
     def test_docs_linkcheck(self, docs_server: str) -> None:
         """Run the linkcheck test for the documentation."""
-        subprocess.check_call(  # noqa: S603
-            shlex.split(f"linkchecker --config=docs/.linkchecker.ini {docs_server}")
-        )
+        cmd = [
+            "linkchecker",
+            "--config=docs/.linkchecker.ini",
+            # Branch docs can reference files that are not yet on remote `main`.
+            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/docs/.*",
+            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/scripts/.*",
+            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/examples/.*",
+            docs_server,
+        ]
+        subprocess.check_call(cmd)  # noqa: S603

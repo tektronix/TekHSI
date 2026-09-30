@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 import tempfile
+
 from pathlib import Path
 
 import numpy as np
@@ -83,7 +84,9 @@ def _compare_waveforms(expected, actual, pair_label: str) -> tuple[list[str], li
     meta_issues: list[str] = []
 
     if type(expected) is not type(actual):
-        meta_issues.append(f"type: expected {type(expected).__name__}, scope {type(actual).__name__}")
+        meta_issues.append(
+            f"type: expected {type(expected).__name__}, scope {type(actual).__name__}"
+        )
 
     exp_frames = _frame_count(expected)
     act_frames = _frame_count(actual)
@@ -95,7 +98,9 @@ def _compare_waveforms(expected, actual, pair_label: str) -> tuple[list[str], li
     if exp_len != act_len:
         data_issues.append(f"record_length: expected {exp_len}, scope {act_len}")
 
-    if isinstance(expected, FastFrameDigitalWaveform) and isinstance(actual, FastFrameDigitalWaveform):
+    if isinstance(expected, FastFrameDigitalWaveform) and isinstance(
+        actual, FastFrameDigitalWaveform
+    ):
         if expected.digital_bitmask != actual.digital_bitmask:
             meta_issues.append(
                 f"digital_bitmask: expected 0x{expected.digital_bitmask:08x}, "
@@ -116,7 +121,9 @@ def _compare_waveforms(expected, actual, pair_label: str) -> tuple[list[str], li
                 f"frame[{index}] mismatch: {mismatches}/{exp.size} samples differ, max diff={diff}"
             )
 
-        if isinstance(expected, FastFrameDigitalWaveform) and isinstance(actual, FastFrameDigitalWaveform):
+        if isinstance(expected, FastFrameDigitalWaveform) and isinstance(
+            actual, FastFrameDigitalWaveform
+        ):
             exp_bits = expected.frame(index).get_nth_bitstream(0)
             act_bits = actual.frame(index).get_nth_bitstream(0)
             if not np.array_equal(exp_bits, act_bits):
@@ -166,21 +173,23 @@ def main() -> int:
     for ref_symbol, wfm_path, _, kind in ref_specs:
         print(f"\n--- Reading {ref_symbol} from scope ---", flush=True)
         try:
-            with TekHSIConnect(
-                args.url,
-                activesymbols=[ref_symbol],
-                on_trust_prompt=_auto_trust_prompt,
-                credential_store=TekHSICredentialStore(path=store_path),
-            ) as conn:
-                with conn.access_stopped_data():
-                    print(f"available_symbols={conn.available_symbols}", flush=True)
-                    wfm = conn.get_data(ref_symbol)
-                    if wfm is None:
-                        print(f"ERROR: no waveform for {ref_symbol}")
-                        scope_data[kind] = None
-                        continue
-                    scope_data[kind] = wfm
-                    _print_waveform_summary(f"scope {ref_symbol}", wfm)
+            with (
+                TekHSIConnect(
+                    args.url,
+                    activesymbols=[ref_symbol],
+                    on_trust_prompt=_auto_trust_prompt,
+                    credential_store=TekHSICredentialStore(path=store_path),
+                ) as conn,
+                conn.access_stopped_data(),
+            ):
+                print(f"available_symbols={conn.available_symbols}", flush=True)
+                wfm = conn.get_data(ref_symbol)
+                if wfm is None:
+                    print(f"ERROR: no waveform for {ref_symbol}")
+                    scope_data[kind] = None
+                    continue
+                scope_data[kind] = wfm
+                _print_waveform_summary(f"scope {ref_symbol}", wfm)
         except Exception as exc:
             print(f"ERROR reading {ref_symbol}: {exc}")
             scope_data[kind] = None
@@ -190,7 +199,9 @@ def main() -> int:
     for ref_symbol, wfm_path, _, kind in ref_specs:
         if scope_data.get(kind) is None:
             all_ok = False
-            print(f"\nDATA FAIL {ref_symbol} vs {wfm_path.name}: could not read waveform from scope")
+            print(
+                f"\nDATA FAIL {ref_symbol} vs {wfm_path.name}: could not read waveform from scope"
+            )
             continue
         data_issues, meta_issues = _compare_waveforms(expected[kind], scope_data[kind], kind)
         if data_issues:

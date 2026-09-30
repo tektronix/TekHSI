@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import threading
 import time
+
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -215,7 +216,9 @@ def verify_link_before_sweeps(host: str, output_dir: Path) -> LinkCheckResult:
     return result
 
 
-def record_link_after_transfer(host: str, output_dir: Path, result: LinkCheckResult) -> LinkCheckResult:
+def record_link_after_transfer(
+    host: str, output_dir: Path, result: LinkCheckResult
+) -> LinkCheckResult:
     log_path = output_dir / "link_verification_after_transfer.txt"
     if result.iface is None or not _is_linux_like():
         log_path.write_text("skipped (no iface or non-Linux)\n", encoding="utf-8")
@@ -251,7 +254,9 @@ def record_link_after_transfer(host: str, output_dir: Path, result: LinkCheckRes
         result.ok = False
         result.messages.append(f"Nonzero error/drop counters after transfer: {bad}")
         lines.append("")
-        lines.append("ERROR: nonzero error/drop/collision/carrier/pause deltas — stop before sweeps.")
+        lines.append(
+            "ERROR: nonzero error/drop/collision/carrier/pause deltas — stop before sweeps."
+        )
 
     log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return result
@@ -275,7 +280,7 @@ class SsSampler:
 
         def worker() -> None:
             while not self._stop.is_set():
-                ts = time.strftime("%Y-%m-%dT%H:%M:%S") + f".{int(time.time()*1000)%1000:03d}"
+                ts = time.strftime("%Y-%m-%dT%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}"
                 code, out, err = _run(["ss", "-ti", f"dst {self.host}:{self.port}"], timeout=5.0)
                 block = out or err or f"ss exit {code}"
                 self.lines.append(f"--- {ts} ---\n{block}")

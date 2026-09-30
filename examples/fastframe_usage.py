@@ -2,17 +2,15 @@
 
 import os
 
-from tm_data_types import FastFrameAnalogWaveform
-
 from tekhsi import TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
+from tm_data_types import FastFrameAnalogWaveform
 
 
 def auto_trust(host: str, cert_info, auth_required: bool = False):
     """Accept the scope certificate (set TEKHSI_PASSWORD if auth is required)."""
     if auth_required:
-        password = os.environ.get("TEKHSI_PASSWORD")
-        if not password:
+        if not (password := os.environ.get("TEKHSI_PASSWORD")):
             return False
         return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
     return True
@@ -46,8 +44,7 @@ else:
     frame0 = waveform.frame_data(0)
     print(f"frame 0: {len(frame0)} samples, raw[0]={int(frame0[0])}")
 
-    summary = waveform.get_summary_frame()
-    if summary is not None:
+    if (summary := waveform.get_summary_frame()) is not None:
         summary_samples = waveform.frame_data(waveform.summary_frame_index)
         print(f"summary frame: raw[0]={int(summary_samples[0])}")
     else:

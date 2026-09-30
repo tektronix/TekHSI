@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 import tempfile
+
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,9 @@ from tekhsi import FastFrameAnalogWaveform, TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
 
 
-def _auto_trust_prompt(host: str, cert_info: Any, auth_required: bool = False) -> bool | tuple[bool, str | None]:
+def _auto_trust_prompt(
+    host: str, cert_info: Any, auth_required: bool = False
+) -> bool | tuple[bool, str | None]:
     fp = getattr(cert_info, "cert_fingerprint", "") or ""
     fp_short = fp[:16] + "..." if len(fp) >= 16 else fp or "(none)"
     print(f"  [TRUST] host={host!r} auth_required={auth_required} fingerprint={fp_short}")

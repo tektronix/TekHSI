@@ -32,7 +32,7 @@ from tm_data_types import (
 def _mock_native_get_waveform(chunks: list[bytes]) -> Callable[..., object]:
     """Return a GetWaveform stand-in that yields SUCCESS chunks (no live server)."""
 
-    def _get_waveform(_request, timeout=None):  # noqa: ARG001
+    def _get_waveform(_request, timeout=None):
         for chunk in chunks:
             reply = RawReply()
             reply.status = WfmReplyStatus.WFMREPLYSTATUS_SUCCESS
@@ -1068,7 +1068,7 @@ def fixture_setup_tekhsi_connections() -> None:
     }
 
 
-def test_terminate(setup_tekhsi_connections: None) -> None:  # noqa: ARG001
+def test_terminate(setup_tekhsi_connections: None) -> None:
     """Test the _terminate method of TekHSIConnect.
 
     Args:
@@ -1327,7 +1327,7 @@ def test_read_headers_retries_pending_placeholder() -> None:
     )
     responses = iter([pending, valid])
 
-    def fake_read_header(name: str) -> WaveformHeader:  # noqa: ARG001
+    def fake_read_header(name: str) -> WaveformHeader:
         return next(responses)
 
     client._read_header = fake_read_header  # type: ignore[method-assign]
