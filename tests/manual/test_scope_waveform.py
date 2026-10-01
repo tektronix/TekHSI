@@ -24,7 +24,9 @@ import pytest  # pyright: ignore[reportMissingImports]
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from manual_scope_waveform import run_scenario  # noqa: E402  # type: ignore
+from manual_scope_waveform import (  # noqa: E402  # pylint: disable=import-error
+    run_scenario,  # type: ignore
+)
 
 pytestmark = [  # pyright: ignore[reportUnknownVariableType]
     pytest.mark.manual,  # pyright: ignore[reportUnknownMemberType]
@@ -55,7 +57,7 @@ def test_scope_waveform_scenario(scenario: str, tmp_path: Path) -> None:
         url=url,
         channel=os.environ.get("TEKHSI_SCOPE_CHANNEL", "ch1"),
         password=os.environ.get("TEKHSI_SCOPE_PASSWORD", "tek"),
-        login=os.environ.get("TEKHSI_SCOPE_LOGIN", "tektronix"),
+        login=os.environ.get("TEKHSI_SCOPE_LOGIN", "Tektronix"),
         store_path=store_path if scenario != "legacy" else None,
         timeout=float(os.environ.get("TEKHSI_SCOPE_TIMEOUT", "15")),
         log_dir=PROJECT_ROOT / "tests" / "manual" / "logs",

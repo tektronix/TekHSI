@@ -33,6 +33,31 @@ Valid subsections within a version are:
 
 ---
 
+## v1.2.0 (2026-07-24)
+
+### Added
+
+- FastFrame load timing (`WaveformTransferTiming`, `FastFrameLoadTiming`) and digital WFM tekmeta helpers.
+- Benchmark/diagnostic scripts: `hsi_diagnostic_benchmark.py`, `reproduce_benchmark_issue.py`, `scope_visa.py`, `tekhsi_conn.py`.
+- Diagnostic report: `docs/HSI_DIAGNOSTIC_REPORT_20260724.md`.
+
+### Changed
+
+- `access_stopped_data()` uses `AcqWaitOn.NewData` instead of `AnyAcq` to avoid stale cache on stopped captures.
+- Background acquisition thread always runs; the `background_thread=False` constructor option was removed.
+
+### Fixed
+
+- IQ waveform reads in `_read_waveform()` used undefined `native_stub` (now `self.native`).
+- Empty/pending FastFrame headers (`hasdata=False`, all zeros) are retried like other pending headers.
+- Background-thread header rejections log at DEBUG instead of WARNING during benchmark runs.
+
+### Removed
+
+- `background_thread` constructor flag and synchronous `_access_stopped_data_sync()` path.
+
+---
+
 ## v1.1.1 (2026-07-02)
 
 ### Merged Pull Requests

@@ -23,7 +23,7 @@ def _auto_trust(host: str, cert_info, auth_required: bool = False):
         password = os.environ.get("TEKHSI_PASSWORD")
         if not password:
             return False
-        return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
     return True
 
 

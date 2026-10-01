@@ -3,9 +3,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tm_data_types import DigitalWaveform
-
 from tekhsi import AcqWaitOn, TekHSIConnect
+from tm_data_types import DigitalWaveform
 
 with TekHSIConnect("192.168.0.1:5000") as connection:
     # Get one data set to set up plot

@@ -26,7 +26,7 @@ from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=n
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _build_creds_from_entry,
     _fetch_server_cert,
     _parse_host_port,
@@ -90,7 +90,7 @@ def _tls_connect_result(
     finally:
         try:
             ch.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
 
@@ -113,7 +113,7 @@ def check_endpoint(
     if plain_channel is not None:
         try:
             plain_channel.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
     cert = None
@@ -122,7 +122,7 @@ def check_endpoint(
     try:
         cert = _fetch_server_cert(host, port, timeout=8.0)
         tls_handshake = True
-    except Exception:  # noqa: BLE001
+    except Exception:
         cert = None
 
     tls_no_auth_ok = False
@@ -186,7 +186,7 @@ def check_endpoint(
             with TekHSIConnect(url) as conn:
                 can_connect = True
                 connect_detail = f"plain TekHSIConnect OK (channels: {conn.activesymbols})"
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             connect_detail = f"plain TekHSIConnect failed: {e}"
 
     elif needs_encryption and cert is not None and pem_path:
@@ -212,7 +212,7 @@ def check_endpoint(
                         with TekHSIConnect(url, credentials=creds) as conn:
                             can_connect = True
                             connect_detail = f"TLS + password OK (channels: {conn.activesymbols})"
-                    except Exception as e:  # noqa: BLE001
+                    except Exception as e:
                         connect_detail = f"TLS + password TekHSIConnect failed: {e}"
                 else:
                     connect_detail = f"TLS + password Connect RPC failed: {err}"
@@ -224,7 +224,7 @@ def check_endpoint(
                     with TekHSIConnect(url, credentials=creds) as conn:
                         can_connect = True
                         connect_detail = f"TLS OK (channels: {conn.activesymbols})"
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     connect_detail = f"TLS TekHSIConnect failed: {e}"
             else:
                 connect_detail = f"TLS Connect RPC failed: {err}"

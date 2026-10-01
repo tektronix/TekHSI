@@ -15,11 +15,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tm_data_types import Waveform
-
 from tekhsi import TekHSIConnect, WaveformTransferTiming
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
+from tm_data_types import Waveform
 
 
 def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
@@ -27,7 +26,7 @@ def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
         password = os.environ.get("TEKHSI_PASSWORD")
         if not password:
             return False
-        return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
     return True
 
 

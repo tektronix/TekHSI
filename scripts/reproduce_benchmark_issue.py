@@ -37,8 +37,6 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
 
-from tm_data_types import FastFrameAnalogWaveform
-
 from scope_visa import (
     arm_sequence_acquisition,
     close_visa,
@@ -52,6 +50,7 @@ from tekhsi import TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+from tm_data_types import FastFrameAnalogWaveform
 
 # Default total sample counts: ~x2.5 steps toward 100M.
 # Smallest totals need rl>=2500 and frames>=2, so 15_000 is the first with 3+ layouts.
@@ -286,7 +285,7 @@ def _run_one_acquisition(
 ) -> tuple[float, float, float | None, float | None, float, float, int, int, int, str]:
     """Return timing metrics and optional error text from one stopped-data read."""
     acq_wait_s = 0.0
-    acq_before = conn._acqcount  # noqa: SLF001
+    acq_before = conn._acqcount
 
     if visa_scope is not None:
         t_acq_start = time.perf_counter()
@@ -304,7 +303,7 @@ def _run_one_acquisition(
     if waveform is None:
         return 0.0, 0.0, None, None, app_wait_ms, acq_wait_s, 0, 0, 0, "no waveform from get_data"
 
-    if conn._acqcount <= acq_before:  # noqa: SLF001
+    if conn._acqcount <= acq_before:
         return (
             0.0,
             0.0,
@@ -631,6 +630,7 @@ def main() -> int:
                 layout=_layout_label(args.num_frames),
             )
         ]
+        plan_warnings: list[str] = []
     else:
         plan, plan_warnings = build_sweep_plan(
             totals,

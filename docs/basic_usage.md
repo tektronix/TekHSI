@@ -160,6 +160,20 @@ Use `tekhsi.wfm_digital` helpers for consistent round-trips:
 
 For design background and compatibility notes, see [tm_data_types update spec](tm_data_types_update_spec.md).
 
+## FastFrame (multi-frame stopped captures)
+
+`TekHSI` supports streaming **FastFrame** acquisitions from a stopped scope. Multi-frame reads are
+returned as `FastFrameAnalogWaveform` / `FastFrameDigitalWaveform` (from `tm_data_types`), which add
+per-frame access (`frame_data()`, `frame_array()`, `frame()`), an optional summary/average frame,
+and `waveform.load_timing` transfer metrics.
+
+Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stopped_data] instead of
+`access_data()` when reading from a stopped scope so the client re-triggers a sequence and waits for
+fresh FastFrame data rather than reusing a stale cache.
+
+For full examples, the FastFrame API table, and helper scripts, see the
+[FastFrame demo guide](DEMO_README.md).
+
 ## Security credential workflows
 
 For secure connection setup (TLS trust-on-first-use, optional password auth, `require_tls=True`, and store-backed credentials), see:

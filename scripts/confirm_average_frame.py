@@ -14,7 +14,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tekhsi import FastFrameAnalogWaveform, TekHSIConnect
+from tekhsi import FastFrameAnalogWaveform, TekHSIConnect  # pylint: disable=no-name-in-module
 from tekhsi.credential_store import TekHSICredentialStore
 
 
@@ -31,11 +31,13 @@ def main() -> int:
     )
 
     print(f"Connecting to {url} ...", flush=True)
-    with TekHSIConnect(
-        url, activesymbols=[channel], on_trust_prompt=trust, credential_store=store
-    ) as conn:
-        with conn.access_stopped_data():
-            wfm = conn.get_data(channel)
+    with (
+        TekHSIConnect(
+            url, activesymbols=[channel], on_trust_prompt=trust, credential_store=store
+        ) as conn,
+        conn.access_stopped_data(),
+    ):
+        wfm = conn.get_data(channel)
 
     if not isinstance(wfm, FastFrameAnalogWaveform):
         print(f"Not FastFrame: {type(wfm).__name__}")

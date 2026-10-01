@@ -31,26 +31,32 @@ class WaveformTransferTiming:
 
     @property
     def fastframe(self) -> bool:
+        """Whether this timing record describes a multi-frame (FastFrame) transfer."""
         return self.num_frames > 1
 
     @property
     def total_samples(self) -> int:
+        """Total sample count across all frames (``num_frames * record_length``)."""
         return self.num_frames * self.record_length
 
     @property
     def total_ms(self) -> float:
+        """Combined transfer plus publish time, in milliseconds."""
         return self.transfer_ms + self.publish_ms
 
     @property
     def total_raw_bytes(self) -> int:
+        """Total raw byte count across all frames before normalization."""
         return self.total_samples * self.bytes_per_sample
 
     @property
     def data_frame_count(self) -> int:
+        """Number of data (non-summary) frames in the transfer."""
         return self.num_frames - self.summary_frame_count
 
     @property
     def transfer_mbps(self) -> float:
+        """Effective gRPC transfer throughput, in megabits per second."""
         if self.transfer_ms <= 0:
             return 0.0
         return (self.total_raw_bytes * 8 / 1e6) / (self.transfer_ms / 1000)
@@ -76,7 +82,8 @@ class WaveformTransferTiming:
         return (
             f"{self.kind} {ff}: {frame_desc}, {self.record_length:,} samples/frame, "
             f"{self.bytes_per_sample} {bps_label} "
-            f"= {self.total_samples:,} total samples ({self.total_raw_bytes:,} bytes, {mib:.1f} MiB); "
+            f"= {self.total_samples:,} total samples "
+            f"({self.total_raw_bytes:,} bytes, {mib:.1f} MiB); "
             f"transfer {self.transfer_ms:.3f} ms, publish {self.publish_ms:.3f} ms, "
             f"total {self.total_ms:.3f} ms, {self.transfer_mbps:.2f} Mbit/s"
         )

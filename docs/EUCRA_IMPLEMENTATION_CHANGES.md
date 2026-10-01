@@ -41,7 +41,7 @@ HTTP Basic authentication helpers for Mode 3 client auth.
 
 | Symbol                              | Purpose                                     |
 | ----------------------------------- | ------------------------------------------- |
-| `DEFAULT_MODE3_USERNAME`            | Default Basic auth username (`"tektronix"`) |
+| `DEFAULT_MODE3_USERNAME`            | Default Basic auth username (`"Tektronix"`) |
 | `build_basic_authorization_value()` | Builds `Basic <base64>` for gRPC metadata   |
 | `parse_basic_authorization()`       | Parses a Basic header (used in tests)       |
 

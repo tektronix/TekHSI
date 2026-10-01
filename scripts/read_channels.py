@@ -13,10 +13,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tm_data_types import AnalogWaveform, DigitalWaveform
-
-from tekhsi import FastFrameAnalogWaveform, FastFrameDigitalWaveform, TekHSIConnect
+from tekhsi import (  # pylint: disable=no-name-in-module
+    FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
+    TekHSIConnect,
+)
 from tekhsi.credential_store import TekHSICredentialStore
+from tm_data_types import AnalogWaveform, DigitalWaveform
 
 
 def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
@@ -25,7 +28,7 @@ def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):
         if not password:
             print("Password required but TEKHSI_PASSWORD is not set.")
             return False
-        return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
     return True
 
 

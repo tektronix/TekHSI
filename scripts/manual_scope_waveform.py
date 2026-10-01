@@ -31,18 +31,17 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from tm_data_types import AnalogWaveform, Waveform
-
 from tekhsi import AcqWaitOn, TekHSIConnect, TekHSICredentials
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _parse_host_port,
     _tls_channel_options,
 )
+from tm_data_types import AnalogWaveform, Waveform
 
 DEFAULT_SCOPE_URL = "169.254.6.254:5000"
 DEFAULT_PASSWORD = "tek"
-DEFAULT_LOGIN = "tektronix"
+DEFAULT_LOGIN = "Tektronix"
 DEFAULT_CHANNEL = "ch1"
 DEFAULT_PULLS = 10
 LOG_DIR = Path(__file__).resolve().parent.parent / "tests" / "manual" / "logs"
@@ -869,7 +868,7 @@ def run_scenario(
         if connect is not None:
             try:
                 connect.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 report.add(
                     StepRecord(
                         "close",

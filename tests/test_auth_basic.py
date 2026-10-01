@@ -73,4 +73,4 @@ def test_parse_basic_authorization_missing_colon() -> None:
 
 def test_default_username_constant() -> None:
     """Test that the default username constant is as expected."""
-    assert DEFAULT_MODE3_USERNAME == "tektronix"
+    assert DEFAULT_MODE3_USERNAME == "Tektronix"

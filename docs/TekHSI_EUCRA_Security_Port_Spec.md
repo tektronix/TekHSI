@@ -54,7 +54,7 @@ import base64
 import binascii
 from typing import Optional, Tuple
 
-DEFAULT_MODE3_USERNAME = "tektronix"
+DEFAULT_MODE3_USERNAME = "Tektronix"
 
 
 def build_basic_authorization_value(username: str, password: str) -> str:
@@ -88,7 +88,7 @@ def parse_basic_authorization(header_value: str) -> Optional[Tuple[str, str]]:
 
 | Symbol                                                | Role                                                                                                        |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_MODE3_USERNAME`                              | `"tektronix"` — used when the store omits `login`, or a password is stored without a login.                 |
+| `DEFAULT_MODE3_USERNAME`                              | `"Tektronix"` — used when the store omits `login`, or a password is stored without a login.                 |
 | `build_basic_authorization_value(username, password)` | Returns the **value only** (no key): `Basic <base64(UTF-8 "user:password")>`. This is the client send path. |
 | `parse_basic_authorization(header_value)`             | Server/test helper. **Not** used on the client send path; include it for symmetry/tests only.               |
 
@@ -408,7 +408,7 @@ App-written entry (password obscured by the library):
 cert_fingerprint = 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
 cert_path = C:\Users\keith\AppData\Roaming\tektronix\certs\192.168.1.50_5000.pem
 tls_server_name = MSO58B-ABC123
-login = tektronix
+login = Tektronix
 password = obf1:Bx5eX1tcWw==
 ```
 
@@ -419,11 +419,11 @@ password = obf1:Bx5eX1tcWw==
 cert_fingerprint = 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
 cert_path = C:\Users\keith\AppData\Roaming\tektronix\certs\192.168.1.50_5000.pem
 tls_server_name = MSO58B-ABC123
-login = tektronix
+login = Tektronix
 password = MyServerPassword
 ```
 
-On the next connect the store reads the cleartext via `_reveal_password` (untagged ⇒ returned verbatim), `_auto_negotiate_channel` sees `entry["password"]` and builds Mode-3 credentials, and the connection authenticates. The store **leaves the hand-typed value exactly as written** — it is never re-obscured. (If the user wants to set `login` too, they add a `login = ...` line; if omitted, `DEFAULT_MODE3_USERNAME` = `tektronix` is used at send time.) To create a brand-new host section entirely by hand, the user must also supply a valid `cert_path` pointing to the server's PEM (and ideally `cert_fingerprint`), since Mode 2/3 channel build requires it.
+On the next connect the store reads the cleartext via `_reveal_password` (untagged ⇒ returned verbatim), `_auto_negotiate_channel` sees `entry["password"]` and builds Mode-3 credentials, and the connection authenticates. The store **leaves the hand-typed value exactly as written** — it is never re-obscured. (If the user wants to set `login` too, they add a `login = ...` line; if omitted, `DEFAULT_MODE3_USERNAME` = `Tektronix` is used at send time.) To create a brand-new host section entirely by hand, the user must also supply a valid `cert_path` pointing to the server's PEM (and ideally `cert_fingerprint`), since Mode 2/3 channel build requires it.
 
 ---
 

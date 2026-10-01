@@ -24,12 +24,12 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from grpc import Channel
-from tm_data_types import Waveform
 from typing_extensions import Self
 
 from tekhsi import configure_logging, LoggingLevels
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.tek_hsi_connect import TekHSIConnect
+from tm_data_types import Waveform
 
 from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
 
@@ -61,7 +61,7 @@ _logger.addHandler(_unit_test_console_handler)
 ####################################################################################################
 
 
-class DerivedWaveform(Waveform, ABC):
+class DerivedWaveform(Waveform, ABC):  # pylint: disable=too-few-public-methods
     """A derived waveform class for testing purposes."""
 
     @property

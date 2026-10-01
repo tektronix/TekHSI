@@ -46,7 +46,7 @@ When the library encounters an instrument it hasn't trusted yet (or a server tha
 | Return value               | Meaning                                                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `True`                     | Trust the certificate. Use **Mode 2** (TLS, no password). *(During a password upgrade — `auth_required=True` — bare `True` is treated as a decline; see below.)*                            |
-| `(True, password)`         | Trust the certificate **and** store this password. Username defaults to `tektronix`. Use **Mode 3**.                                                                                        |
+| `(True, password)`         | Trust the certificate **and** store this password. Username defaults to `Tektronix`. Use **Mode 3**.                                                                                        |
 | `(True, password, login)`  | Trust the certificate, store the password with an explicit username. Use **Mode 3**.                                                                                                        |
 | `False` (or anything else) | Decline. The connection is refused — `TekUnknownInstrument` during first-time trust (`auth_required=False`), or `TekAuthenticationFailed` during a password upgrade (`auth_required=True`). |
 
@@ -231,7 +231,7 @@ Each instrument is one INI section, keyed by `host:port`:
 cert_fingerprint = 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
 cert_path = /home/you/.tektronix/certs/192.168.1.50_5000.pem
 tls_server_name = MSO58B-ABC123
-login = tektronix
+login = Tektronix
 password = obf1:Bx5eX1tcWw==
 ```
 
@@ -240,7 +240,7 @@ password = obf1:Bx5eX1tcWw==
 | `cert_fingerprint` | SHA-256 of the trusted certificate. Checked on every connect.        |
 | `cert_path`        | Path to the saved certificate PEM.                                   |
 | `tls_server_name`  | Name used for TLS verification (handles IP / `.local` addressing).   |
-| `login`            | Username for Basic auth (Mode 3). Defaults to `tektronix` if absent. |
+| `login`            | Username for Basic auth (Mode 3). Defaults to `Tektronix` if absent. |
 | `password`         | Password for Basic auth (Mode 3). See obfuscation below.             |
 
 On non-Windows systems the file is written with owner-only permissions (`0600`). On Windows it relies on your user account's `%APPDATA%` isolation.
@@ -254,11 +254,11 @@ If an instrument's certificate is already trusted and you want to enable Mode 3,
 cert_fingerprint = 9f86d081...
 cert_path = /home/you/.tektronix/certs/192.168.1.50_5000.pem
 tls_server_name = MSO58B-ABC123
-login = tektronix
+login = Tektronix
 password = MyServerPassword
 ```
 
-On the next connection the library reads your plaintext password, authenticates, and **leaves your entry exactly as you wrote it** — it does not rewrite or re-encode it. (To use a username other than `tektronix`, add or edit the `login` line.)
+On the next connection the library reads your plaintext password, authenticates, and **leaves your entry exactly as you wrote it** — it does not rewrite or re-encode it. (To use a username other than `Tektronix`, add or edit the `login` line.)
 
 To create an entirely new entry by hand, you must also provide a valid `cert_path` pointing to the instrument's certificate PEM (and ideally its `cert_fingerprint`), since a secure connection needs the certificate.
 

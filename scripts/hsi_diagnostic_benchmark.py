@@ -46,8 +46,6 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
 
-from tm_data_types import FastFrameAnalogWaveform
-
 from hsi_network_diagnostics import (
     LinkCheckResult,
     record_link_after_transfer,
@@ -71,6 +69,7 @@ from tekhsi._tek_highspeed_server_pb2 import WfmReplyStatus
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+from tm_data_types import FastFrameAnalogWaveform
 
 SWEEP_A_RL = 100_000
 SWEEP_A_FRAMES = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500]
@@ -198,7 +197,7 @@ def run_acquisition_and_read(
     expected_nf: int,
     acq_timeout_s: float,
 ) -> tuple[float, float | None, float | None, float, str]:
-    acq_before = conn._acqcount  # noqa: SLF001
+    acq_before = conn._acqcount
 
     if visa_scope is not None:
         start_scope_acquisition(visa_scope)
@@ -214,7 +213,7 @@ def run_acquisition_and_read(
     if waveform is None:
         return wall_ms, None, None, wall_ms, "no waveform from get_data"
 
-    if conn._acqcount <= acq_before:  # noqa: SLF001
+    if conn._acqcount <= acq_before:
         return wall_ms, None, None, wall_ms, "no new acquisition (stale cache)"
 
     timing = waveform.load_timing
@@ -269,7 +268,7 @@ def measure_config(
         if err:
             status = "failed"
             notes.append(err)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         status = "failed"
         notes.append(str(exc))
         wall_ms = 0.0
@@ -319,8 +318,8 @@ def dump_per_frame_arrivals(
             raise RuntimeError(reason)
 
     with TekHSIConnect(url, **connect_kwargs) as conn, conn.access_stopped_data():
-        header = conn._read_header(channel)  # noqa: SLF001
-        request = conn._waveform_request_for_header(header)  # noqa: SLF001
+        header = conn._read_header(channel)
+        request = conn._waveform_request_for_header(header)
         expected_bytes = int(header.num_frames) * int(header.noofsamples) * int(header.sourcewidth)
         timeout_sec = min(120.0, max(15.0, expected_bytes / (5 * 1024 * 1024)))
         iterator = conn.native.GetWaveform(request, timeout=timeout_sec)
@@ -402,7 +401,8 @@ def run_transfer_with_ss(
             acq_timeout_s=acq_timeout_s,
         )
     finally:
-        return sampler.stop()
+        result = sampler.stop()
+    return result
 
 
 def write_sweep_csv(path: Path, rows: list[dict], sweep_label: str) -> None:

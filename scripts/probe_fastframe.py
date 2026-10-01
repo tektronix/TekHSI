@@ -14,7 +14,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tekhsi import FastFrameAnalogWaveform, TekHSIConnect
+from tekhsi import FastFrameAnalogWaveform, TekHSIConnect  # pylint: disable=no-name-in-module
 from tekhsi.credential_store import TekHSICredentialStore
 
 
@@ -29,7 +29,7 @@ def _auto_trust_prompt(
         if not password:
             print("  Password required but TEKHSI_PASSWORD is not set.")
             return False
-        return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
     return True
 
 

@@ -5,12 +5,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING  # pylint: disable=unused-import
 
 import numpy as np
 import pytest  # pyright: ignore[reportMissingImports]
-
-from tm_data_types import AnalogWaveform, DigitalWaveformMetaInfo, write_file
 
 from tekhsi.wfm_digital import (
     _bitmask_from_probe_states,  # pyright: ignore[reportPrivateUsage]
@@ -21,6 +19,7 @@ from tekhsi.wfm_digital import (
     stamp_digital_bitmask_meta,
     write_digital_wfm,
 )
+from tm_data_types import AnalogWaveform, DigitalWaveformMetaInfo, write_file
 
 if TYPE_CHECKING:
     from tm_data_types import FastFrameDigitalWaveform  # type: ignore
@@ -101,7 +100,7 @@ def test_bitmask_from_probe_states_computes_bitmask() -> None:
 
 
 def test_restore_from_meta_info_none_uses_waveform_attribute() -> None:
-    """restore_digital_bitmask_from_meta falls back to the waveform attribute when meta_info is None."""
+    """Falls back to the waveform attribute when meta_info is None."""
     waveform = SimpleNamespace(meta_info=None, digital_bitmask=0x03)
     assert restore_digital_bitmask_from_meta(waveform) == 0x03  # type: ignore[arg-type]
     assert waveform.digital_bitmask == 0x03

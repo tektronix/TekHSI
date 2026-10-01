@@ -12,8 +12,6 @@ import grpc
 import numpy as np
 import pytest
 
-from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
-
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     WaveformHeader,
@@ -21,6 +19,7 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
+from tm_data_types import AnalogWaveform, DigitalWaveform, IQWaveform, Waveform
 
 
 @pytest.mark.parametrize(

@@ -21,7 +21,7 @@ from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=n
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=private-import
+from tekhsi.security import (  # pylint: disable=import-private-name
     _build_creds_from_entry,
     _fetch_server_cert,
     _parse_host_port,
@@ -79,7 +79,7 @@ def _tls_connect_result(
     finally:
         try:
             channel.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
 
@@ -109,7 +109,7 @@ def detect_server_mode(
     if plain_channel is not None:
         try:
             plain_channel.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
     cert = None
@@ -118,7 +118,7 @@ def detect_server_mode(
     try:
         cert = _fetch_server_cert(host, port, timeout=8.0)
         tls_handshake = True
-    except Exception:  # noqa: BLE001
+    except Exception:
         cert = None
 
     tls_no_auth_ok = False
@@ -252,7 +252,7 @@ def build_connect_kwargs(
         sig = signature(TekHSIConnect.__init__)
         if "background_thread" in sig.parameters:
             kwargs["background_thread"] = True
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
 
     if on_trust_prompt is not None:

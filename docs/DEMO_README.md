@@ -1,8 +1,14 @@
-# TekHSI Demo — FastFrame + tm_data_types 0.3.0
+# TekHSI Demo — FastFrame + tm_data_types 0.5.x
 
-This is a **demo build** of TekHSI (v1.2.0) paired with **tm_data_types 0.3.0**. It adds
+This is a **demo build** of TekHSI (v1.2.0) paired with **tm_data_types 0.5.x**. It adds
 **FastFrame** support on top of the v2 TekHSI protocol (`normalizedvector.proto`), using the
 `FastFrameAnalogWaveform` type from `tm_data_types` instead of a local duplicate.
+
+> **Note:** FastFrame support has since been merged into the mainline TekHSI release (v1.2.0+),
+> which depends on `tm_data_types>=0.5.0,<0.6.0` (see the main [README](index.md)). This guide
+> remains useful for understanding the FastFrame-specific workflow and examples; the version pins
+> below describe the historical demo build and have been updated to match the current
+> `pyproject.toml` dependency.
 
 Use this guide when installing the FastFrame demo build from a local wheel rather than PyPI.
 
@@ -28,16 +34,16 @@ Use this guide when installing the FastFrame demo build from a local wheel rathe
 Install the bundled `tm_data_types` wheel from this repository root, then build and install TekHSI:
 
 ```shell
-pip install tm_data_types-0.3.0-py3-none-any.whl
+pip install "tm_data_types>=0.5.0,<0.6.0"
 python -m pip install build
 python -m build --wheel --outdir dist
 pip install dist/tekhsi-*.whl
 ```
 
-Or from PyPI if the updated 0.3.0 release is published:
+Or from PyPI, once published:
 
 ```shell
-pip install "tm_data_types==0.3.0"
+pip install "tm_data_types>=0.5.0,<0.6.0"
 ```
 
 Verify:
@@ -282,7 +288,7 @@ def auto_trust(host, cert_info, auth_required=False):
         password = os.environ.get("TEKHSI_PASSWORD")
         if not password:
             return False
-        return True, password, os.environ.get("TEKHSI_LOGIN", "tektronix")
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
     return True
 
 
@@ -354,11 +360,13 @@ python scripts/read_channels.py ch1 ref1
 This demo intentionally pins:
 
 ```
-tm_data_types==0.3.0
+tm_data_types>=0.5.0,<0.6.0
 TekHSI==1.2.0
 ```
 
-Do not mix with PyPI `tm_data_types~=0.4.x` — the FastFrame types differ between versions.
+These pins match the current `pyproject.toml` runtime dependency (`tm_data_types~=0.5.0`). The
+FastFrame waveform types are stable across the `0.5.x` series; do not mix with older
+`tm_data_types~=0.3.x`/`~=0.4.x` builds, since the FastFrame types differ between major revisions.
 
 ## License
 

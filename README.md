@@ -15,7 +15,7 @@
 
 # TekHSI: Tektronix High Speed Interface
 
-**FastFrame build v1.1.1** — extends upstream TekHSI with multi-frame capture, load timing, and
+**FastFrame build v1.2.0** — extends upstream TekHSI with multi-frame capture, load timing, and
 benchmark tooling. Requires **`tm_data_types>=0.5.0,<0.6.0`** and **`protobuf>=7.35,<8.0`**.
 See [FastFrame demo guide](docs/DEMO_README.md).
 
@@ -71,10 +71,10 @@ Bump the project version in `pyproject.toml` when preparing a new release, rebui
 ```shell
 python -m pip install build
 python -m build --wheel --outdir dist
-python -m pip install dist/tekhsi-1.1.1-py3-none-any.whl
+python -m pip install dist/tekhsi-1.2.0-py3-none-any.whl
 ```
 
-The wheel filename matches the version in `pyproject.toml` (currently **1.1.1**).
+The wheel filename matches the version in `pyproject.toml` (currently **1.2.0**).
 
 ### PyPI (upstream TekHSI)
 
@@ -157,12 +157,12 @@ after loading from `.wfm`.
 
 See also [scripts/README.md](scripts/README.md) for usage details on the benchmark and validation scripts.
 
-### v1.1.1 library changes (summary)
+### v1.2.0 library changes (summary)
 
 - `access_stopped_data()` waits on **`NewData`** (not `AnyAcq`) so stopped FastFrame reads do not reuse stale cache.
 - Background acquisition thread **always runs**; there is no `background_thread=False` mode.
 - Pending/empty headers are retried; IQ reads fixed (`self.native` in `_read_waveform()`).
-- Full list: [CHANGELOG v1.1.1](docs/CHANGELOG.md).
+- Full list: [CHANGELOG v1.2.0](docs/CHANGELOG.md).
 
 ## Testing and Packaging Quick Checks
 

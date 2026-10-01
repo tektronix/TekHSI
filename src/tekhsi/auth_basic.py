@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 
-DEFAULT_MODE3_USERNAME = "tektronix"
+DEFAULT_MODE3_USERNAME = "Tektronix"
 
 # Length of the "Basic " scheme prefix (including the trailing space).
 _BASIC_PREFIX_LEN = 6
