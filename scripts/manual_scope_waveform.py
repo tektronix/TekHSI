@@ -26,7 +26,7 @@ import time
 import traceback
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -45,6 +45,9 @@ DEFAULT_LOGIN = "Tektronix"
 DEFAULT_CHANNEL = "ch1"
 DEFAULT_PULLS = 10
 LOG_DIR = Path(__file__).resolve().parent.parent / "tests" / "manual" / "logs"
+
+# Python 3.10 compatibility: datetime.UTC exists in 3.11+
+UTC = getattr(datetime, "UTC", timezone.utc)
 
 
 class StepStatus(str, Enum):
