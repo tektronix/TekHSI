@@ -16,7 +16,50 @@ Valid subsections within a version are:
 
 ## Unreleased
 
-Things to be included in the next release go here.
+### Added
+
+- **FastFrame support.** Multi-frame stopped captures now stream directly into
+    `FastFrameAnalogWaveform` and `FastFrameDigitalWaveform` (from `tm_data_types`),
+    with per-frame timing (`FrameTimingInfo`), an optional High Res summary/average frame
+    (`summary_frame_index`), raw digitizer access (`frame_data()`), normalized-volts access
+    (`frame_array()`), and single-frame views (`get_frame()` / `frame()`). See
+    [`docs/DEMO_README.md`](https://github.com/tektronix/TekHSI/blob/main/docs/DEMO_README.md).
+- `TekHSIConnect.access_stopped_data()` — context manager that issues `force_sequence()` before
+    waiting for data, for reading FastFrame (and other) captures on a stopped scope.
+- `waveform.load_timing` (`WaveformTransferTiming`, aliased as `FastFrameLoadTiming`) reports
+    gRPC transfer and client-side publish timing for every waveform read, single-frame or
+    FastFrame.
+- `tekhsi.wfm_digital` module: `stamp_digital_bitmask_meta()` / `restore_digital_bitmask_from_meta()`
+    and `write_digital_wfm()` / `read_digital_wfm()` helpers so `digital_bitmask` round-trips
+    through `.wfm` file I/O for both `DigitalWaveform` and `FastFrameDigitalWaveform`.
+- **Secure connections (opt-in TLS + authentication).** `TekHSIConnect` can now negotiate an
+    encrypted connection to instruments that support it, with trust-on-first-use (TOFU)
+    certificate pinning and optional HTTP Basic authentication:
+    - New constructor parameters: `credentials`, `credential_store`, `on_trust_prompt`,
+        `require_tls`, `timeout`.
+    - New `TekHSICredentials` builder (`.tls()` / `.token()`) for explicit certificate/password
+        credentials, or resolving them from a credential store.
+    - New `TekHSICredentialStore` (alias `TekCredentialStore`) — a platform-default (or custom
+        path) INI-backed store for trusted certificate fingerprints and Basic-auth passwords,
+        with password obfuscation (`obf1:`) for app-written entries and OS file-permission
+        hardening (`chmod 0600` on POSIX).
+    - New exceptions, all deriving from `TekSecurityError`: `TekUnknownInstrument`
+        (alias `TekHSIUnknownInstrument`), `TekCertificateMismatch`, `TekAuthenticationFailed`.
+    - **Fully backward compatible / opt-in:** existing calls such as `TekHSIConnect(url)` are
+        unaffected — no security parameters means the plain, unencrypted connection behavior is
+        unchanged. See [`docs/EUCRA_USAGE.md`](https://github.com/tektronix/TekHSI/blob/main/docs/EUCRA_USAGE.md)
+        for the full usage guide.
+- New runtime dependency: `cryptography>=42.0.0` (used for TLS certificate parsing and
+    fingerprinting; installed automatically with the package).
+- New test suites: `tests/test_security.py`, `tests/test_security_wiring.py`,
+    `tests/test_credential_store.py`, `tests/test_auth_basic.py`, `tests/test_load_timing.py`,
+    `tests/test_wfm_digital.py`.
+
+### Changed
+
+- Bumped the `tm_data_types` dependency to `~=0.4.0` to pick up `FastFrameDigitalWaveform`,
+    `FrameTimingInfo.is_summary_frame`, and first-class `digital_bitmask` support (see
+    [`docs/tm_data_types_update_spec.md`](https://github.com/tektronix/TekHSI/blob/main/docs/tm_data_types_update_spec.md)).
 
 ---
 

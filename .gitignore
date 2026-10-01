@@ -21,6 +21,8 @@ _readthedocs/
 .Python build/
 develop-eggs/
 dist*/
+dist/*
+!dist/tekhsi-*.whl
 downloads/
 eggs/
 .eggs/
@@ -122,3 +124,20 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 *.whl
+!dist/tekhsi-*.whl
+
+# Local-only superseded artifacts (not for remote)
+archive/
+
+# Generated scope capture files (large binaries)
+sample_waveforms/**/*.wfm
+
+# Local benchmark / diagnostic CSV output (moved under archive/results/ locally)
+results/
+
+# Root-level script-generated waveform captures
+/sample_waveforms/
+
+# Duplicate proto copies at repo root
+*Copy*.proto
+* - Copy.proto
