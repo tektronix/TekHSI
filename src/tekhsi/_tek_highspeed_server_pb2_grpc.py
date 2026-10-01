@@ -2,7 +2,6 @@
 """Client and server classes corresponding to protobuf-defined services."""
 
 import grpc
-import warnings
 
 import tekhsi._tek_highspeed_server_pb2 as TekHighspeedServer__pb2
 

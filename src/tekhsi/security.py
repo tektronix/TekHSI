@@ -227,38 +227,30 @@ def _call_on_trust(
     auth_required: bool,
 ) -> Any:
     """Invoke on_trust_prompt with (host, cert_info) or (host, cert_info, auth_required)."""
+
+    def _invoke(args: tuple[Any, ...], kwargs: dict[str, Any] | None = None) -> Any:
+        return cb(*args, **(kwargs or {}))
+
     try:
         sig = inspect.signature(cb)
-        positional_count = 0
-        has_varargs = False
-        has_auth_keyword = False
-        for param in sig.parameters.values():
-            if param.kind == inspect.Parameter.VAR_POSITIONAL:
-                has_varargs = True
-                break
-            if (
-                param.kind
-                in (
-                    inspect.Parameter.KEYWORD_ONLY,
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
-                and param.name == "auth_required"
-            ):
-                has_auth_keyword = True
-            if param.kind in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            ):
-                positional_count += 1
-        if has_varargs or positional_count >= _ON_TRUST_ARGS_WITH_AUTH_REQUIRED:
-            return cb(host_port, cert_info, auth_required)
-        if has_auth_keyword:
-            return cb(host_port, cert_info, auth_required=auth_required)
     except (TypeError, ValueError):
         # If inspection fails (for example, mocked/C-extension callables),
         # prefer legacy two-arg form.
-        return cb(host_port, cert_info)
-    return cb(host_port, cert_info)
+        return _invoke((host_port, cert_info))
+
+    for args, kwargs in (
+        ((host_port, cert_info, auth_required), {}),
+        ((host_port, cert_info), {"auth_required": auth_required}),
+        ((host_port, cert_info), {}),
+    ):
+        try:
+            bound = sig.bind(*args, **kwargs)
+        except TypeError:
+            continue
+        return _invoke(bound.args, bound.kwargs)
+
+    # Defensive fallback for unusual callables/signatures.
+    return _invoke((host_port, cert_info))
 
 
 def _resolve_credentials_from_store(  # pylint: disable=too-many-locals

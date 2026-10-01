@@ -24,12 +24,6 @@ from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=n
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=import-private-name
-    _build_creds_from_entry,
-    _fetch_server_cert,
-    _parse_host_port,
-    _secure_channel,
-)
 
 
 def _probe_connect(stub: ConnectStub, timeout: float) -> tuple[bool, str | None]:
@@ -106,8 +100,8 @@ def _tls_connect_result(
         mode = "token"
     else:
         mode = "tls"
-    creds = _build_creds_from_entry(entry, mode)
-    channel = _secure_channel(url, creds, entry=entry)
+    creds = _sec._build_creds_from_entry(entry, mode)
+    channel = _sec._secure_channel(url, creds, entry=entry)
     try:
         return _probe_connect(ConnectStub(channel), 8.0)
     finally:
@@ -133,7 +127,7 @@ def detect_server_mode(
         * ``mode_str`` — human-readable mode label (``"Mode 1"`` / ``"Mode 2"``
           / ``"Mode 3"``).
     """
-    host, port = _parse_host_port(url)
+    host, port = _sec._parse_host_port(url)
     deadline = time.time() + 12.0
 
     plain_channel = _sec._try_plain_grpc_channel(url, deadline)
@@ -146,7 +140,7 @@ def detect_server_mode(
     pem_path: str | None = None
     tls_handshake = False
     try:
-        cert = _fetch_server_cert(host, port, timeout=8.0)
+        cert = _sec._fetch_server_cert(host, port, timeout=8.0)
         tls_handshake = True
     except Exception:
         cert = None
@@ -219,8 +213,8 @@ def build_credentials(
         )
 
     if not effective_pem:
-        host, port = _parse_host_port(url)
-        cert = _fetch_server_cert(host, port, timeout=8.0)
+        host, port = _sec._parse_host_port(url)
+        cert = _sec._fetch_server_cert(host, port, timeout=8.0)
         effective_pem = _write_temp_pem(cert.cert_pem)
 
     if needs_password:

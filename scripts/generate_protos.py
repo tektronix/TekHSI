@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -41,6 +42,7 @@ def main() -> int:
         "import TekHighspeedServer_pb2 as TekHighspeedServer__pb2",
         "import tekhsi._tek_highspeed_server_pb2 as TekHighspeedServer__pb2",
     )
+    text = re.sub(r"^import warnings\r?\n", "", text, flags=re.MULTILINE)
     grpc_file.write_text(text, encoding="utf-8")
     PROTO_BUILD.unlink(missing_ok=True)
     print(f"Generated stubs in {OUT_DIR}")

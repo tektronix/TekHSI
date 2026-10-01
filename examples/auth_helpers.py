@@ -25,12 +25,6 @@ import tekhsi.security as _sec
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
-from tekhsi.security import (  # pylint: disable=import-private-name
-    _build_creds_from_entry,
-    _fetch_server_cert,
-    _parse_host_port,
-    _secure_channel,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -77,9 +71,9 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
             plain_channel.close()
         return True, None, {}, False
 
-    host, port = _parse_host_port(url)
+    host, port = _sec._parse_host_port(url)  # noqa: SLF001
     try:
-        cert = _fetch_server_cert(host, port, timeout=_PROBE_TIMEOUT_S)
+        cert = _sec._fetch_server_cert(host, port, timeout=_PROBE_TIMEOUT_S)  # noqa: SLF001
     except OSError as exc:
         msg = f"Could not reach TekHSI on {url}: {exc}"
         raise SystemExit(msg) from exc
@@ -96,9 +90,9 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
         "password": None,
     }
 
-    ch = _secure_channel(
+    ch = _sec._secure_channel(  # noqa: SLF001
         url,
-        _build_creds_from_entry(probe_entry, "tls"),
+        _sec._build_creds_from_entry(probe_entry, "tls"),  # noqa: SLF001
         entry=probe_entry,
     )
     try:
@@ -120,9 +114,9 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
 def verify_password(url: str, store_entry: dict, secret: str, cert_path: Path | None) -> None:
     """Probe with ``secret``; on failure, clean up ``cert_path`` and exit."""
     auth_entry = {**store_entry, "password": secret, "login": DEFAULT_MODE3_USERNAME}
-    ch = _secure_channel(
+    ch = _sec._secure_channel(  # noqa: SLF001
         url,
-        _build_creds_from_entry(auth_entry, "token"),
+        _sec._build_creds_from_entry(auth_entry, "token"),  # noqa: SLF001
         entry=auth_entry,
     )
     try:

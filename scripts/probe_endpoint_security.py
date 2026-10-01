@@ -14,12 +14,6 @@ import tekhsi.security as _sec
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=import-private-name
-    _build_creds_from_entry,
-    _fetch_server_cert,
-    _parse_host_port,
-    _secure_channel,
-)
 
 
 def probe_connect(stub: ConnectStub, timeout: float) -> str:
@@ -28,21 +22,17 @@ def probe_connect(stub: ConnectStub, timeout: float) -> str:
     try:
         stub.Connect(ConnectRequest(name=name), timeout=timeout)
     except grpc.RpcError as e:
-        try:
+        with contextlib.suppress(grpc.RpcError):
             stub.Disconnect(ConnectRequest(name=name), timeout=min(timeout, 3.0))
-        except grpc.RpcError:
-            pass
         return f"RpcError {e.code().name}: {(e.details() or '').strip()}"
-    try:
+    with contextlib.suppress(grpc.RpcError):
         stub.Disconnect(ConnectRequest(name=name), timeout=min(timeout, 3.0))
-    except grpc.RpcError:
-        pass
     return "OK"
 
 
 def main() -> int:
     url = sys.argv[1] if len(sys.argv) > 1 else "169.254.6.254:5000"
-    host, port = _parse_host_port(url)
+    host, port = _sec._parse_host_port(url)
     deadline = time.time() + 12.0
 
     print(f"TekHSI endpoint probe: {url}")
@@ -59,7 +49,7 @@ def main() -> int:
 
     # 2) TLS certificate on same host:port
     try:
-        cert = _fetch_server_cert(host, port, timeout=8.0)
+        cert = _sec._fetch_server_cert(host, port, timeout=8.0)
         print("TLS handshake:      AVAILABLE (server presented a certificate)")
         print(f"  Fingerprint:      {cert.cert_fingerprint[:32]}...")
         if cert.tls_server_name:
@@ -90,8 +80,8 @@ def main() -> int:
             pem_path = tmp.name
         entry["cert_path"] = pem_path
         try:
-            creds = _build_creds_from_entry(entry, "tls")
-            ch = _secure_channel(url, creds, entry=entry)
+            creds = _sec._build_creds_from_entry(entry, "tls")
+            ch = _sec._secure_channel(url, creds, entry=entry)
             stub = ConnectStub(ch)
             tls_connect = probe_connect(stub, 8.0)
             ch.close()
@@ -110,8 +100,8 @@ def main() -> int:
         print(f"Credential store:   entry present ({store._path})")
         mode = "token" if entry.get("password") else "tls"
         try:
-            creds = _build_creds_from_entry(entry, mode)
-            ch = _secure_channel(url, creds, entry=entry)
+            creds = _sec._build_creds_from_entry(entry, mode)
+            ch = _sec._secure_channel(url, creds, entry=entry)
             stub = ConnectStub(ch)
             auth_connect = probe_connect(stub, 8.0)
             ch.close()
