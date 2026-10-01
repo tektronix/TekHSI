@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Regenerate gRPC stubs from normalizedvector.proto."""
 
 from __future__ import annotations

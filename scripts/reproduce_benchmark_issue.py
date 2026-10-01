@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """HSI FastFrame transfer sweep for Excel graphing.
 
 Sweeps total sample count (record_length x num_frames) toward 100M,
@@ -31,6 +30,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = Path(__file__).resolve().parent
@@ -50,7 +50,9 @@ from tekhsi import TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
-from tm_data_types import FastFrameAnalogWaveform
+
+if TYPE_CHECKING:
+    from tm_data_types import FastFrameAnalogWaveform
 
 # Default total sample counts: ~x2.5 steps toward 100M.
 # Smallest totals need rl>=2500 and frames>=2, so 15_000 is the first with 3+ layouts.

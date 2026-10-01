@@ -190,7 +190,9 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.url = url
         self.v_datatypes = {1: np.int8, 2: np.int16, 4: np.float32, 8: np.double}
         self.iq_datatypes = {1: np.int8, 2: np.int16, 4: np.int32}
+        # Public and internal digital datatype mappings are kept in sync.
         self.d_datatypes = {1: np.int8, 2: np.int16}
+        self._digital_datatypes = {1: np.int8, 2: np.int16}
 
         _legacy_plain = (
             credentials is None
@@ -313,7 +315,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
         self._cache_available_symbols()
         if not activesymbols:
-            self.activesymbols = list(self._available_symbol_names or [])
+            self.activesymbols = self._available_symbols()
         else:
             self.activesymbols = [self._resolve_symbol(x) for x in activesymbols]
 
@@ -1298,10 +1300,10 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         native_stub: NativeDataStub,
     ) -> Waveform:
         """Read a digital waveform from NativeData, including FastFrame captures."""
-        if header.sourcewidth not in self.d_datatypes:
+        if header.sourcewidth not in self._digital_datatypes:
             msg = (
                 f"unsupported digital sourcewidth {header.sourcewidth} for {header.sourcename}; "
-                f"expected one of {sorted(self.d_datatypes)}"
+                f"expected one of {sorted(self._digital_datatypes)}"
             )
             raise ValueError(msg)
 
@@ -1313,7 +1315,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         return self._read_native_fastframe(
             header,
             native_stub,
-            self.d_datatypes[header.sourcewidth],
+            self._digital_datatypes[header.sourcewidth],
             wrapper=FastFrameDigitalWaveform,
         )
 
@@ -1326,7 +1328,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         request = self._waveform_request_for_header(header)
         transfer_start = time.perf_counter()
         response_iterator = native_stub.GetWaveform(request)
-        dt_type = self.d_datatypes[header.sourcewidth]
+        dt_type = self._digital_datatypes[header.sourcewidth]
         sum_of_chunks = 0
         waveform.y_axis_byte_values = np.empty(header.noofsamples, dtype=dt_type)
         try:

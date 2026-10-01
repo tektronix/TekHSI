@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Print FastFrame header metadata without reading waveform bytes."""
 
 from __future__ import annotations

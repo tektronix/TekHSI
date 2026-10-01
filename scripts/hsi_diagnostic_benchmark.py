@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Raw HSI diagnostic benchmark for frame-count vs record-length isolation.
 
 Protocol (run in order):
@@ -40,6 +39,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = Path(__file__).resolve().parent
@@ -69,7 +69,9 @@ from tekhsi._tek_highspeed_server_pb2 import WfmReplyStatus
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
 from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
-from tm_data_types import FastFrameAnalogWaveform
+
+if TYPE_CHECKING:
+    from tm_data_types import FastFrameAnalogWaveform
 
 SWEEP_A_RL = 100_000
 SWEEP_A_FRAMES = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500]

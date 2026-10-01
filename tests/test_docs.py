@@ -81,6 +81,8 @@ class TestDocs:  # pylint: disable=no-self-use
             "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/docs/.*",
             "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/scripts/.*",
             "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/examples/.*",
+            # External badge endpoint occasionally returns transient gateway errors.
+            "--ignore-url=https://codecov.io/.*",
             docs_server,
         ]
         subprocess.check_call(cmd)  # noqa: S603

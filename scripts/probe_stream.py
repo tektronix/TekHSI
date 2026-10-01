@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Inspect raw FastFrame stream messages for a channel."""
 
 from __future__ import annotations

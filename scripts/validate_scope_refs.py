@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate scope reference waveforms against saved .wfm files."""
 
 from __future__ import annotations

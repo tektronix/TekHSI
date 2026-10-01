@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Analyze frame-count impact on HSI transfer rate from sweep CSV."""
 
 from __future__ import annotations

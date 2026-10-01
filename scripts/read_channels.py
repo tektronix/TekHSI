@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Read one or more channels from a live TekHSI scope."""
 
 from __future__ import annotations

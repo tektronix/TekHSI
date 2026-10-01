@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Measure TekHSI waveform gRPC transfer rate on a live scope."""
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ import sys
 import tempfile
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -18,7 +18,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from tekhsi import TekHSIConnect, WaveformTransferTiming
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
-from tm_data_types import Waveform
+
+if TYPE_CHECKING:
+    from tm_data_types import Waveform
 
 
 def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):

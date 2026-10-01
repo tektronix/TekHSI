@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Retrieve FastFrame captures, save to .wfm, re-read, and compare for accuracy."""
 
 from __future__ import annotations
@@ -9,6 +8,7 @@ import sys
 import tempfile
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -19,7 +19,9 @@ from tekhsi import FastFrameAnalogWaveform, FastFrameDigitalWaveform, TekHSIConn
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.wfm_digital import read_digital_wfm, write_digital_wfm
 from tm_data_types import read_file, write_file
-from tm_data_types.datum.waveforms.fastframe_common import FrameTimingInfo
+
+if TYPE_CHECKING:
+    from tm_data_types.datum.waveforms.fastframe_common import FrameTimingInfo
 
 
 def _auto_trust_prompt(host: str, cert_info, auth_required: bool = False):

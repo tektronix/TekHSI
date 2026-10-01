@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Compare FastFrame stream behavior for live digital vs ref digital."""
 
 from __future__ import annotations

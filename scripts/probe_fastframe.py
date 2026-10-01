@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Probe FastFrame support on a live TekHSI scope."""
 
 from __future__ import annotations

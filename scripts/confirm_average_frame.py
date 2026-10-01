@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Confirm High Res FastFrame: last frame is the average of data frames."""
 
 from __future__ import annotations
