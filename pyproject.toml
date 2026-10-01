@@ -386,6 +386,7 @@ order-by-type = false
   "EM101",  # Exception must not use a string literal
   "EM102",  # Exception must not use an f-string literal
   "ERA001",  # Found commented-out code
+  "EXE001",  # Shebang is present but file is not executable (scripts are run via `python scripts/x.py`)
   "FBT001",  # Boolean-typed positional argument in function definition
   "FBT002",  # Boolean default positional argument in function definition
   "N803",  # Argument name should be lowercase (numpy-style X/Y conventions)
@@ -415,6 +416,7 @@ order-by-type = false
   "SLF001",  # Private member accessed (intentional internal probing/diagnostics)
   "T201",  # `print` found (expected in CLI diagnostic scripts)
   "TC001",  # Move application import into a type-checking block
+  "TC002",  # Move third-party import into a type-checking block
   "TC003",  # Move standard library import into a type-checking block
   "TRY003",  # Avoid specifying long messages outside the exception class
   "TRY300",  # Consider moving this statement to an `else` block
