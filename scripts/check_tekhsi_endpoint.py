@@ -22,18 +22,13 @@ import uuid
 
 import grpc
 
+import tekhsi.security as _sec
+
 from tekhsi import TekHSIConnect, TekHSICredentials
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import TekHSICredentialStore
-from tekhsi.security import (  # pylint: disable=import-private-name
-    _build_creds_from_entry,
-    _fetch_server_cert,
-    _parse_host_port,
-    _secure_channel,
-    _try_plain_grpc_channel,
-)
 
 
 def _host_port_arg(host: str, port: int) -> str:
@@ -54,10 +49,8 @@ def _probe_connect(stub: ConnectStub, timeout: float) -> tuple[bool, str | None]
     except grpc.RpcError as e:
         return False, e.code().name
     finally:
-        try:
+        with contextlib.suppress(grpc.RpcError):
             stub.Disconnect(ConnectRequest(name=name), timeout=min(timeout, 3.0))
-        except grpc.RpcError:
-            pass
     return True, None
 
 
@@ -84,8 +77,8 @@ def _tls_connect_result(
         mode = "token"
     else:
         mode = "tls"
-    creds = _build_creds_from_entry(entry, mode)
-    ch = _secure_channel(url, creds, entry=entry)
+    creds = _sec._build_creds_from_entry(entry, mode)
+    ch = _sec._secure_channel(url, creds, entry=entry)
     try:
         return _probe_connect(ConnectStub(ch), 8.0)
     finally:
@@ -100,14 +93,14 @@ def check_endpoint(
     login: str = DEFAULT_MODE3_USERNAME,
     prompt_for_password: bool = True,
 ) -> int:
-    host, port = _parse_host_port(url)
+    host, port = _sec._parse_host_port(url)
     deadline = time.time() + 12.0
 
     print(f"TekHSI endpoint check: {url}")
     print("=" * 60)
 
     # --- discover server requirements ---
-    plain_channel = _try_plain_grpc_channel(url, deadline)
+    plain_channel = _sec._try_plain_grpc_channel(url, deadline)
     plain_ok = plain_channel is not None
     if plain_channel is not None:
         with contextlib.suppress(Exception):
@@ -117,7 +110,7 @@ def check_endpoint(
     pem_path: str | None = None
     tls_handshake = False
     try:
-        cert = _fetch_server_cert(host, port, timeout=8.0)
+        cert = _sec._fetch_server_cert(host, port, timeout=8.0)
         tls_handshake = True
     except Exception:
         cert = None

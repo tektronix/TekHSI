@@ -14,7 +14,7 @@ import uuid
 from atexit import register
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
@@ -74,15 +74,8 @@ _logger = logging.getLogger(__name__)
 _HEADER_PENDING_MAX_ATTEMPTS = 50
 _HEADER_PENDING_RETRY_SLEEP_S = 0.002
 
-# Backward-compatible public type alias kept for existing imports.
-AnyWaveform = (
-    Waveform
-    | AnalogWaveform
-    | DigitalWaveform
-    | IQWaveform
-    | FastFrameAnalogWaveform
-    | FastFrameDigitalWaveform
-)
+# Backward-compatible public type variable kept for existing imports.
+AnyWaveform = TypeVar("AnyWaveform", bound=Waveform)
 
 
 class AcqWaitOn(Enum):

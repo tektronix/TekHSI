@@ -18,6 +18,7 @@ Results and issue steps are written under ``tests/manual/logs/``.
 from __future__ import annotations
 
 import argparse
+import importlib
 import ipaddress
 import json
 import statistics
@@ -109,8 +110,8 @@ class ConnectTracker:
         )
 
     def install_hooks(self) -> None:
-        import tekhsi.security as sec
-        import tekhsi.tek_hsi_connect as thc
+        sec = importlib.import_module("tekhsi.security")
+        thc = importlib.import_module("tekhsi.tek_hsi_connect")
 
         tracker = self
         tracker._orig_plain = sec._try_plain_grpc_channel
@@ -141,11 +142,11 @@ class ConnectTracker:
 
     def remove_hooks(self) -> None:
         if self._orig_plain is not None:
-            import tekhsi.security as sec
+            sec = importlib.import_module("tekhsi.security")
 
             sec._try_plain_grpc_channel = self._orig_plain
         if self._orig_upgrade is not None:
-            import tekhsi.tek_hsi_connect as thc
+            thc = importlib.import_module("tekhsi.tek_hsi_connect")
 
             thc.TekHSIConnect._upgrade_channel_with_token_after_unauthenticated = self._orig_upgrade
 

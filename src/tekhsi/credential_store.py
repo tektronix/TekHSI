@@ -40,16 +40,19 @@ def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
         cert = _x509.load_pem_x509_certificate(cert_pem)
     except ValueError:
         return None
+
+    attrs = cert.subject.get_attributes_for_oid(_NameOID.COMMON_NAME)
+    common_name = str(attrs[0].value) if attrs else None
+
     try:
         san = cert.extensions.get_extension_for_oid(_ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
-        for name in san:
-            if isinstance(name, _x509.DNSName):
-                return str(name.value)
     except _x509.ExtensionNotFound:
-        pass
-    if attrs := cert.subject.get_attributes_for_oid(_NameOID.COMMON_NAME):
-        return str(attrs[0].value)
-    return None
+        return common_name
+
+    for name in san:
+        if isinstance(name, _x509.DNSName):
+            return str(name.value)
+    return common_name
 
 
 def _default_store_path() -> str:

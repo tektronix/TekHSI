@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast, TYPE_CHECKING  # pylint: disable=unused-import
+from typing import cast, TYPE_CHECKING  # pylint: disable=unused-import
 
 import numpy as np
 import pytest  # pyright: ignore[reportMissingImports]
@@ -127,7 +127,7 @@ def test_read_digital_wfm_wrong_type_raises(tmp_path: Path) -> None:
     """read_digital_wfm raises TypeError when the file contains a non-digital waveform."""
     path = tmp_path / "analog.wfm"
     waveform = AnalogWaveform()
-    waveform.y_axis_values = cast("Any", np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32))
+    waveform.y_axis_values = cast("object", np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32))
     write_file(str(path), waveform)
 
     with pytest.raises(TypeError, match="expected a digital waveform"):

@@ -117,7 +117,7 @@ def _tls_server_name_for_entry(entry: dict[str, str | None]) -> str | None:
         return None
 
 
-def _tls_channel_options(  # pylint: disable=too-many-return-statements  # noqa: PLR0911
+def _tls_channel_options(  # pylint: disable=too-many-return-statements
     connect_host: str, tls_server_name: str | None
 ) -> tuple[tuple[str, str], ...]:
     """GRPC channel options when URL host differs from the cert name (IP or .local)."""
@@ -135,9 +135,7 @@ def _tls_channel_options(  # pylint: disable=too-many-return-statements  # noqa:
         return (("grpc.ssl_target_name_override", cert_name),)
     if _is_ip_literal(host):
         return (("grpc.ssl_target_name_override", cert_name),)
-    if host_lower != cert_lower:
-        return (("grpc.ssl_target_name_override", cert_name),)
-    return ()
+    return (("grpc.ssl_target_name_override", cert_name),)
 
 
 def _secure_channel(
@@ -178,7 +176,9 @@ def _build_creds_from_entry(entry: dict[str, str | None], mode: str) -> grpc.Cha
 
 def _fetch_server_cert(host: str, port: int, timeout: float = 5.0) -> CertInfo:
     """Connect via TLS without verification and return server cert info (for TOFU)."""
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+    # Enforce modern TLS policy even when certificate verification is disabled for TOFU probing.
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with (
@@ -229,10 +229,35 @@ def _call_on_trust(
     """Invoke on_trust_prompt with (host, cert_info) or (host, cert_info, auth_required)."""
     try:
         sig = inspect.signature(cb)
-        if len(sig.parameters) >= _ON_TRUST_ARGS_WITH_AUTH_REQUIRED:
+        positional_count = 0
+        has_varargs = False
+        has_auth_keyword = False
+        for param in sig.parameters.values():
+            if param.kind == inspect.Parameter.VAR_POSITIONAL:
+                has_varargs = True
+                break
+            if (
+                param.kind
+                in (
+                    inspect.Parameter.KEYWORD_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+                and param.name == "auth_required"
+            ):
+                has_auth_keyword = True
+            if param.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            ):
+                positional_count += 1
+        if has_varargs or positional_count >= _ON_TRUST_ARGS_WITH_AUTH_REQUIRED:
             return cb(host_port, cert_info, auth_required)
-    except TypeError:
-        pass
+        if has_auth_keyword:
+            return cb(host_port, cert_info, auth_required=auth_required)
+    except (TypeError, ValueError):
+        # If inspection fails (for example, mocked/C-extension callables),
+        # prefer legacy two-arg form.
+        return cb(host_port, cert_info)
     return cb(host_port, cert_info)
 
 

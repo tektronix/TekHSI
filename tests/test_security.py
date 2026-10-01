@@ -276,6 +276,55 @@ def test_build_creds_from_entry_token_mode_default_login(
     assert dict(received["headers"])["authorization"] == expected
 
 
+def test_fetch_server_cert_enforces_tls12(monkeypatch: pytest.MonkeyPatch, self_signed_pem) -> None:
+    """Test that TOFU certificate probing enforces TLS 1.2+ and still parses cert info."""
+    cert_pem, _ = self_signed_pem(common_name="scope", san_dns=["scope.local"])
+
+    class _FakeSock:
+        def __enter__(self) -> object:
+            return object()
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    class _FakeSslSock:
+        def __enter__(self) -> "_FakeSslSock":  # noqa: PYI034
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def getpeercert(self, *, binary_form: bool = False) -> bytes:
+            assert binary_form is True
+            return b"der-bytes"
+
+    class _FakeContext:  # pylint: disable=too-few-public-methods
+        def __init__(self) -> None:
+            self.minimum_version = None
+            self.check_hostname = True
+            self.verify_mode = sec.ssl.CERT_REQUIRED
+
+        def wrap_socket(self, _sock, *, server_hostname: str):
+            assert server_hostname == "scope.local"
+            return _FakeSslSock()
+
+    ctx = _FakeContext()
+    monkeypatch.setattr(sec.ssl, "create_default_context", MagicMock(return_value=ctx))
+    monkeypatch.setattr(sec.socket, "create_connection", MagicMock(return_value=_FakeSock()))
+    monkeypatch.setattr(
+        sec.ssl,
+        "DER_cert_to_PEM_cert",
+        MagicMock(return_value=cert_pem.decode("ascii")),
+    )
+
+    cert_info = sec._fetch_server_cert("scope.local", 5000, timeout=1.0)
+
+    assert ctx.minimum_version == sec.ssl.TLSVersion.TLSv1_2
+    assert ctx.check_hostname is False
+    assert ctx.verify_mode == sec.ssl.CERT_NONE
+    assert cert_info.cert_fingerprint
+
+
 # ---------- _call_on_trust ----------
 
 

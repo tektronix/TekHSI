@@ -327,7 +327,6 @@ def dump_per_frame_arrivals(
         t0 = time.perf_counter()
         cumulative = 0
         prev_arrival = 0.0
-        frame_index = -1
 
         try:
             for message_index, response in enumerate(iterator):
@@ -336,20 +335,20 @@ def dump_per_frame_arrivals(
                 prev_arrival = arrival_ms
 
                 is_boundary = response.HasField("frame_boundary")
+                boundary_frame_index = (
+                    int(response.frame_boundary.frame_info.frame_index) if is_boundary else None
+                )
                 chunk_bytes = 0
                 if response.headerordata.WhichOneof("value") == "chunk":
                     chunk_bytes = len(response.headerordata.chunk.data)
                     cumulative += chunk_bytes
-
-                if is_boundary:
-                    frame_index = int(response.frame_boundary.frame_info.frame_index)
 
                 rows.append(
                     {
                         "record_length": record_length,
                         "num_frames": num_frames,
                         "message_index": message_index,
-                        "frame_index": frame_index if is_boundary else "",
+                        "frame_index": boundary_frame_index if is_boundary else "",
                         "is_frame_boundary": int(is_boundary),
                         "chunk_bytes": chunk_bytes,
                         "cumulative_bytes": cumulative,
@@ -362,7 +361,10 @@ def dump_per_frame_arrivals(
                 if not _is_wfm_data_status(response.status):
                     continue
                 if cumulative >= expected_bytes and is_boundary:
-                    if frame_index >= int(header.num_frames) - 1:
+                    if (
+                        boundary_frame_index is not None
+                        and boundary_frame_index >= int(header.num_frames) - 1
+                    ):
                         break
         finally:
             import contextlib

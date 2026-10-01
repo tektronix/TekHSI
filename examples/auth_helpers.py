@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING
 
 import grpc
 
+import tekhsi.security as _sec
+
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
@@ -28,7 +30,6 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     _fetch_server_cert,
     _parse_host_port,
     _secure_channel,
-    _try_plain_grpc_channel,
 )
 
 if TYPE_CHECKING:
@@ -71,7 +72,7 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
     """Fresh-probe ``url`` and return ``(plain_ok, cert_path, entry, needs_password)``."""
     deadline = time.time() + _DISCOVERY_DEADLINE_S
 
-    if (plain_channel := _try_plain_grpc_channel(url, deadline)) is not None:
+    if (plain_channel := _sec._try_plain_grpc_channel(url, deadline)) is not None:  # noqa: SLF001
         with contextlib.suppress(Exception):
             plain_channel.close()
         return True, None, {}, False
@@ -80,8 +81,8 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
     try:
         cert = _fetch_server_cert(host, port, timeout=_PROBE_TIMEOUT_S)
     except OSError as exc:
-        print(f"Could not reach TekHSI on {url}: {exc}")
-        sys.exit(1)
+        msg = f"Could not reach TekHSI on {url}: {exc}"
+        raise SystemExit(msg) from exc
 
     with tempfile.NamedTemporaryFile(suffix=".pem", delete=False) as tmp:
         tmp.write(cert.cert_pem or b"")
@@ -95,7 +96,11 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
         "password": None,
     }
 
-    ch = _secure_channel(url, _build_creds_from_entry(probe_entry, "tls"), entry=probe_entry)
+    ch = _secure_channel(
+        url,
+        _build_creds_from_entry(probe_entry, "tls"),
+        entry=probe_entry,
+    )
     try:
         ok, err = _probe(ConnectStub(ch))
     finally:
@@ -107,15 +112,19 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
     if err == "UNAUTHENTICATED":
         return False, pem_path, probe_entry, True
 
-    print(f"TLS probe failed: {err}")
     pem_path.unlink(missing_ok=True)
-    sys.exit(1)
+    msg = f"TLS probe failed: {err}"
+    raise SystemExit(msg)
 
 
 def verify_password(url: str, store_entry: dict, secret: str, cert_path: Path | None) -> None:
     """Probe with ``secret``; on failure, clean up ``cert_path`` and exit."""
     auth_entry = {**store_entry, "password": secret, "login": DEFAULT_MODE3_USERNAME}
-    ch = _secure_channel(url, _build_creds_from_entry(auth_entry, "token"), entry=auth_entry)
+    ch = _secure_channel(
+        url,
+        _build_creds_from_entry(auth_entry, "token"),
+        entry=auth_entry,
+    )
     try:
         ok, err = _probe(ConnectStub(ch))
     finally:

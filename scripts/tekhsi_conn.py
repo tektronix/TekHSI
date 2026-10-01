@@ -17,6 +17,8 @@ from typing import Any
 
 import grpc
 
+import tekhsi.security as _sec
+
 from tekhsi import TekHSICredentials
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
@@ -27,7 +29,6 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     _fetch_server_cert,
     _parse_host_port,
     _secure_channel,
-    _try_plain_grpc_channel,
 )
 
 
@@ -43,10 +44,8 @@ def _probe_connect(stub: ConnectStub, timeout: float) -> tuple[bool, str | None]
     except grpc.RpcError as exc:
         return False, exc.code().name  # type: ignore[union-attr]
     finally:
-        try:
+        with contextlib.suppress(grpc.RpcError):
             stub.Disconnect(ConnectRequest(name=name), timeout=min(timeout, 3.0))
-        except grpc.RpcError:
-            pass
     return True, None
 
 
@@ -137,7 +136,7 @@ def detect_server_mode(
     host, port = _parse_host_port(url)
     deadline = time.time() + 12.0
 
-    plain_channel = _try_plain_grpc_channel(url, deadline)
+    plain_channel = _sec._try_plain_grpc_channel(url, deadline)
     plain_ok = plain_channel is not None
     if plain_channel is not None:
         with contextlib.suppress(Exception):

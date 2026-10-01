@@ -9,6 +9,8 @@ import uuid
 
 import grpc
 
+import tekhsi.security as _sec
+
 from tekhsi._tek_highspeed_server_pb2 import ConnectRequest  # pylint: disable=no-name-in-module
 from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.credential_store import TekHSICredentialStore
@@ -17,7 +19,6 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     _fetch_server_cert,
     _parse_host_port,
     _secure_channel,
-    _try_plain_grpc_channel,
 )
 
 
@@ -48,7 +49,7 @@ def main() -> int:
     print("=" * 60)
 
     # 1) Plaintext gRPC probe
-    plain = _try_plain_grpc_channel(url, deadline)
+    plain = _sec._try_plain_grpc_channel(url, deadline)
     if plain is not None:
         print("Plaintext gRPC:     AVAILABLE (Connect/Disconnect probe succeeded)")
         with contextlib.suppress(Exception):
@@ -96,10 +97,8 @@ def main() -> int:
             ch.close()
         finally:
             if pem_path:
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(pem_path)
-                except OSError:
-                    pass
         print(f"TLS gRPC Connect:   {tls_connect}")
         if tls_connect.startswith("RpcError UNAUTHENTICATED"):
             print("  -> Server requires client auth (Mode 3 / HTTP Basic likely)")
