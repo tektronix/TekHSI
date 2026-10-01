@@ -144,7 +144,7 @@ def test_store_set_and_get_reveals_password(tmp_path: Path) -> None:
     store.set(
         "Host:5000",
         cert_fingerprint="fp",
-        cert_path="/tmp/x.pem",
+        cert_path=str(tmp_path / "x.pem"),
         tls_server_name="scope",
         login="user",
         password="pw",

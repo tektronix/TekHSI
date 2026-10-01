@@ -7,6 +7,7 @@ appropriate ``TekHSICredentials`` and ``TekHSIConnect`` keyword arguments.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 import time
@@ -59,6 +60,40 @@ def _entry_from_cert(cert: Any, pem_path: str) -> dict[str, str | None]:
     }
 
 
+def _write_temp_pem(cert_pem: bytes | None) -> str:
+    """Write cert PEM bytes to a temp file and return its path."""
+    tmp = tempfile.NamedTemporaryFile(suffix=".pem", delete=False)
+    try:
+        tmp.write(cert_pem or b"")
+    finally:
+        tmp.close()
+    return tmp.name
+
+
+def _classify_mode(
+    *,
+    plain_ok: bool,
+    tls_handshake: bool,
+    tls_no_auth_ok: bool,
+    tls_needs_password: bool,
+) -> tuple[bool, bool, str]:
+    """Classify detected probe results into (needs_encryption, needs_password, mode_str)."""
+    if plain_ok or not tls_handshake:
+        needs_encryption, needs_password = False, False
+    elif tls_no_auth_ok:
+        needs_encryption, needs_password = True, False
+    else:
+        needs_encryption, needs_password = True, True
+
+    if not needs_encryption and not needs_password:
+        mode_str = "Mode 1 (plain, no auth)"
+    elif needs_encryption and not needs_password:
+        mode_str = "Mode 2 (TLS, no password)"
+    else:
+        mode_str = "Mode 3 (TLS + password)"
+    return needs_encryption, needs_password, mode_str
+
+
 def _tls_connect_result(
     url: str,
     entry: dict[str, str | None],
@@ -77,10 +112,8 @@ def _tls_connect_result(
     try:
         return _probe_connect(ConnectStub(channel), 8.0)
     finally:
-        try:
+        with contextlib.suppress(Exception):
             channel.close()
-        except Exception:
-            pass
 
 
 def detect_server_mode(
@@ -107,10 +140,8 @@ def detect_server_mode(
     plain_channel = _try_plain_grpc_channel(url, deadline)
     plain_ok = plain_channel is not None
     if plain_channel is not None:
-        try:
+        with contextlib.suppress(Exception):
             plain_channel.close()
-        except Exception:
-            pass
 
     cert = None
     pem_path: str | None = None
@@ -124,10 +155,7 @@ def detect_server_mode(
     tls_no_auth_ok = False
     tls_needs_password = False
     if cert is not None:
-        tmp = tempfile.NamedTemporaryFile(suffix=".pem", delete=False)
-        pem_path = tmp.name
-        tmp.write(cert.cert_pem or b"")
-        tmp.close()
+        pem_path = _write_temp_pem(cert.cert_pem)
         entry = _entry_from_cert(cert, pem_path)
         ok, err = _tls_connect_result(url, entry)
         if ok:
@@ -135,21 +163,12 @@ def detect_server_mode(
         elif err == "UNAUTHENTICATED":
             tls_needs_password = True
 
-    if plain_ok:
-        needs_encryption, needs_password = False, False
-    elif tls_handshake and tls_no_auth_ok:
-        needs_encryption, needs_password = True, False
-    elif (tls_handshake and tls_needs_password) or tls_handshake:
-        needs_encryption, needs_password = True, True
-    else:
-        needs_encryption, needs_password = False, False
-
-    if not needs_encryption and not needs_password:
-        mode_str = "Mode 1 (plain, no auth)"
-    elif needs_encryption and not needs_password:
-        mode_str = "Mode 2 (TLS, no password)"
-    else:
-        mode_str = "Mode 3 (TLS + password)"
+    needs_encryption, needs_password, mode_str = _classify_mode(
+        plain_ok=plain_ok,
+        tls_handshake=tls_handshake,
+        tls_no_auth_ok=tls_no_auth_ok,
+        tls_needs_password=tls_needs_password,
+    )
 
     return needs_encryption, needs_password, cert, pem_path, mode_str
 
@@ -194,29 +213,19 @@ def build_credentials(
     # Use stored cert path if available.
     effective_pem = (store_entry.get("cert_path") if store_entry else None) or pem_path
 
-    if needs_password:
-        if not resolved_password:
-            raise RuntimeError(
-                "Server requires a password (Mode 3) but none was provided. "
-                "Set TEKHSI_PASSWORD in HSI_Benchmark/config.py or the environment."
-            )
-        if not effective_pem:
-            host, port = _parse_host_port(url)
-            cert = _fetch_server_cert(host, port, timeout=8.0)
-            tmp = tempfile.NamedTemporaryFile(suffix=".pem", delete=False)
-            tmp.write(cert.cert_pem or b"")
-            tmp.close()
-            effective_pem = tmp.name
-        return TekHSICredentials.token(effective_pem, resolved_password, username=login)
+    if needs_password and not resolved_password:
+        raise RuntimeError(
+            "Server requires a password (Mode 3) but none was provided. "
+            "Set TEKHSI_PASSWORD in HSI_Benchmark/config.py or the environment."
+        )
 
-    # Mode 2 — TLS, no password.
     if not effective_pem:
         host, port = _parse_host_port(url)
         cert = _fetch_server_cert(host, port, timeout=8.0)
-        tmp = tempfile.NamedTemporaryFile(suffix=".pem", delete=False)
-        tmp.write(cert.cert_pem or b"")
-        tmp.close()
-        effective_pem = tmp.name
+        effective_pem = _write_temp_pem(cert.cert_pem)
+
+    if needs_password:
+        return TekHSICredentials.token(effective_pem, resolved_password, username=login)
     return TekHSICredentials.tls(effective_pem)
 
 
@@ -244,7 +253,7 @@ def build_connect_kwargs(
     }
 
     # Enable background acquisition thread if the installed version supports it.
-    try:
+    with contextlib.suppress(Exception):
         from inspect import signature  # pylint: disable=import-outside-toplevel
 
         from tekhsi import TekHSIConnect  # pylint: disable=import-outside-toplevel
@@ -252,8 +261,6 @@ def build_connect_kwargs(
         sig = signature(TekHSIConnect.__init__)
         if "background_thread" in sig.parameters:
             kwargs["background_thread"] = True
-    except Exception:
-        pass
 
     if on_trust_prompt is not None:
         kwargs["on_trust_prompt"] = on_trust_prompt

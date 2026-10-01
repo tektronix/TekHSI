@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 import time
 import uuid
@@ -50,10 +51,8 @@ def main() -> int:
     plain = _try_plain_grpc_channel(url, deadline)
     if plain is not None:
         print("Plaintext gRPC:     AVAILABLE (Connect/Disconnect probe succeeded)")
-        try:
+        with contextlib.suppress(Exception):
             plain.close()
-        except Exception:
-            pass
     else:
         print("Plaintext gRPC:     NOT AVAILABLE (probe failed or timed out)")
 

@@ -13,6 +13,7 @@ Then run::
 from __future__ import annotations
 
 import argparse
+import contextlib
 import getpass
 import os
 import tempfile
@@ -88,10 +89,8 @@ def _tls_connect_result(
     try:
         return _probe_connect(ConnectStub(ch), 8.0)
     finally:
-        try:
+        with contextlib.suppress(Exception):
             ch.close()
-        except Exception:
-            pass
 
 
 def check_endpoint(
@@ -111,10 +110,8 @@ def check_endpoint(
     plain_channel = _try_plain_grpc_channel(url, deadline)
     plain_ok = plain_channel is not None
     if plain_channel is not None:
-        try:
+        with contextlib.suppress(Exception):
             plain_channel.close()
-        except Exception:
-            pass
 
     cert = None
     pem_path: str | None = None
