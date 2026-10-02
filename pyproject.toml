@@ -103,6 +103,7 @@ pylint = "4.0.9"
 pyright = {extras = ["nodejs"], version = "1.1.414"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
+ruff = "0.16.4"  # Exact pin to match the frozen rev in .pre-commit-config.yaml
 safety = "~3.7.0"  # TODO: Remove this version pin once the issue with safety is resolved
 tm_devices = "^3.2.0"
 tox = "^4.0"
