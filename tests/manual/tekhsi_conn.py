@@ -183,8 +183,8 @@ def build_credentials(
         password: Explicit password; falls back to credential store, then env.
         needs_encryption: Server requires TLS.
         needs_password: Server requires HTTP Basic auth.
-        cert: ``CertInfo`` from :func:`detect_server_mode`.
-        pem_path: Path to PEM temp file from :func:`detect_server_mode`.
+        cert: ``CertInfo`` from `detect_server_mode`.
+        pem_path: Path to PEM temp file from `detect_server_mode`.
         login: HTTP Basic username (Mode 3 only).
 
     Returns:
@@ -233,7 +233,7 @@ def build_connect_kwargs(
     Always configures for running (continuous) acquisition mode.
 
     Args:
-        credentials: Credentials from :func:`build_credentials`, or ``None``.
+        credentials: Credentials from `build_credentials`, or ``None``.
         channel: Channel symbol to read (e.g. ``"ch1"``).
         on_trust_prompt: Optional trust-prompt callback.
         credential_store: Optional credential store instance.

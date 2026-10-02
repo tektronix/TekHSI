@@ -176,10 +176,7 @@ For full examples, the FastFrame API table, and helper scripts, see the
 
 ## Security credential workflows
 
-For secure connection setup (TLS trust-on-first-use, optional password auth, `require_tls=True`, and store-backed credentials), see:
-
-- [EUCRA Usage](EUCRA_USAGE.md)
-- [Security policy](SECURITY.md)
+For secure connection setup (TLS trust-on-first-use, optional password auth, `require_tls=True`, and store-backed credentials), see [EUCRA Usage](EUCRA_USAGE.md).
 
 ## Experimental Parallel Waveform Reads
 

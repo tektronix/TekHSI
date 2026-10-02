@@ -189,42 +189,6 @@ Before you submit a pull request, check that it meets these guidelines:
     and versions of Python.
 4. The **Unreleased** section in the [Changelog](./CHANGELOG.md) should be updated.
 
-## Release Verification Checklist
-
-Use this checklist before cutting or approving a release:
-
-1. Update `tool.poetry.version` in `pyproject.toml`.
-
-2. Update both `CHANGELOG.md` and `docs/CHANGELOG.md`.
-
-3. Run docs validation:
-
-    ```console
-    python -m pytest tests/test_docs.py -q --maxfail=1
-    ```
-
-4. Run core validation:
-
-    ```console
-    python -m pytest -q --maxfail=1
-    ```
-
-5. If full tests are long-running due to integration waits, run a reduced local pass plus targeted suites:
-
-    ```console
-    python -m pytest -q -k "not slow and not docs"
-    python -m pytest tests/test_security.py -q --maxfail=1
-    python -m pytest tests/test_wfm_digital.py -q --maxfail=1
-    ```
-
-6. Build artifacts and confirm outputs in `dist/`:
-
-    ```console
-    python -m build
-    ```
-
-See [docs/release_checklist.md](docs/release_checklist.md) and [docs/troubleshooting.md](docs/troubleshooting.md) for more details.
-
 ## Project Test Plan
 
 This project undergoes rigorous testing to ensure a high quality product.

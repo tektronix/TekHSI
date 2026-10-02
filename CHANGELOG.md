@@ -16,45 +16,7 @@ Valid subsections within a version are:
 
 ## Unreleased
 
-### Added
-
-- Added documentation for release verification, packaging commands, and troubleshooting long-running integration tests.
-- Added explicit guidance for secure connection workflows using `TekHSICredentials.tls()` / `TekHSICredentials.token()` with and without a credential store.
-
-### Changed
-
-- Expanded README and contributor guidance with practical build/test commands for local wheel generation and docs validation.
-- Improved digital waveform documentation around `digital_bitmask` metadata round-trip behavior and WFM helper usage.
-
-### Fixed
-
-- Reduced false-positive static type errors in tests by hardening `pytest` typing patterns in targeted test modules.
-- Fixed Pyright test typing issues in docs, logging, security, and digital WFM tests without changing runtime behavior.
-
----
-
-## v1.2.0 (2026-07-24)
-
-### Added
-
-- FastFrame load timing (`WaveformTransferTiming`, `FastFrameLoadTiming`) and digital WFM tekmeta helpers.
-- Benchmark/diagnostic scripts: `hsi_diagnostic_benchmark.py`, `reproduce_benchmark_issue.py`, `scope_visa.py`, `tekhsi_conn.py`.
-- Diagnostic report: `docs/HSI_DIAGNOSTIC_REPORT_20260724.md`.
-
-### Changed
-
-- `access_stopped_data()` uses `AcqWaitOn.NewData` instead of `AnyAcq` to avoid stale cache on stopped captures.
-- Background acquisition thread always runs; the `background_thread=False` constructor option was removed.
-
-### Fixed
-
-- IQ waveform reads in `_read_waveform()` used undefined `native_stub` (now `self.native`).
-- Empty/pending FastFrame headers (`hasdata=False`, all zeros) are retried like other pending headers.
-- Background-thread header rejections log at DEBUG instead of WARNING during benchmark runs.
-
-### Removed
-
-- `background_thread` constructor flag and synchronous `_access_stopped_data_sync()` path.
+Things to be included in the next release go here.
 
 ---
 

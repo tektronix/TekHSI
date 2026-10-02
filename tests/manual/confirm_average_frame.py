@@ -11,7 +11,7 @@ from typing import Any
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from tekhsi import FastFrameAnalogWaveform, TekHSIConnect  # pylint: disable=no-name-in-module

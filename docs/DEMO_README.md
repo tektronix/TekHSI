@@ -220,7 +220,7 @@ Run: `python examples/iq_waveform_usage.py`
 
 ### Read a saved waveform file — `simple_read.py`
 
-Works offline with sample files under `sample_waveforms/`:
+Works offline with sample files under `sample_waveforms/` (run `python examples/create_sine_waveform.py` first to generate `test_sine.wfm`):
 
 ```python
 import matplotlib.pyplot as plt
@@ -330,8 +330,8 @@ Full script: [`examples/fastframe_usage.py`](examples/fastframe_usage.py)
 Probe script (prints timing and optional per-frame listing):
 
 ```shell
-python scripts/probe_fastframe.py --url 169.254.6.254:5000 --channel ch1 --list-frames
-python scripts/read_channels.py ch1 ref1
+python tests/manual/probe_fastframe.py --url 169.254.6.254:5000 --channel ch1 --list-frames
+python tests/manual/read_channels.py ch1 ref1
 ```
 
 ### FastFrame API notes
@@ -349,11 +349,11 @@ python scripts/read_channels.py ch1 ref1
 
 ## Helper scripts
 
-| Script                                                                 | Purpose                                                             |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [`scripts/probe_fastframe.py`](scripts/probe_fastframe.py)             | Connect, read one channel, print FastFrame metadata and load timing |
-| [`scripts/read_channels.py`](scripts/read_channels.py)                 | Read multiple stopped channels (e.g. `ch1 ref1`)                    |
-| [`scripts/confirm_average_frame.py`](scripts/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames            |
+| Script                                                                              | Purpose                                                             |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`tests/manual/probe_fastframe.py`](../tests/manual/probe_fastframe.py)             | Connect, read one channel, print FastFrame metadata and load timing |
+| [`tests/manual/read_channels.py`](../tests/manual/read_channels.py)                 | Read multiple stopped channels (e.g. `ch1 ref1`)                    |
+| [`tests/manual/confirm_average_frame.py`](../tests/manual/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames            |
 
 ## Version pin
 

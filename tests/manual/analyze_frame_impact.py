@@ -61,7 +61,7 @@ def main() -> int:
     parser.add_argument(
         "csv",
         nargs="?",
-        default=Path(__file__).resolve().parent.parent
+        default=Path(__file__).resolve().parent.parent.parent
         / "results"
         / "hsi_transfer_sweep_20260724_092506.csv",
         type=Path,

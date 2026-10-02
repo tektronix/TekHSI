@@ -23,8 +23,6 @@ from tekhsi.credential_store import CertInfo, TekHSICredentialStore, tls_server_
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-# Minimum positional-parameter counts for on_trust_prompt callbacks.
-_ON_TRUST_ARGS_WITH_AUTH_REQUIRED = 3
 # Minimum tuple length from on_trust_prompt to include an explicit login.
 _ON_TRUST_RESULT_HAS_LOGIN_LEN = 2
 

@@ -1,6 +1,6 @@
 """Simple TekHSI connect: probes the scope, reports mode, then connects.
 
-Every run does a fresh discovery (like :mod:`authentication_check`) so the
+Every run does a fresh discovery (like `authentication_check`) so the
 output always reflects the scope's *current* configuration. If the server
 requires a password, it is prompted interactively.
 """

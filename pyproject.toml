@@ -277,10 +277,6 @@ stubPath = "src"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
 
-[tool.pyright.overrides]
-"src/tekhsi/wfm_digital.py" = {strict = []}
-"tests/manual/**" = {reportMissingImports = "false", typeCheckingMode = "basic"}
-
 [tool.pytest.ini_options]
 addopts = "--order-scope=module --cov-config=pyproject.toml"
 doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
@@ -365,6 +361,36 @@ order-by-type = false
   "TRY003",  # Avoid specifying long messages outside the exception class
 ]
 "scripts/**" = [
+  "D103",  # Missing docstring in public function
+  "ERA001",  # Found commented-out code
+  "S603",  # `subprocess` call: check for execution of untrusted input
+  "T201",  # `print` found (expected in CLI diagnostic scripts)
+]
+"src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
+  "ALL",
+]
+"tests/**" = [
+  "ANN001",  # Missing type annotation for function argument (fixture params etc.)
+  "ANN201",  # Missing return type annotation for public function
+  "ANN202",  # Missing return type annotation for private function
+  "D103",  # Missing docstring in public function (tests are self-describing)
+  "D104",  # Missing docstring in public package
+  "FBT001",  # Boolean-typed positional argument in function definition
+  "FBT002",  # Boolean default positional argument in function definition
+  "PGH003",  # Use specific rule codes when ignoring type issues (bare `type: ignore` in version-shim tests)
+  "PLC0415",  # `import` should be at the top-level of a file (lazy optional imports in fixtures)
+  "PLC1901",  # compare-to-empty-string
+  "PLR2004",  # Magic value used in comparison
+  "PT018",  # Assertion should be broken down into multiple parts
+  "S101",  # Use of assert detected
+  "S105",  # Possible hardcoded password (fake creds in tests)
+  "S106",  # Possible hardcoded password argument (fake creds in tests)
+  "S108",  # Probable insecure usage of temporary file (fake paths in tests)
+  "T201",  # `print` found
+  "TC002",  # Move third-party import into a type-checking block
+  "TC003",  # Move standard library import into a type-checking block
+]
+"tests/manual/**" = [
   "ANN001",  # Missing type annotation for function argument
   "ANN002",  # Missing type annotation for `*args`
   "ANN003",  # Missing type annotation for `**kwargs`
@@ -386,7 +412,7 @@ order-by-type = false
   "EM101",  # Exception must not use a string literal
   "EM102",  # Exception must not use an f-string literal
   "ERA001",  # Found commented-out code
-  "EXE001",  # Shebang is present but file is not executable (scripts are run via `python scripts/x.py`)
+  "EXE001",  # Shebang is present but file is not executable (scripts are run via `python tests/manual/x.py`)
   "FBT001",  # Boolean-typed positional argument in function definition
   "FBT002",  # Boolean default positional argument in function definition
   "N803",  # Argument name should be lowercase (numpy-style X/Y conventions)
@@ -420,30 +446,6 @@ order-by-type = false
   "TC003",  # Move standard library import into a type-checking block
   "TRY003",  # Avoid specifying long messages outside the exception class
   "TRY300",  # Consider moving this statement to an `else` block
-]
-"src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
-  "ALL",
-]
-"tests/**" = [
-  "ANN001",  # Missing type annotation for function argument (fixture params etc.)
-  "ANN201",  # Missing return type annotation for public function
-  "ANN202",  # Missing return type annotation for private function
-  "D103",  # Missing docstring in public function (tests are self-describing)
-  "D104",  # Missing docstring in public package
-  "FBT001",  # Boolean-typed positional argument in function definition
-  "FBT002",  # Boolean default positional argument in function definition
-  "PGH003",  # Use specific rule codes when ignoring type issues (bare `type: ignore` in version-shim tests)
-  "PLC0415",  # `import` should be at the top-level of a file (lazy optional imports in fixtures)
-  "PLC1901",  # compare-to-empty-string
-  "PLR2004",  # Magic value used in comparison
-  "PT018",  # Assertion should be broken down into multiple parts
-  "S101",  # Use of assert detected
-  "S105",  # Possible hardcoded password (fake creds in tests)
-  "S106",  # Possible hardcoded password argument (fake creds in tests)
-  "S108",  # Probable insecure usage of temporary file (fake paths in tests)
-  "T201",  # `print` found
-  "TC002",  # Move third-party import into a type-checking block
-  "TC003",  # Move standard library import into a type-checking block
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section

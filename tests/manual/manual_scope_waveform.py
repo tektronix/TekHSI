@@ -2,9 +2,9 @@
 
 Run directly::
 
-    python scripts/manual_scope_waveform.py --scenario auto
-    python scripts/manual_scope_waveform.py --list-scenarios
-    python scripts/manual_scope_waveform.py --scenario legacy --url 169.254.6.254:5000
+    python tests/manual/manual_scope_waveform.py --scenario auto
+    python tests/manual/manual_scope_waveform.py --list-scenarios
+    python tests/manual/manual_scope_waveform.py --scenario legacy --url 169.254.6.254:5000
 
 Or via pytest (only when explicitly enabled)::
 
@@ -962,7 +962,7 @@ def main(argv: list[str] | None = None) -> int:
             "second-connect",
         ):
             print(
-                f"  python scripts/manual_scope_waveform.py --scenario {name} --store-path %TEMP%\\tekhsi_manual.ini"
+                f"  python tests/manual/manual_scope_waveform.py --scenario {name} --store-path %TEMP%\\tekhsi_manual.ini"
             )
         return 0
 

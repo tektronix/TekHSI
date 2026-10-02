@@ -11,7 +11,7 @@ Protocol (run in order):
 
 Raw numbers only — no averaging, no modeling. Three repeats per config,
 randomized execution order. Does not modify tekhsi core; uses existing APIs
-and private stream hooks like scripts/probe_stream.py.
+and private stream hooks like tests/manual/probe_stream.py.
 
 Deliverables under --output-dir/<timestamp>/:
   link_verification.txt
@@ -23,6 +23,7 @@ Deliverables under --output-dir/<timestamp>/:
   ss_falloff_transfer.txt
   falloff_capture.pcap (when tcpdump available)
 """
+# pyright: basic  # diagnostic script; third-party libs here (pyvisa, raw protobuf) lack type stubs
 
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
@@ -64,11 +65,12 @@ from scope_visa import (
     start_scope_acquisition,
     wait_for_acquisition_complete,
 )
+from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+
 from tekhsi import TekHSIConnect
 from tekhsi._tek_highspeed_server_pb2 import WfmReplyStatus
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
-from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
 from tm_data_types import FastFrameAnalogWaveform
 
 SWEEP_A_RL = 100_000

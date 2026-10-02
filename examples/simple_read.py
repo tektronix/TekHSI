@@ -1,4 +1,8 @@
-"""An example script for demonstrating reading waveform files and plotting the data."""
+"""An example script for demonstrating reading waveform files and plotting the data.
+
+Run ``python examples/create_sine_waveform.py`` first to generate the sample waveform file
+used by this script.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np

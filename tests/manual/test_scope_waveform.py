@@ -8,25 +8,23 @@ Run against real hardware::
 
 Prefer the script for scenario sweeps::
 
-    python scripts/manual_scope_waveform.py --list-scenarios
-    python scripts/manual_scope_waveform.py --scenario auto --url 169.254.6.254:5000
+    python tests/manual/manual_scope_waveform.py --list-scenarios
+    python tests/manual/manual_scope_waveform.py --scenario auto --url 169.254.6.254:5000
 """
 
 from __future__ import annotations
 
 import os
-import sys
 
 from pathlib import Path
 
 import pytest  # pyright: ignore[reportMissingImports]
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
-
-from manual_scope_waveform import (  # noqa: E402  # pylint: disable=import-error
+from manual_scope_waveform import (  # pylint: disable=import-error
     run_scenario,  # type: ignore
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 pytestmark = [  # pyright: ignore[reportUnknownVariableType]
     pytest.mark.manual,  # pyright: ignore[reportUnknownMemberType]
@@ -34,7 +32,7 @@ pytestmark = [  # pyright: ignore[reportUnknownVariableType]
         os.environ.get("TEKHSI_RUN_MANUAL_SCOPE") != "1",
         reason=(
             "Manual scope test — set TEKHSI_RUN_MANUAL_SCOPE=1 and TEKHSI_SCOPE_URL. "
-            "Or run: python scripts/manual_scope_waveform.py"
+            "Or run: python tests/manual/manual_scope_waveform.py"
         ),
     ),
 ]

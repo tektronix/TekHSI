@@ -12,7 +12,7 @@ Primary Y metrics for graphing:
 CSV is UTF-8 BOM, sorted by total_samples then record_length then num_frames.
 
 For isolated frame-count vs record-length sweeps (raw, no averaging), see:
-  scripts/hsi_diagnostic_benchmark.py
+  tests/manual/hsi_diagnostic_benchmark.py
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(SCRIPTS))
@@ -46,10 +46,11 @@ from scope_visa import (
     start_scope_acquisition,
     wait_for_acquisition_complete,
 )
+from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
+
 from tekhsi import TekHSIConnect
 from tekhsi.credential_store import TekHSICredentialStore
 from tekhsi.helpers.logging import configure_logging, LoggingLevels
-from tekhsi_conn import build_connect_kwargs, build_credentials, detect_server_mode
 from tm_data_types import FastFrameAnalogWaveform
 
 # Default total sample counts: ~x2.5 steps toward 100M.

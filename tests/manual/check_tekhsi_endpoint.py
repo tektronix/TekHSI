@@ -116,7 +116,6 @@ def check_endpoint(
         cert = None
 
     tls_no_auth_ok = False
-    tls_needs_password = False
     if cert is not None:
         tmp = tempfile.NamedTemporaryFile(suffix=".pem", delete=False)
         pem_path = tmp.name
@@ -126,29 +125,20 @@ def check_endpoint(
         ok, err = _tls_connect_result(url, entry)
         if ok:
             tls_no_auth_ok = True
-        elif err == "UNAUTHENTICATED":
-            tls_needs_password = True
-
-    if plain_ok:
-        needs_encryption = False
-        needs_password = False
-    elif tls_handshake and tls_no_auth_ok:
-        needs_encryption = True
-        needs_password = False
-    elif tls_handshake and tls_needs_password:
-        needs_encryption = True
-        needs_password = True
-    elif tls_handshake:
-        needs_encryption = True
-        needs_password = True  # TLS present but Connect failed; try password next
-    else:
-        needs_encryption = False
-        needs_password = False
 
     print("Server requires:")
     if not plain_ok and not tls_handshake:
         print("  Could not reach TekHSI on this address (no plain or TLS response).")
         return 1
+
+    if plain_ok:
+        needs_encryption, needs_password = False, False
+    elif tls_no_auth_ok:
+        needs_encryption, needs_password = True, False
+    else:
+        # TLS is available and either auth is required or Connect failed without auth.
+        needs_encryption, needs_password = True, True
+
     if needs_encryption:
         print("  - Encrypted connection (TLS): yes")
     else:

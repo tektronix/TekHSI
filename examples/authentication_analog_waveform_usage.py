@@ -1,6 +1,6 @@
 """Discover the scope's auth mode, connect, and plot an analog waveform.
 
-Every run does a fresh discovery (like :mod:`authentication_check`) and
+Every run does a fresh discovery (like `authentication_check`) and
 transparently handles all three modes:
 
 - plain gRPC (no TLS, no password)
