@@ -44,6 +44,9 @@ pip-delete-this-directory.txt
 *.log
 *.dat
 
+# Generated sample waveform files (produced by examples/create_sine_waveform.py)
+sample_waveforms/*.wfm
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

@@ -148,6 +148,34 @@ explicitly configured, the default logging settings will be used (as defined by 
 --8<-- "examples/customize_logging.py"
 ```
 
+## Digital WFM metadata and bitmask
+
+When saving digital waveforms to `.wfm`, include digital-line context (`digital_bitmask`) in metadata so the value can be restored on read-back.
+
+Use `tekhsi.wfm_digital` helpers for consistent round-trips:
+
+- `stamp_digital_bitmask_meta(waveform)` before writing
+- `restore_digital_bitmask_from_meta(waveform)` after reading
+- or use wrapper helpers `write_digital_wfm()` / `read_digital_wfm()`
+
+## FastFrame (multi-frame stopped captures)
+
+`TekHSI` supports streaming **FastFrame** acquisitions from a stopped scope. Multi-frame reads are
+returned as `FastFrameAnalogWaveform` / `FastFrameDigitalWaveform` (from `tm_data_types`), which add
+per-frame access (`frame_data()`, `frame_array()`, `frame()`), an optional summary/average frame,
+and `waveform.load_timing` transfer metrics.
+
+Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stopped_data] instead of
+`access_data()` when reading from a stopped scope so the client re-triggers a sequence and waits for
+fresh FastFrame data rather than reusing a stale cache.
+
+For full examples, the FastFrame API table, and helper scripts, see the
+[FastFrame demo guide](DEMO_README.md).
+
+## Security credential workflows
+
+For secure connection setup (TLS trust-on-first-use, optional password auth, `require_tls=True`, and store-backed credentials), see [EUCRA Usage](EUCRA_USAGE.md).
+
 ## Experimental Parallel Waveform Reads
 
 !!! warning

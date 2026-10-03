@@ -1,0 +1,58 @@
+"""Use TekHSI to read a stopped FastFrame capture from the scope."""
+
+import os
+
+from tekhsi import TekHSIConnect
+from tekhsi.credential_store import TekHSICredentialStore
+from tm_data_types import FastFrameAnalogWaveform
+
+
+def auto_trust(host: str, cert_info, auth_required: bool = False):
+    """Accept the scope certificate (set TEKHSI_PASSWORD if auth is required)."""
+    if auth_required:
+        password = os.environ.get("TEKHSI_PASSWORD")
+        if not password:
+            return False
+        return True, password, os.environ.get("TEKHSI_LOGIN", "Tektronix")
+    return True
+
+
+# Replace with your instrument TekHSI address
+# Examples: "169.254.6.254:5000" or "192.168.1.100:5000"
+addr = os.environ.get("TEKHSI_ADDR", "10.233.237.4:5000")
+
+with TekHSIConnect(
+    addr,
+    activesymbols=["ch1"],
+    on_trust_prompt=auto_trust,
+    credential_store=TekHSICredentialStore(),
+) as connection:
+    # FastFrame captures on a stopped scope require force_sequence + AnyAcq.
+    with connection.access_stopped_data():
+        waveform = connection.get_data("ch1")
+
+if waveform is None:
+    raise RuntimeError("No waveform returned for ch1")
+
+if not isinstance(waveform, FastFrameAnalogWaveform):
+    print(f"Expected FastFrameAnalogWaveform, got {type(waveform).__name__}")
+else:
+    print(f"source={waveform.source_name}")
+    print(f"record_length={waveform.record_length}")
+    print(f"data_frames={waveform.data_frame_count}, total_frames={waveform.num_frames}")
+    print(f"current_frame={waveform.current_frame_index}")
+    print(f"summary_frame={waveform.summary_frame_index}")
+
+    # Raw digitizer codes (no normalization). Use frame_array() for volts.
+    frame0 = waveform.frame_data(0)
+    print(f"frame 0: {len(frame0)} samples, raw[0]={int(frame0[0])}")
+
+    summary = waveform.get_summary_frame()
+    if summary is not None:
+        summary_samples = waveform.frame_data(waveform.summary_frame_index)
+        print(f"summary frame: raw[0]={int(summary_samples[0])}")
+    else:
+        print("summary frame: not present (disabled on scope or not declared in header)")
+
+    if waveform.load_timing is not None:
+        print(waveform.load_timing.format_summary())

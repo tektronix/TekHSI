@@ -24,7 +24,7 @@ def create_virtual_environment(virtual_env_dir: str | os.PathLike[str]) -> None:
     Args:
         virtual_env_dir: The directory where the virtual environment should be created
     """
-    print(f"\nCreating virtualenv located at '{virtual_env_dir}'")  # noqa: T201
+    print(f"\nCreating virtualenv located at '{virtual_env_dir}'")
     _run_cmd_in_subprocess(f"{sys.executable} -m venv {virtual_env_dir} --clear")
 
 
@@ -35,8 +35,8 @@ def _run_cmd_in_subprocess(command: str) -> None:
         command: The command string to send.
     """
     command = command.replace("\\", "/")
-    print(f"\nExecuting command: {command}")  # noqa: T201
-    subprocess.check_call(shlex.split(command))  # noqa: S603
+    print(f"\nExecuting command: {command}")
+    subprocess.check_call(shlex.split(command))
 
 
 def main() -> None:
@@ -79,7 +79,7 @@ def main() -> None:
             f"{python_executable} -m poetry install",
             f"{python_executable} -m nodeenv --python-virtualenv --clean-src",
             f"{python_executable} -m pre_commit install --install-hooks",
-            # f"{python_executable} -m tox -e tests",  # noqa: ERA001
+            # f"{python_executable} -m tox -e tests",
         )
         for command in commands_to_send:
             _run_cmd_in_subprocess(command)

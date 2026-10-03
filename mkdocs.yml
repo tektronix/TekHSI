@@ -166,10 +166,14 @@ nav:  # The first entry in each section needs a hard-coded title to avoid being 
   - index.md
   - The Basics:
       - Basic Usage: basic_usage.md
+      - FastFrame Demo: DEMO_README.md
       - glossary.md
       - CHANGELOG.md
+  - Security:
+      - EUCRA Usage: EUCRA_USAGE.md
   - Contributing:
       - Contributing Guidelines: CONTRIBUTING.md
+      - Troubleshooting: troubleshooting.md
       - CODE_OF_CONDUCT.md
       - LICENSE.md
   - API Reference: reference/

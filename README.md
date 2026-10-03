@@ -28,6 +28,13 @@ fields of electronics, telecommunications, and signal processing.
 way to communicate between applications. This means you can use `TekHSI` with any platform
 supporting gRPC, including Windows, Linux, and macOS.
 
+> [!NOTE]
+> **FastFrame stream status quirk:** On live scopes, `GetWaveform` data chunks often arrive with
+> `WFMREPLYSTATUS_UNSPECIFIED` rather than `WFMREPLYSTATUS_SUCCESS`. Only the final (often empty)
+> stream message may report `SUCCESS`. Clients must treat both statuses as valid when reading chunk
+> data; filtering on `SUCCESS` alone drops every frame and breaks FastFrame reads (notably digital
+> captures such as `ch2_DAll`). TekHSI accepts `UNSPECIFIED` and `SUCCESS` in its stream parsers.
+
 ## Key Features
 
 1. Low latency - `TekHSI` provides a fast and efficient data link between devices, with minimal
@@ -41,6 +48,8 @@ supporting gRPC, including Windows, Linux, and macOS.
 5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes
     accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes,
     or only accepting acquisitions after a certain time.
+6. **FastFrame** - Multi-frame stopped captures stream into `FastFrameAnalogWaveform` /
+    `FastFrameDigitalWaveform` with per-frame timing metadata and `waveform.load_timing` transfer metrics.
 
 In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
 and host computer, `TekHSI` is the library for you. With its low latency, high speed, and
@@ -49,7 +58,7 @@ easy-to-use API, `TekHSI` provides a powerful solution for data acquisition and 
 ## Installation
 
 > [!IMPORTANT]
-> `TekHSI` requires a 64-bit Python installation due to its external dependencies
+> `TekHSI` requires a 64-bit Python installation due to its external dependencies.
 
 ```shell
 pip install tekhsi
@@ -71,9 +80,29 @@ pip install tekhsi
 
 </div>
 
+## Testing and Packaging Quick Checks
+
+Use these commands as a practical pre-release gate:
+
+```powershell
+python -m pytest "tests/test_docs.py" -q --maxfail=1
+python -m pytest -q --maxfail=1
+python -m build
+```
+
+If your full test run is long-running due to instrument/network waits (for example repeated `wait_for_data_access` logs), run a quicker local pass and then targeted suites:
+
+```powershell
+python -m pytest -q -k "not slow and not docs"
+python -m pytest "tests/test_security.py" -q --maxfail=1
+python -m pytest "tests/test_wfm_digital.py" -q --maxfail=1
+```
+
+Build artifacts are written to `dist/` (wheel + sdist).
+
 ## Documentation
 
-See the full documentation at <https://TekHSI.readthedocs.io>
+See the full documentation at <https://TekHSI.readthedocs.io>.
 
 ## Maintainers
 
@@ -91,14 +120,14 @@ the maintainers will review and respond there.
 
 ## Contributing
 
-Interested in contributing? Check out the [contributing guidelines](https://github.com/tektronix/TekHSI/blob/main/CONTRIBUTING.md). Please
-note that this project is released with a [Code of Conduct](https://github.com/tektronix/TekHSI/blob/main/CODE_OF_CONDUCT.md). By
+Interested in contributing? Check out the [contributing guidelines](docs/CONTRIBUTING.md). Please
+note that this project is released with a [Code of Conduct](docs/CODE_OF_CONDUCT.md). By
 contributing to this project, you agree to abide by its terms.
 
 ## License
 
 `TekHSI` was created by Tektronix. It is licensed under the terms of
-the [Apache License 2.0](https://github.com/tektronix/TekHSI/blob/main/LICENSE.md).
+the [Apache License 2.0](docs/LICENSE.md).
 
 ## Security
 
