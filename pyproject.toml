@@ -392,6 +392,12 @@ order-by-type = false
   "TC003",  # Move standard library import into a type-checking block
 ]
 "tests/manual/**" = [
+  # NOTE: these scripts are standalone, hardware-in-the-loop diagnostic tools, not part of the
+  # shipped package or the pytest suite (excluded via `ignore-patterns`/`testpaths`). They favor
+  # quick, linear, print-driven iteration over library-grade structure, so the relaxations below
+  # are intentional rather than a blanket opt-out: each silences a rule that only fires because of
+  # that nature (missing annotations/docstrings, complexity, blind excepts for CLI robustness,
+  # subprocess usage for diagnostics, etc.), while rules that catch real bugs stay enabled.
   "ANN001",  # Missing type annotation for function argument
   "ANN002",  # Missing type annotation for `*args`
   "ANN003",  # Missing type annotation for `**kwargs`
@@ -532,6 +538,10 @@ package = wheel
 install_command = python -I -m pip install --upgrade --upgrade-strategy=eager {opts} {packages}
 deps =
     poetry
+allowlist_externals =
+    poetry
+    twine
+    pre-commit
 setenv =
     COVERAGE_FILE = .coverage_{envname}
     DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts

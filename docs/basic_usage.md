@@ -158,8 +158,6 @@ Use `tekhsi.wfm_digital` helpers for consistent round-trips:
 - `restore_digital_bitmask_from_meta(waveform)` after reading
 - or use wrapper helpers `write_digital_wfm()` / `read_digital_wfm()`
 
-For design background and compatibility notes, see [tm_data_types update spec](tm_data_types_update_spec.md).
-
 ## FastFrame (multi-frame stopped captures)
 
 `TekHSI` supports streaming **FastFrame** acquisitions from a stopped scope. Multi-frame reads are

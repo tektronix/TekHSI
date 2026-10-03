@@ -4,6 +4,7 @@ ad
 any_acq
 any_horizontal_change
 any_vertical_change
+aren
 args
 arity
 artifact
@@ -27,6 +28,7 @@ dev
 dispatchable
 docstring
 docstrings
+doesn
 dtype
 enum
 enums
@@ -35,6 +37,7 @@ get_data
 get_n_bitstream
 gitignored
 hardcodes
+hasn
 hoc
 honors
 hostname
@@ -43,6 +46,7 @@ http
 https
 ini
 io
+isn
 keychain
 keystore
 licensor
@@ -86,6 +90,7 @@ tm_data_types
 unencrypted
 unexported
 url
+ve
 vs
 wfm
 www

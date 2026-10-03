@@ -54,7 +54,7 @@ python -c "from tekhsi import FastFrameAnalogWaveform, TekHSIConnect; print('ok'
 
 ## Quick start — read one channel
 
-From [`examples/analog_waveform_usage.py`](examples/analog_waveform_usage.py):
+From [`examples/analog_waveform_usage.py`](https://github.com/tektronix/TekHSI/blob/main/examples/analog_waveform_usage.py):
 
 ```python
 import matplotlib.pyplot as plt
@@ -77,7 +77,7 @@ with TekHSIConnect("192.168.0.1:5000") as connection:
 
 ## Examples from `examples/`
 
-The [`examples/`](examples/) folder contains runnable scripts. Set your scope IP before running.
+The [`examples/`](https://github.com/tektronix/TekHSI/tree/main/examples) folder contains runnable scripts. Set your scope IP before running.
 
 ### Save repeated acquisitions — `simple_single_hs.py`
 
@@ -325,7 +325,7 @@ with TekHSIConnect(
         print(f"get_frame(ch1, 3): {len(frame3.normalized_vertical_values)} samples")
 ```
 
-Full script: [`examples/fastframe_usage.py`](examples/fastframe_usage.py)
+Full script: [`examples/fastframe_usage.py`](https://github.com/tektronix/TekHSI/blob/main/examples/fastframe_usage.py)
 
 Probe script (prints timing and optional per-frame listing):
 
@@ -349,11 +349,11 @@ python tests/manual/read_channels.py ch1 ref1
 
 ## Helper scripts
 
-| Script                                                                              | Purpose                                                             |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [`tests/manual/probe_fastframe.py`](../tests/manual/probe_fastframe.py)             | Connect, read one channel, print FastFrame metadata and load timing |
-| [`tests/manual/read_channels.py`](../tests/manual/read_channels.py)                 | Read multiple stopped channels (e.g. `ch1 ref1`)                    |
-| [`tests/manual/confirm_average_frame.py`](../tests/manual/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames            |
+| Script                                                                                                                         | Purpose                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| [`tests/manual/probe_fastframe.py`](https://github.com/tektronix/TekHSI/blob/main/tests/manual/probe_fastframe.py)             | Connect, read one channel, print FastFrame metadata and load timing |
+| [`tests/manual/read_channels.py`](https://github.com/tektronix/TekHSI/blob/main/tests/manual/read_channels.py)                 | Read multiple stopped channels (e.g. `ch1 ref1`)                    |
+| [`tests/manual/confirm_average_frame.py`](https://github.com/tektronix/TekHSI/blob/main/tests/manual/confirm_average_frame.py) | Verify the summary frame matches the mean of data frames            |
 
 ## Version pin
 
