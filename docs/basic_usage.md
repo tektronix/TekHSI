@@ -159,8 +159,7 @@ Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stoppe
 `access_data()` when reading from a stopped scope so the client re-triggers a sequence and waits for
 fresh FastFrame data rather than reusing a stale cache.
 
-For full examples, the FastFrame API table, and helper scripts, see the
-[FastFrame demo guide](DEMO_README.md).
+For a complete example, see `examples/fastframe_usage.py` in the repository.
 
 ## Security credential workflows
 
