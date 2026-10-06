@@ -200,19 +200,8 @@ disable = [
   "consider-using-with",  # TODO: enable this check
   "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
-  "fixme",  # caught by ruff
-  "global-statement",  # caught by ruff
-  "import-outside-toplevel",  # required for optional dependencies and test isolation
-  "import-private-name",  # white-box tests intentionally exercise private helpers
   "invalid-name",  # caught by ruff
-  "line-too-long",  # caught by ruff
-  "locally-disabled",  # allowed
-  "missing-class-docstring",  # caught by ruff
-  "missing-function-docstring",  # test names document the behavior under test
-  "missing-module-docstring",  # caught by ruff
-  "no-else-return",  # preserve explicit branches in protocol negotiation
-  "no-member",  # caught by pyright
-  "no-name-in-module",  # generated/optional dependencies are validated separately
+  "locally-disabled",  # local suppressions are reviewed at their usage sites
   "no-self-use",  # R6301
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
@@ -430,6 +419,7 @@ overrides."tool.pylint.*".table_keys = false
 legacy_tox_ini = """
 [tox]
 requires = tox>4
+isolated_build = True
 envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =

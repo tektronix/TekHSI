@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tekhsi.credential_store import (
+from tekhsi.credential_store import (  # pylint: disable=import-private-name
     _obscure_password,
     _reveal_password,
     CertInfo,

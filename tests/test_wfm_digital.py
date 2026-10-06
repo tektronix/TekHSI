@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from tekhsi import wfm_digital
-from tekhsi.wfm_digital import (
+from tekhsi.wfm_digital import (  # pylint: disable=import-private-name
     _bitmask_from_probe_states,
     _ensure_digital_meta_info,
     DIGITAL_BITMASK_META_KEY,
@@ -18,11 +18,16 @@ from tekhsi.wfm_digital import (
     stamp_digital_bitmask_meta,
     write_digital_wfm,
 )
-from tm_data_types.datum.waveforms.digital_waveform import DigitalWaveformMetaInfo
-from tm_data_types.datum.waveforms.fastframe_digital_waveform import FastFrameDigitalWaveform
+from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error,no-name-in-module
+    DigitalWaveformMetaInfo,
+)
+from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error,no-name-in-module
+    FastFrameDigitalWaveform,
+)
 
 
 def test_digital_bitmask_wfm_roundtrip(tmp_path: Path) -> None:
+    """Persist and restore digital bitmask metadata through a WFM round trip."""
     path = tmp_path / "digital_ff.wfm"
     original = FastFrameDigitalWaveform.create_fastframe(3, 128, dtype=np.int8)
     original.digital_bitmask = 0x05
@@ -42,6 +47,7 @@ def test_digital_bitmask_wfm_roundtrip(tmp_path: Path) -> None:
 
 
 def test_restore_prefers_explicit_meta_key() -> None:
+    """Prefer the explicit extended metadata bitmask when restoring."""
     waveform = FastFrameDigitalWaveform.create_fastframe(1, 4, dtype=np.int8)
     waveform.digital_bitmask = 0x05
     stamp_digital_bitmask_meta(waveform)

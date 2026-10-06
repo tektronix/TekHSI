@@ -217,12 +217,11 @@ def _try_plain_grpc_channel(url: str, deadline: float) -> grpc.Channel | None:
                 "Failed to close an insecure gRPC channel after an unexpected error", exc_info=exc
             )
         return None
-    else:  # pylint: disable=no-else-return  # else only runs when Connect/Disconnect succeeded
-        try:
-            ch.close()
-        except Exception as exc:
-            _LOGGER.debug("Failed to close a successful insecure gRPC probe channel", exc_info=exc)
-        return grpc.insecure_channel(url)
+    try:
+        ch.close()
+    except Exception as exc:
+        _LOGGER.debug("Failed to close a successful insecure gRPC probe channel", exc_info=exc)
+    return grpc.insecure_channel(url)
 
 
 def _call_on_trust(

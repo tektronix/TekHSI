@@ -1,5 +1,7 @@
 """Unit tests for auth_basic helpers."""
 
+import base64
+
 from tekhsi.auth_basic import (
     build_basic_authorization_value,
     DEFAULT_MODE3_USERNAME,
@@ -49,8 +51,6 @@ def test_parse_empty_base64_after_prefix() -> None:
 
 def test_parse_invalid_utf8_decoded_payload() -> None:
     """Valid base64 that decodes to non-UTF-8 bytes returns None."""
-    import base64
-
     b64 = base64.b64encode(b"\xff\xfe\xfd").decode("ascii")
     assert parse_basic_authorization(f"Basic {b64}") is None
 

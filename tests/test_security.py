@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import inspect
 import time
 
@@ -14,7 +15,7 @@ import pytest
 
 from tekhsi import security
 from tekhsi.credential_store import CertInfo, TekHSICredentialStore
-from tekhsi.security import (
+from tekhsi.security import (  # pylint: disable=import-private-name
     _auto_negotiate_channel,
     _build_creds_from_entry,
     _call_on_trust,
@@ -25,7 +26,7 @@ from tekhsi.security import (
     _secure_channel,
     _tls_channel_options,
     _tls_server_name_for_entry,
-    _try_plain_grpc_channel,
+    _try_plain_grpc_channel,  # pylint: disable=import-private-name
     TekAuthenticationFailed,
     TekCertificateMismatch,
     TekHSICredentials,
@@ -243,8 +244,6 @@ def test_build_creds_from_entry_token_mode_defaults_login(tmp_path: Path) -> Non
     recorder = MagicMock()
     captured["cb"](None, recorder)
     (metadata, _), _ = recorder.call_args
-    import base64
-
     decoded = base64.b64decode(metadata[0][1].split(" ", 1)[1]).decode()
     assert decoded == "Tektronix:"
 
@@ -829,7 +828,6 @@ def test_tekhsi_credentials_token_default_username(tmp_path: Path) -> None:
     recorder = MagicMock()
     captured["cb"](None, recorder)
     (metadata, _), _ = recorder.call_args
-    import base64
 
     decoded = base64.b64decode(metadata[0][1].split(" ", 1)[1]).decode()
     assert decoded == "Tektronix:mytoken"

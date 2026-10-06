@@ -1,4 +1,4 @@
-# pylint: disable=global-variable-not-assigned
+# pylint: disable=global-variable-not-assigned,no-member
 """This file provides a simple TekHSI streaming server implementation for testing.
 
 The primary usage for this is to allow unit testing to occur on GitHub. An alternative usage is as
@@ -228,7 +228,8 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         This is to make it visually clear that each waveform is unique.
         """
-        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))  # noqa: NPY002
+        rng = np.random.default_rng()
+        return np.array(array) + rng.normal(loc=0.0, scale=noise_range / 4, size=len(array))
 
 
 class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
@@ -725,8 +726,8 @@ def periodic_data_creation():
     If you want to change the named sets of data returned you should modify 'make_new_data()'
     """
     while True:
-        global connect_server
-        global acq_id
+        global connect_server  # pylint: disable=global-statement
+        global acq_id  # pylint: disable=global-statement
         try:
             mutex.acquire()
             try:
@@ -757,7 +758,7 @@ def make_new_data():
         "ch1_iq": ServerWaveform(encoding=WfmEncoding.IQ, wfm_data_type=WfmDataType.Int16),
         "ch2": ServerWaveform(wfm_data_type=WfmDataType.Int16),
         "ch3": ServerWaveform(wfm_data_type=WfmDataType.Int16),
-        # FUTURE # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),  # noqa: E501
+        # FUTURE: digital channel support.
         "math1": ServerWaveform(wfm_data_type=WfmDataType.Float),
         "math2": ServerWaveform(wfm_data_type=WfmDataType.Float),
     }
@@ -765,9 +766,9 @@ def make_new_data():
 
 def serve():
     """Startups up the server."""
-    global connect_server
-    global server
-    global background_thread
+    global connect_server  # pylint: disable=global-statement
+    global server  # pylint: disable=global-statement
+    global background_thread  # pylint: disable=global-statement
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     connect_server = TekHSI_Connect()
     tekhsi_pb2_grpc.add_ConnectServicer_to_server(connect_server, server)

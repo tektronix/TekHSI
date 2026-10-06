@@ -548,7 +548,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Public Methods
     ################################################################################################
-    # TODO: Investigate moving this to a separate module as a standalone function
+    # NOTE: Consider moving this to a separate module as a standalone function.
     @staticmethod
     def any_acq(
         previous_header: dict[str, WaveformHeader],  # noqa: ARG004
@@ -565,7 +565,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         """
         return True
 
-    # TODO: Investigate moving this to a separate module as a standalone function
+    # NOTE: Consider moving this to a separate module as a standalone function.
     @staticmethod
     # --8<-- [start:any_horizontal_change]
     def any_horizontal_change(
@@ -597,7 +597,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     # --8<-- [end:any_horizontal_change]
 
-    # TODO: Investigate moving this to a separate module as a standalone function
+    # NOTE: Consider moving this to a separate module as a standalone function.
     @staticmethod
     def any_vertical_change(
         previous_header: dict[str, WaveformHeader],
@@ -664,7 +664,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             _logger.log(logging.ERROR if self.verbose else logging.DEBUG, "Thread error: %s", error)
 
         try:
-            # TODO: investigate this block, it seems like this code might not work as intended
+            # NOTE: Investigate this block; it may not work as intended.
             # Take this connection out of the connection list
             if self.clientname in TekHSIConnect._available_symbols(self):
                 del TekHSIConnect._available_symbols[self.clientname]  # pylint:disable=unsupported-delete-operation
@@ -877,14 +877,14 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                     )
             except grpc.RpcError as e:
                 if (
-                    e.code() == grpc.StatusCode.UNAUTHENTICATED
+                    e.code() == grpc.StatusCode.UNAUTHENTICATED  # pylint: disable=no-member
                     and getattr(self, "_auto_security", False)
                     and not upgrade_done
                 ):
                     self._upgrade_channel_with_token_after_unauthenticated()
                     upgrade_done = True
                     continue
-                if e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                if e.code() == grpc.StatusCode.UNAUTHENTICATED:  # pylint: disable=no-member
                     if getattr(self, "_auto_security", False):
                         detail = (e.details() or "").strip() or "UNAUTHENTICATED"
                         if upgrade_done:
@@ -1956,7 +1956,8 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
             waveform.record_length = header.noofsamples
             return waveform  # noqa: TRY300
         except Exception as e:
-            _logger.error("Error in _read_waveform_with_stub for %s: %s", header.sourcename, e)  # noqa: TRY400
+            error_message = "Waveform read failed for %s: %s"
+            _logger.error(error_message, header.sourcename, e)  # noqa: TRY400
             raise
 
     def _read_waveforms_parallel(  # noqa: PLR0912
@@ -2242,7 +2243,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
     ################################################################################################
     # Register Methods
     ################################################################################################
-    # TODO: is this method actually necessary?
+    # NOTE: Confirm whether this method is still necessary.
     @staticmethod
     @register
     def _terminate() -> None:

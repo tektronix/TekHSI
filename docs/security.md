@@ -103,7 +103,6 @@ print(waveform.summary_frame_index)
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `UNAUTHENTICATED`                                                   | Confirm the scope is in the expected security mode and verify the password.                               |
 | Certificate mismatch                                                | Remove the stale stored certificate only after verifying the new certificate, then trust it deliberately. |
-| No active channel                                                   | Enable the channel on the scope and check `TEKHSI_SCOPE_CHANNEL`.                                         |
 | A regular waveform is returned instead of `FastFrameAnalogWaveform` | Confirm FastFrame is enabled and the scope is stopped.                                                    |
 | `num_frames` is zero                                                | Check the scope FastFrame frame-count and acquisition settings.                                           |
 | `summary_frame_index is None`                                       | A summary frame may be disabled for the current acquisition mode.                                         |

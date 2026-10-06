@@ -178,11 +178,13 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
     """Direct tests for the Mode-3 upgrade helper."""
 
     def test_missing_store_or_callback_raises(self) -> None:
+        """Reject upgrades without credential storage or a trust callback."""
         client = _make_upgrade_client(store=None, on_trust_prompt=None)
         with pytest.raises(TekAuthenticationFailed):
             client._upgrade_channel_with_token_after_unauthenticated()
 
     def test_missing_cert_path_in_store_raises(self) -> None:
+        """Reject upgrades when the stored certificate path is missing."""
         store = MagicMock()
         store.get.return_value = {"cert_path": None}
         client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)
@@ -190,6 +192,7 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
             client._upgrade_channel_with_token_after_unauthenticated()
 
     def test_certificate_mismatch_raises(self) -> None:
+        """Reject a server certificate that differs from the stored certificate."""
         store = MagicMock()
         store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
         client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)
@@ -204,6 +207,7 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
             client._upgrade_channel_with_token_after_unauthenticated()
 
     def test_declined_prompt_raises_authentication_failed(self) -> None:
+        """Reject upgrades when the trust prompt declines the certificate."""
         store = MagicMock()
         store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
         client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: False)
@@ -219,6 +223,7 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
                 client._upgrade_channel_with_token_after_unauthenticated()
 
     def test_true_without_password_raises(self) -> None:
+        """Reject a trust decision that does not provide the required password."""
         store = MagicMock()
         store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
         client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)

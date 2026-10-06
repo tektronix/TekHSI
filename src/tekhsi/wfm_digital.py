@@ -11,10 +11,10 @@ into ``digital_probe_*_state`` for scope/ref compatibility.
 from __future__ import annotations
 
 from tm_data_types import DigitalWaveform, read_file, write_file
-from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error
+from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error,no-name-in-module
     DigitalWaveformMetaInfo,
 )
-from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error
+from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error,no-name-in-module
     FastFrameDigitalWaveform,
 )
 

@@ -76,7 +76,7 @@ def configure_logging(
         PACKAGE_NAME,
     )
 
-    global _logger_initialized  # noqa: PLW0603
+    global _logger_initialized  # noqa: PLW0603  # pylint: disable=global-statement
 
     _logger: logging.Logger = logging.getLogger(PACKAGE_NAME)
     if _logger_initialized:
@@ -112,7 +112,8 @@ def configure_logging(
         _logger.addHandler(file_handler)
 
     # Log a few things to just the file
-    _logger.debug("timezone==%s", get_localzone())  # pyright: ignore[reportUnknownArgumentType,reportUnnecessaryTypeIgnoreComment]
+    timezone = str(get_localzone())
+    _logger.debug("timezone==%s", timezone)
     _logger.debug("%s==%s", PACKAGE_NAME, importlib.metadata.version(PACKAGE_NAME))
 
     if log_console_level != LoggingLevels.NONE:

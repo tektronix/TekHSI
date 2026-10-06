@@ -60,7 +60,7 @@ def _probe(stub: ConnectStub) -> tuple[bool, str | None]:
     try:
         stub.Connect(ConnectRequest(name=name), timeout=_PROBE_TIMEOUT_S)
     except grpc.RpcError as e:
-        return False, e.code().name
+        return False, e.code().name  # pylint: disable=no-member
     finally:
         with contextlib.suppress(grpc.RpcError):
             stub.Disconnect(ConnectRequest(name=name), timeout=3.0)
