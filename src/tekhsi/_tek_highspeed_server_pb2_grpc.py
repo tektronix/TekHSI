@@ -5,11 +5,31 @@ import grpc
 
 import tekhsi._tek_highspeed_server_pb2 as TekHighspeedServer__pb2
 
+GRPC_GENERATED_VERSION = "1.83.0"
+GRPC_VERSION = grpc.__version__
+_version_not_supported = False
 
-class ConnectStub(object):
+try:
+    from grpc._utilities import first_version_is_lower
+
+    _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
+except ImportError:
+    _version_not_supported = True
+
+if _version_not_supported:
+    raise RuntimeError(
+        f"The grpc package installed is at version {GRPC_VERSION},"
+        + " but the generated code in TekHighspeedServer_pb2_grpc.py depends on"
+        + f" grpcio>={GRPC_GENERATED_VERSION}."
+        + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
+        + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
+    )
+
+
+class ConnectStub:
     """Missing associated documentation comment in .proto file."""
 
-    def __init__(self, channel: grpc.Channel):
+    def __init__(self, channel):
         """Constructor.
 
         Args:
@@ -19,69 +39,69 @@ class ConnectStub(object):
             "/Tekscope.Connect/Connect",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.ConnectReply.FromString,
+            _registered_method=True,
         )
         self.Disconnect = channel.unary_unary(
             "/Tekscope.Connect/Disconnect",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.ConnectReply.FromString,
+            _registered_method=True,
         )
         self.RequestNewSequence = channel.unary_unary(
             "/Tekscope.Connect/RequestNewSequence",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.ConnectReply.FromString,
+            _registered_method=True,
         )
         self.RequestAvailableNames = channel.unary_unary(
             "/Tekscope.Connect/RequestAvailableNames",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.AvailableNamesReply.FromString,
+            _registered_method=True,
         )
         self.WaitForDataAccess = channel.unary_unary(
             "/Tekscope.Connect/WaitForDataAccess",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.ConnectReply.FromString,
+            _registered_method=True,
         )
         self.FinishedWithDataAccess = channel.unary_unary(
             "/Tekscope.Connect/FinishedWithDataAccess",
             request_serializer=TekHighspeedServer__pb2.ConnectRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.ConnectReply.FromString,
+            _registered_method=True,
         )
 
 
-class ConnectServicer(object):
+class ConnectServicer:
     """Missing associated documentation comment in .proto file."""
 
     def Connect(self, request, context):
-        """Connect to instrument."""
+        """Connect to instrument"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def Disconnect(self, request, context):
-        """Disconnect from instrument."""
+        """Disconnect from instrument"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def RequestNewSequence(self, request, context):
-        """Force new sequence.
-
-        This requests access to data.
-        """
+        """Force new sequence. This requests access to data."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def RequestAvailableNames(self, request, context):
-        """Returns a list of names of available data."""
+        """Returns a list of names of available data"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def WaitForDataAccess(self, request, context):
-        """Waits for client access to data.
-
-        When it returns you may access NormalizedData or NativeData.
-        """
+        """Waits for client access to data. When it returns you may access NormalizedData or NativeData."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
@@ -128,10 +148,11 @@ def add_ConnectServicer_to_server(servicer, server):
     }
     generic_handler = grpc.method_handlers_generic_handler("Tekscope.Connect", rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers("Tekscope.Connect", rpc_method_handlers)
 
 
 # This class is part of an EXPERIMENTAL API.
-class Connect(object):
+class Connect:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -161,6 +182,7 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -190,6 +212,7 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -219,6 +242,7 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -248,6 +272,7 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -277,6 +302,7 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -306,13 +332,14 @@ class Connect(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
 
-class NormalizedDataStub(object):
+class NormalizedDataStub:
     """Normalized Waveform (this is fully defined)"""
 
-    def __init__(self, channel: grpc.Channel):
+    def __init__(self, channel):
         """Constructor.
 
         Args:
@@ -322,15 +349,17 @@ class NormalizedDataStub(object):
             "/Tekscope.NormalizedData/GetWaveform",
             request_serializer=TekHighspeedServer__pb2.WaveformRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.NormalizedReply.FromString,
+            _registered_method=True,
         )
         self.GetHeader = channel.unary_unary(
             "/Tekscope.NormalizedData/GetHeader",
             request_serializer=TekHighspeedServer__pb2.WaveformRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.NormalizedReply.FromString,
+            _registered_method=True,
         )
 
 
-class NormalizedDataServicer(object):
+class NormalizedDataServicer:
     """Normalized Waveform (this is fully defined)"""
 
     def GetWaveform(self, request, context):
@@ -363,10 +392,11 @@ def add_NormalizedDataServicer_to_server(servicer, server):
         "Tekscope.NormalizedData", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers("Tekscope.NormalizedData", rpc_method_handlers)
 
 
 # This class is part of an EXPERIMENTAL API.
-class NormalizedData(object):
+class NormalizedData:
     """Normalized Waveform (this is fully defined)"""
 
     @staticmethod
@@ -396,6 +426,7 @@ class NormalizedData(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -425,16 +456,17 @@ class NormalizedData(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
 
-class NativeDataStub(object):
+class NativeDataStub:
     """Returns internal data (which is smaller)
     However it comes in a byte stream that must be interpreted
     by the client based on the header definition.
     """
 
-    def __init__(self, channel: grpc.Channel):
+    def __init__(self, channel):
         """Constructor.
 
         Args:
@@ -444,22 +476,24 @@ class NativeDataStub(object):
             "/Tekscope.NativeData/GetWaveform",
             request_serializer=TekHighspeedServer__pb2.WaveformRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.RawReply.FromString,
+            _registered_method=True,
         )
         self.GetHeader = channel.unary_unary(
             "/Tekscope.NativeData/GetHeader",
             request_serializer=TekHighspeedServer__pb2.WaveformRequest.SerializeToString,
             response_deserializer=TekHighspeedServer__pb2.RawReply.FromString,
+            _registered_method=True,
         )
 
 
-class NativeDataServicer(object):
+class NativeDataServicer:
     """Returns internal data (which is smaller)
     However it comes in a byte stream that must be interpreted
     by the client based on the header definition.
     """
 
     def GetWaveform(self, request, context):
-        """Query Waveform Samples."""
+        """Query Waveform Samples"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
@@ -488,10 +522,11 @@ def add_NativeDataServicer_to_server(servicer, server):
         "Tekscope.NativeData", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers("Tekscope.NativeData", rpc_method_handlers)
 
 
 # This class is part of an EXPERIMENTAL API.
-class NativeData(object):
+class NativeData:
     """Returns internal data (which is smaller)
     However it comes in a byte stream that must be interpreted
     by the client based on the header definition.
@@ -524,6 +559,7 @@ class NativeData(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )
 
     @staticmethod
@@ -553,4 +589,5 @@ class NativeData(object):
             wait_for_ready,
             timeout,
             metadata,
+            _registered_method=True,
         )

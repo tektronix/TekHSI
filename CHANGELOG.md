@@ -16,7 +16,17 @@ Valid subsections within a version are:
 
 ## Unreleased
 
-Things to be included in the next release go here.
+### Added
+
+- Added TLS and TLS plus HTTP Basic authentication support.
+- Added persistent certificate trust and credential-store support.
+- Added FastFrame analog and digital waveform support with per-frame metadata, summary-frame handling, and transfer timing diagnostics.
+- Added manual live-scope integration coverage for authentication and FastFrame.
+
+### Security
+
+- Added certificate fingerprint validation and certificate-mismatch detection.
+- Added `cryptography` as a runtime dependency for certificate processing.
 
 ---
 
