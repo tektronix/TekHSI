@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 # pylint: disable=global-variable-not-assigned
 """This file provides a simple TekHSI streaming server implementation for testing.
 

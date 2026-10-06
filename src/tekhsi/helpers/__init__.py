@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Helpers used by the `TekHSI` package."""
 
 from tekhsi.helpers.constants import PACKAGE_NAME

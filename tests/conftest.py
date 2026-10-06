@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Pytest configuration."""
 
 import contextlib

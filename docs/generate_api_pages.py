@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Generate the code reference pages and navigation."""
 
 from pathlib import Path

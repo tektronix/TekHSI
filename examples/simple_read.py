@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """An example script for demonstrating reading waveform files and plotting the data."""
 
 import matplotlib.pyplot as plt

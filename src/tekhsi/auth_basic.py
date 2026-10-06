@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """HTTP Basic authorization helpers for TekHSI Mode 3 client auth."""
 
 from __future__ import annotations

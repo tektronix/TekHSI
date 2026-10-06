@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Manual scope integration test — skipped unless TEKHSI_RUN_MANUAL_SCOPE=1.
 
 Run against real hardware::

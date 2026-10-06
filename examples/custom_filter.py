@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """A script to connect to a scope, apply a custom filter to waveform data, and save to files."""
 
 from tekhsi import TekHSIConnect, WaveformHeader

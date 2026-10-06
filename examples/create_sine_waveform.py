@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """An example script for creating a sine waveform and saving it to a file."""
 
 import math

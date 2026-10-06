@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Use TekHSI to plot a digital waveform."""
 
 import matplotlib.pyplot as plt

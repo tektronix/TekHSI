@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Enum definitions for Tektronix signal generators and analyzers."""
 
 from enum import IntEnum

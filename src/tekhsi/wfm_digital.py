@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Digital waveform .wfm metadata helpers.
 
 TekHSI populates ``digital_bitmask`` from ``WaveformHeader.bitmask`` (bit *n* set

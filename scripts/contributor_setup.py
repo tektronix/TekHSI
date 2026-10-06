@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Set up an environment to use to contribute to this package.
 
 This script will run through the commands listed in the CONTRIBUTING.md file.

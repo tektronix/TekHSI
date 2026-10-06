@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Command & control using PyVISA, but retrieving waveform data using TekHSI."""
 
 import pyvisa

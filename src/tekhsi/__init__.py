@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Tektronix High Speed Interface.
 
 Provides access to commonly imported items from the `TekHSI` package.
