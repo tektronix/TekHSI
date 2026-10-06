@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
 import stat
 import sys
@@ -17,6 +18,8 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
+
+_LOGGER = logging.getLogger(__name__)
 
 _OBFUSCATION_PREFIX = "obf1:"
 _OBFUSCATION_KEY = b"tekhsi-credstore-v1"
@@ -41,8 +44,8 @@ def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
         for name in san:
             if isinstance(name, x509.DNSName):
                 return str(name.value)
-    except x509.ExtensionNotFound:
-        pass
+    except x509.ExtensionNotFound as exc:
+        _LOGGER.debug("Certificate has no subject-alternative-name extension", exc_info=exc)
     attrs = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
     if attrs:
         return str(attrs[0].value)
@@ -176,14 +179,14 @@ class TekHSICredentialStore:
         except OSError:
             try:
                 os.unlink(tmp_path)
-            except OSError:
-                pass
+            except OSError as exc:
+                _LOGGER.debug("Failed to remove temporary credential-store file", exc_info=exc)
             raise
         if os.name != "nt":
             try:
                 os.chmod(self._path, stat.S_IRUSR | stat.S_IWUSR)
-            except OSError:
-                pass
+            except OSError as exc:
+                _LOGGER.debug("Failed to restrict credential-store file permissions", exc_info=exc)
 
     def get(self, host: str) -> dict[str, str | None] | None:
         """Return entry for host or None if not found."""

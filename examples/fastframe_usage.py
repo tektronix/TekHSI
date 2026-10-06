@@ -44,7 +44,7 @@ else:
     frame0 = waveform.frame_data(0)
     print(f"frame 0: {len(frame0)} samples, raw[0]={int(frame0[0])}")
 
-    if (summary := waveform.get_summary_frame()) is not None:
+    if waveform.get_summary_frame() is not None:
         summary_samples = waveform.frame_data(waveform.summary_frame_index)
         print(f"summary frame: raw[0]={int(summary_samples[0])}")
     else:
