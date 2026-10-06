@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """A script demonstrating how to customize the logging that happens during runtime."""
 
 from tekhsi import configure_logging, LoggingLevels, TekHSIConnect

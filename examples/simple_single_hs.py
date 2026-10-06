@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """A script for connecting to a scope, retrieving waveform data, and saving it to a file."""
 
 from tekhsi import AcqWaitOn, TekHSIConnect

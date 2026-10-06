@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """An example script for connecting to a Tek instrument, retrieving IQ waveform data, and plotting it."""
 
 import matplotlib.pyplot as plt

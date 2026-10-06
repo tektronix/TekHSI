@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Use TekHSI to plot an analog waveform."""
 
 import matplotlib.pyplot as plt

@@ -132,6 +132,8 @@ repos:
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
         always_run: true
         # nltk is an unpatched transitive dependency of safety itself.
+        # TODO: remove this ignore once a patched nltk release is available.
+        #   Track status at: TODO-add-issue-link
         args: [--json, --ignore-package=nltk]
       - id: poetry-check
         name: poetry-check

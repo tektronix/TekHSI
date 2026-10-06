@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Shared TekHSI auth-discovery helpers for the ``examples/`` scripts.
 
 Isolates the (private) TekHSI security API surface in one place so the

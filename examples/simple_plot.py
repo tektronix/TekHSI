@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """An example script for connecting to a scope, retrieving waveform data from multiple channels, and plotting it."""
 
 import matplotlib.pyplot as plt

@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Pytest configuration."""
 
 import contextlib
@@ -111,7 +110,7 @@ class TestServerManager:
             raise RuntimeError(msg)
 
             # Start the server
-        self.server_process = subprocess.Popen(  # noqa: S603
+        self.server_process = subprocess.Popen(
             [sys.executable, server_script.as_posix(), "--verbose"]
         )
         # Wait a few seconds for the server to start

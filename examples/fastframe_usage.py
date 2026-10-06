@@ -16,7 +16,7 @@ def auto_trust(host: str, cert_info, auth_required: bool = False):
     return True
 
 
-addr = "169.254.6.254:5000"  # Replace with your instrument TekHSI address
+addr = "192.168.0.1:5000"  # Replace with your instrument TekHSI address
 
 with TekHSIConnect(
     addr,

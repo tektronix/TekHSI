@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Command & control using tm_devices, but retrieving waveform data using TekHSI."""
 
 from tm_devices import DeviceManager

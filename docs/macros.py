@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Macros for the documentation."""
 
 import abc

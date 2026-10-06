@@ -78,11 +78,11 @@ for more information.
 ## Authentication and secure connections
 
 TekHSI supports legacy plaintext connections, TLS, and TLS with HTTP Basic authentication. See the [Security and Authentication](security.md) guide for certificate handling, credential storage, trust-on-first-use, and troubleshooting.
-For a complete example of secure FastFrame access, see `tests/manual/test_scope_fastframe_auth.py`.
+For a complete FastFrame example using a credential store, see the [FastFrame example](https://github.com/tektronix/TekHSI/blob/main/examples/fastframe_usage.py).
 
 ## FastFrame multi-frame captures
 
-FastFrame captures are returned as `FastFrameAnalogWaveform` or `FastFrameDigitalWaveform`. Use `access_stopped_data()` when reading a stopped scope:
+FastFrame captures are returned as [`FastFrameAnalogWaveform`][tm_data_types.FastFrameAnalogWaveform] or [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform]. Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stopped_data] when reading a stopped scope:
 
 ```python
 from tekhsi import TekHSIConnect
@@ -108,7 +108,7 @@ FastFrame APIs include:
 - `data_frame_count` for data frames excluding a summary frame.
 - `summary_frame_index`, which is `None` when no summary frame exists.
 - `load_timing` for transfer and publish timing diagnostics.
-    FastFrame digital captures use `FastFrameDigitalWaveform` and the digital waveform helpers in `tekhsi.wfm_digital`. Digital bitmask metadata is preserved when writing and restoring waveform files.
+    FastFrame digital captures use [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform] and the digital waveform helpers in [`tekhsi.wfm_digital`][tekhsi.wfm_digital]. Digital bitmask metadata is preserved when writing and restoring waveform files.
 
 ## Acquisition Filters
 

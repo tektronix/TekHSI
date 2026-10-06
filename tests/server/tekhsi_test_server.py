@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 # pylint: disable=global-variable-not-assigned
 """This file provides a simple TekHSI streaming server implementation for testing.
 
@@ -240,7 +239,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
     slower than the native server.
     """
 
-    def GetWaveform(self, request, context):  # noqa: ARG002
+    def GetWaveform(self, request, context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as normalized data. This usually slower than using the raw service
@@ -281,7 +280,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
             print(e)
         return
 
-    def GetHeader(self, request, context):  # noqa: ARG002
+    def GetHeader(self, request, context):
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -345,7 +344,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
     normalized version.
     """
 
-    def GetWaveform(self, request, context):  # noqa: ARG002
+    def GetWaveform(self, request, context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as native data. How the data is represented is defined in the
@@ -395,7 +394,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
 
-    def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
+    def GetHeader(self, request, context):  # noqa: PLR0912, PLR0915, C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters

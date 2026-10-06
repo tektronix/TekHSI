@@ -11,7 +11,7 @@ TekHSI supports legacy plaintext connections as well as TLS-secured connections 
 
 ## Explicit TLS credentials
 
-Use `TekHSICredentials.tls()` when the scope certificate is available as a PEM file:
+Use [`TekHSICredentials.tls()`][tekhsi.security.TekHSICredentials.tls] when the scope certificate is available as a PEM file:
 
 ```python
 from tekhsi import TekHSIConnect, TekHSICredentials
@@ -22,7 +22,7 @@ with TekHSIConnect("scope-host:5000", credentials=credentials) as scope:
         waveform = scope.get_data("ch1")
 ```
 
-For TLS plus HTTP Basic authentication, use `TekHSICredentials.token()`:
+For TLS plus HTTP Basic authentication, use [`TekHSICredentials.token()`][tekhsi.security.TekHSICredentials.token]:
 
 ```python
 credentials = TekHSICredentials.token(
@@ -38,7 +38,7 @@ Do not commit passwords or private certificates to source control. Prefer enviro
 
 ## Credential store and trust-on-first-use
 
-`TekHSICredentialStore` persists trusted certificate information and credentials for reuse:
+[`TekHSICredentialStore`][tekhsi.credential_store.TekHSICredentialStore] persists trusted certificate information and credentials for reuse:
 
 ```python
 from tekhsi import TekHSIConnect, TekHSICredentialStore
@@ -73,24 +73,10 @@ The default store locations are:
 
 ## Authentication errors
 
-- `TekUnknownInstrument`: the endpoint is not trusted and no trust callback accepted it.
-- `TekCertificateMismatch`: the endpoint certificate differs from the trusted fingerprint.
-- `TekAuthenticationFailed`: the scope rejected the supplied password or authentication negotiation.
-- `TekSecurityError`: secure-channel setup failed for another security reason.
-
-## Live-scope validation
-
-Manual hardware tests are disabled unless explicitly enabled:
-
-```powershell
-$env:TEKHSI_RUN_MANUAL_SCOPE = "1"
-$env:TEKHSI_SCOPE_URL = "scope-host:5000"
-$env:TEKHSI_SCOPE_CHANNEL = "ch1"
-$env:TEKHSI_SCOPE_PASSWORD = "<scope-password>"
-python -m pytest tests/manual/test_scope_fastframe_auth.py -v -s
-```
-
-The test discovers the scope security mode, authenticates, reads a stopped FastFrame capture, and reports record length, frame count, summary-frame state, and transfer timing. Never commit a real scope address or password to the repository.
+- [`TekUnknownInstrument`][tekhsi.security.TekUnknownInstrument]: the endpoint is not trusted and no trust callback accepted it.
+- [`TekCertificateMismatch`][tekhsi.security.TekCertificateMismatch]: the endpoint certificate differs from the trusted fingerprint.
+- [`TekAuthenticationFailed`][tekhsi.security.TekAuthenticationFailed]: the scope rejected the supplied password or authentication negotiation.
+- [`TekSecurityError`][tekhsi.security.TekSecurityError]: secure-channel setup failed for another security reason.
 
 ## FastFrame and authentication together
 
@@ -110,8 +96,6 @@ print(waveform.num_frames)
 print(waveform.data_frame_count)
 print(waveform.summary_frame_index)
 ```
-
-The manual integration test in `tests/manual/test_scope_fastframe_auth.py` validates security negotiation and a stopped FastFrame read in the same run. It does not change scope settings.
 
 ## Troubleshooting
 
@@ -138,5 +122,5 @@ The generated API reference documents the implementation details for:
 - [`TekAuthenticationFailed`][tekhsi.security.TekAuthenticationFailed]
 - [`TekCertificateMismatch`][tekhsi.security.TekCertificateMismatch]
 - [`TekSecurityError`][tekhsi.security.TekSecurityError]
-- `FastFrameLoadTiming` (the compatibility alias for [`WaveformTransferTiming`][tekhsi.load_timing.WaveformTransferTiming])
-- `FastFrameDigitalWaveform` from `tm_data_types`
+- [`FastFrameLoadTiming`][tekhsi.load_timing.WaveformTransferTiming] (the compatibility alias for [`WaveformTransferTiming`][tekhsi.load_timing.WaveformTransferTiming])
+- [`FastFrameDigitalWaveform`](https://tm-data-types.readthedocs.io/en/stable/)

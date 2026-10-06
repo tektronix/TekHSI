@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Digital waveform .wfm metadata helpers.
 
 TekHSI populates ``digital_bitmask`` from ``WaveformHeader.bitmask`` (bit *n* set
@@ -12,8 +11,12 @@ into ``digital_probe_*_state`` for scope/ref compatibility.
 from __future__ import annotations
 
 from tm_data_types import DigitalWaveform, read_file, write_file
-from tm_data_types.datum.waveforms.digital_waveform import DigitalWaveformMetaInfo
-from tm_data_types.datum.waveforms.fastframe_digital_waveform import FastFrameDigitalWaveform
+from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error
+    DigitalWaveformMetaInfo,
+)
+from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error
+    FastFrameDigitalWaveform,
+)
 
 DIGITAL_BITMASK_META_KEY = "digital_bitmask"
 _ACTIVE_PROBE_STATE = b"0x01"

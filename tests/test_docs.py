@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Test for the documentation."""
 
 import os
@@ -21,7 +20,7 @@ def fixture_docs_server(site_dir: str) -> Generator[str, None, None]:
     """Serve the documentation site."""
     port = f"8{sys.version_info.major}{sys.version_info.minor}"
     cmd = [sys.executable, "-m", "http.server", port, "--directory", site_dir]
-    with subprocess.Popen(  # noqa: S603
+    with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -69,7 +68,7 @@ class TestDocs:  # pylint: disable=no-self-use
     @pytest.mark.order(1)
     def test_docs_html(self, site_dir: str) -> None:
         """Test creating html documentation."""
-        subprocess.check_call(shlex.split(f"mkdocs build --verbose --site-dir={site_dir}"))  # noqa: S603
+        subprocess.check_call(shlex.split(f"mkdocs build --verbose --site-dir={site_dir}"))
 
     @pytest.mark.order(2)
     @pytest.mark.depends(on=["test_docs_html"])
@@ -78,12 +77,8 @@ class TestDocs:  # pylint: disable=no-self-use
         cmd = [
             "linkchecker",
             "--config=docs/.linkchecker.ini",
-            # Branch docs can reference files that are not yet on remote `main`.
-            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/docs/.*",
-            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/scripts/.*",
-            "--ignore-url=https://github.com/tektronix/TekHSI/blob/main/examples/.*",
             # External badge endpoint occasionally returns transient gateway errors.
             "--ignore-url=https://codecov.io/.*",
             docs_server,
         ]
-        subprocess.check_call(cmd)  # noqa: S603
+        subprocess.check_call(cmd)

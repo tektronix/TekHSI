@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """Manual integration test: FastFrame + authentication (TLS and TLS+password).
 
 WHAT THIS SCRIPT DOES
@@ -58,25 +57,14 @@ from auth_helpers import discover, guard_placeholder_addr, verify_password  # no
 from tekhsi import TekHSIConnect, TekHSICredentials  # noqa: E402
 from tm_data_types import FastFrameAnalogWaveform  # noqa: E402
 
-pytestmark = [
-    pytest.mark.manual,
-    pytest.mark.skipif(
-        os.environ.get("TEKHSI_RUN_MANUAL_SCOPE") != "1",
-        reason="Set TEKHSI_RUN_MANUAL_SCOPE=1 to run against a real scope.",
-    ),
-]
-
-url = os.environ.get("TEKHSI_SCOPE_URL", "192.168.0.1:5000")
-channel = os.environ.get("TEKHSI_SCOPE_CHANNEL", "ch1")
-addr = url.rsplit(":", maxsplit=1)[0]
-
 
 def _fmt(label: str, value: object) -> str:
     return f"  {label:<22}: {value}"
 
 
-def discover_and_connect() -> TekHSIConnect:
+def discover_and_connect(url: str) -> TekHSIConnect:
     """Discover the scope's current auth mode and open a matching connection."""
+    addr = url.rsplit(":", maxsplit=1)[0]
     guard_placeholder_addr(addr)
     plain_ok, cert_path, entry, needs_password = discover(url)
 
@@ -171,9 +159,9 @@ def report_fastframe_capture(waveform: object) -> bool:
     return ok
 
 
-def main() -> int:
+def main(url: str, channel: str) -> int:
     """Run one discover -> connect -> capture -> report cycle."""
-    with discover_and_connect() as connection:
+    with discover_and_connect(url) as connection:
         print("Channels:", list(connection.activesymbols))
         if channel not in connection.activesymbols:
             print(f"FAIL: '{channel}' is not an active channel on the scope.")
@@ -188,10 +176,14 @@ def main() -> int:
     return 0 if ok else 1
 
 
-def test_scope_fastframe_auth() -> None:
+@pytest.mark.manual
+def test_scope_fastframe_auth(scope_url: str, scope_channel: str) -> None:
     """Read and validate one stopped FastFrame capture from a real scope."""
-    assert not main()
+    assert not main(scope_url, scope_channel)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _url = os.environ.get("TEKHSI_SCOPE_URL")
+    if not _url:
+        sys.exit("Set TEKHSI_SCOPE_URL to the instrument's TekHSI address (host:port).")
+    sys.exit(main(_url, os.environ.get("TEKHSI_SCOPE_CHANNEL", "ch1")))

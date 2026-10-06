@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Tektronix, Inc.
 """TekHSI waveform transfer timing instrumentation."""
 
 from __future__ import annotations
