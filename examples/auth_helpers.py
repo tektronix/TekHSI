@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Shared TekHSI auth-discovery helpers for the ``examples/`` scripts.
 
 Isolates the (private) TekHSI security API surface in one place so the
@@ -109,7 +110,7 @@ def discover(url: str) -> tuple[bool, Path | None, dict, bool]:
 
     print(f"TLS probe failed: {err}")
     pem_path.unlink(missing_ok=True)
-    sys.exit(1)
+    raise SystemExit(1)
 
 
 def verify_password(url: str, store_entry: dict, secret: str, cert_path: Path | None) -> str:

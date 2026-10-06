@@ -128,9 +128,7 @@ def _tls_channel_options(
         return (("grpc.ssl_target_name_override", cert_name),)
     if _is_ip_literal(host):
         return (("grpc.ssl_target_name_override", cert_name),)
-    if host_lower != cert_lower:
-        return (("grpc.ssl_target_name_override", cert_name),)
-    return ()
+    return (("grpc.ssl_target_name_override", cert_name),)
 
 
 def _secure_channel(
