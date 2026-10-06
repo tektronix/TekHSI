@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Tektronix, Inc.
 """Manual integration test: FastFrame + authentication (TLS and TLS+password).
 
 WHAT THIS SCRIPT DOES
@@ -68,7 +69,6 @@ pytestmark = [
 url = os.environ.get("TEKHSI_SCOPE_URL", "192.168.0.1:5000")
 channel = os.environ.get("TEKHSI_SCOPE_CHANNEL", "ch1")
 addr = url.rsplit(":", maxsplit=1)[0]
-guard_placeholder_addr(addr)
 
 
 def _fmt(label: str, value: object) -> str:
@@ -77,6 +77,7 @@ def _fmt(label: str, value: object) -> str:
 
 def discover_and_connect() -> TekHSIConnect:
     """Discover the scope's current auth mode and open a matching connection."""
+    guard_placeholder_addr(addr)
     plain_ok, cert_path, entry, needs_password = discover(url)
 
     print(f"Server at {url} requires:")

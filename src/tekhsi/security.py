@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import contextlib
 import ipaddress
+import logging
 import socket
 import ssl
 import time
 import uuid
 
-from typing import Any, Dict, Tuple, TYPE_CHECKING, Union
+from collections.abc import Callable
+from typing import Any, cast, Dict, Tuple, Union
 
 import grpc
 
@@ -18,8 +20,7 @@ from tekhsi._tek_highspeed_server_pb2_grpc import ConnectStub
 from tekhsi.auth_basic import build_basic_authorization_value, DEFAULT_MODE3_USERNAME
 from tekhsi.credential_store import CertInfo, TekHSICredentialStore, tls_server_name_from_pem
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+_LOGGER = logging.getLogger(__name__)
 
 
 class TekSecurityError(Exception):
@@ -173,6 +174,7 @@ def _build_creds_from_entry(entry: Dict[str, str | None], mode: str) -> grpc.Cha
 def _fetch_server_cert(host: str, port: int, timeout: float = 5.0) -> CertInfo:
     """Connect via TLS without verification and return server cert info (for TOFU)."""
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((host, port), timeout=timeout) as sock:
@@ -194,8 +196,8 @@ def _try_plain_grpc_channel(url: str, deadline: float) -> grpc.Channel | None:
         if rem <= 0:
             try:
                 ch.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                _LOGGER.debug("Failed to close an expired insecure gRPC channel", exc_info=exc)
             return None
         stub = ConnectStub(ch)
         stub.Connect(ConnectRequest(name=probe), timeout=rem)
@@ -204,20 +206,24 @@ def _try_plain_grpc_channel(url: str, deadline: float) -> grpc.Channel | None:
     except grpc.RpcError:
         try:
             ch.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOGGER.debug(
+                "Failed to close an insecure gRPC channel after an RPC error", exc_info=exc
+            )
         return None
     except Exception:
         try:
             ch.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOGGER.debug(
+                "Failed to close an insecure gRPC channel after an unexpected error", exc_info=exc
+            )
         return None
     else:  # pylint: disable=no-else-return  # else only runs when Connect/Disconnect succeeded
         try:
             ch.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOGGER.debug("Failed to close a successful insecure gRPC probe channel", exc_info=exc)
         return grpc.insecure_channel(url)
 
 
@@ -227,13 +233,18 @@ def _call_on_trust(
     """Invoke on_trust_prompt with (host, cert_info) or (host, cert_info, auth_required)."""
     import inspect  # pylint: disable=import-outside-toplevel  # avoid cost on the hot path
 
+    callback = cast(Callable[..., Any], cb)
     try:
-        sig = inspect.signature(cb)
+        sig = inspect.signature(callback)
         if len(sig.parameters) >= 3:
-            return cb(host_port, cert_info, auth_required)
-    except TypeError:
-        pass
-    return cb(host_port, cert_info)
+            arguments: tuple[Any, ...] = (host_port, cert_info, auth_required)
+            return callback(*arguments)
+    except (TypeError, ValueError) as exc:
+        _LOGGER.debug(
+            "Could not inspect trust callback signature; using the two-argument form", exc_info=exc
+        )
+    arguments = (host_port, cert_info)
+    return callback(*arguments)
 
 
 def _resolve_credentials_from_store(

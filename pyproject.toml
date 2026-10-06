@@ -93,8 +93,8 @@ numpy = [
   {python = ">=3.13", version = "^2.1"},
 ]
 pip = "^26.0"
-poetry = "^2.3.0"
-poetry-audit-plugin = "^1.0.0"
+poetry = "2.5.1"
+poetry-audit-plugin = "1.0.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
@@ -102,6 +102,7 @@ pylint = "4.0.5"
 pyright = {extras = ["nodejs"], version = "1.1.409"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
+safety = "3.7.0"
 tm_devices = "^3.2.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -416,7 +417,6 @@ overrides."tool.pylint.*".table_keys = false
 legacy_tox_ini = """
 [tox]
 requires = tox>4
-isolated_build = True
 envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =
@@ -447,7 +447,7 @@ commands =
     !tests: poetry build --output=.dist/{envname}
     !tests: twine check --strict .dist/{envname}/*
     !tests: pre-commit run --all-files
-    pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
+    pytest -vv -k "not test_docs" --ignore=tests/manual --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]
 basepython = python
