@@ -1,8 +1,5 @@
 """File-based credential store for TekHSI TLS trust and Basic auth."""
 
-# The explicit intermediate values below keep the credential-store flow easy to audit.
-# pylint: disable=consider-using-assignment-expr
-
 from __future__ import annotations
 
 import base64
@@ -15,7 +12,10 @@ import tempfile
 
 from configparser import ConfigParser
 from dataclasses import dataclass
-from typing import Dict, List
+from pathlib import Path
+
+from cryptography import x509
+from cryptography.x509.oid import ExtensionOID, NameOID
 
 from tekhsi.auth_basic import DEFAULT_MODE3_USERNAME
 
@@ -27,14 +27,6 @@ _OBFUSCATION_KEY = b"tekhsi-credstore-v1"
 
 def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
     """Return TLS verification name from server cert PEM (SAN DNS, else CN)."""
-    try:
-        from cryptography import x509  # pylint: disable=import-outside-toplevel
-        from cryptography.x509.oid import (  # pylint: disable=import-outside-toplevel
-            ExtensionOID,
-            NameOID,
-        )
-    except ImportError:
-        return None
     try:
         cert = x509.load_pem_x509_certificate(cert_pem)
     except ValueError:
@@ -53,24 +45,20 @@ def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
 
 
 def _default_store_path() -> str:
-    """Default path per platform (Tektronix shared store).
+    r"""Default path per platform (Tektronix shared store).
 
     Linux:   ~/.tektronix/credentials.ini
     Windows: %APPDATA%\\tektronix\\credentials.ini
     macOS:   ~/Library/Application Support/tektronix/credentials.ini
     """
     if sys.platform == "win32":
-        base = os.environ.get("APPDATA", os.path.expanduser("~"))
-        return os.path.join(base, "tektronix", "credentials.ini")
+        base = Path(os.environ.get("APPDATA", Path.home()))
+        return str(base / "tektronix" / "credentials.ini")
     if sys.platform == "darwin":
-        return os.path.join(
-            os.path.expanduser("~"),
-            "Library",
-            "Application Support",
-            "tektronix",
-            "credentials.ini",
+        return str(
+            Path.home() / "Library" / "Application Support" / "tektronix" / "credentials.ini"
         )
-    return os.path.join(os.path.expanduser("~"), ".tektronix", "credentials.ini")
+    return str(Path.home() / ".tektronix" / "credentials.ini")
 
 
 def _xor_bytes(data: bytes, key: bytes) -> bytes:
@@ -134,8 +122,8 @@ class TekHSICredentialStore:
     def __init__(self, path: str | None = None) -> None:
         """Create a store at the supplied path or platform default."""
         self._path = path or _default_store_path()
-        self._data: Dict[str, Dict[str, str]] = {}
-        self._certs_dir = os.path.join(os.path.dirname(self._path), "certs")
+        self._data: dict[str, dict[str, str]] = {}
+        self._certs_dir = str(Path(self._path).parent / "certs")
         self.load()
 
     def _normalize_host(self, host: str) -> str:
@@ -145,11 +133,12 @@ class TekHSICredentialStore:
     def load(self) -> None:
         """Load store from file. No-op if file does not exist."""
         self._data = {}
-        if not os.path.isfile(self._path):
+        path = Path(self._path)
+        if not path.is_file():
             return
         parser = ConfigParser()
         try:
-            with open(self._path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 parser.read_file(f)
         except OSError:
             return
@@ -159,9 +148,9 @@ class TekHSICredentialStore:
 
     def save(self) -> None:
         """Write store atomically (temp + rename). Creates parent directory if needed."""
-        dirpath = os.path.dirname(self._path)
+        dirpath = str(Path(self._path).parent)
         if dirpath:
-            os.makedirs(dirpath, exist_ok=True)
+            Path(dirpath).mkdir(parents=True, exist_ok=True)
         parser = ConfigParser()
         for host, opts in sorted(self._data.items()):
             parser[host] = opts
@@ -175,16 +164,16 @@ class TekHSICredentialStore:
                 parser.write(f)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(tmp_path, self._path)
+            Path(tmp_path).replace(self._path)
         except OSError:
             try:
-                os.unlink(tmp_path)
+                Path(tmp_path).unlink()
             except OSError as exc:
                 _LOGGER.debug("Failed to remove temporary credential-store file", exc_info=exc)
             raise
         if os.name != "nt":
             try:
-                os.chmod(self._path, stat.S_IRUSR | stat.S_IWUSR)
+                Path(self._path).chmod(stat.S_IRUSR | stat.S_IWUSR)
             except OSError as exc:
                 _LOGGER.debug("Failed to restrict credential-store file permissions", exc_info=exc)
 
@@ -249,14 +238,15 @@ class TekHSICredentialStore:
             login=login,
         )
         if cert_info.cert_pem:
-            os.makedirs(self._certs_dir, exist_ok=True)
+            certs_dir = Path(self._certs_dir)
+            certs_dir.mkdir(parents=True, exist_ok=True)
             safe_name = key.replace(":", "_").replace("/", "_")
-            cert_path = os.path.join(self._certs_dir, f"{safe_name}.pem")
-            with open(cert_path, "wb") as f:
+            cert_path = certs_dir / f"{safe_name}.pem"
+            with cert_path.open("wb") as f:
                 f.write(cert_info.cert_pem)
-            self.set(host, cert_path=cert_path)
+            self.set(host, cert_path=str(cert_path))
 
-    def list_hosts(self) -> List[str]:
+    def list_hosts(self) -> list[str]:
         """Return all stored host keys."""
         return sorted(self._data.keys())
 

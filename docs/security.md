@@ -71,6 +71,8 @@ The default store locations are:
 | macOS                                                                                                                                         | `~/Library/Application Support/tektronix/credentials.ini` |
 | The store also maintains a `certs/` directory. Protect both the INI file and certificate directory using normal operating-system permissions. |                                                           |
 
+On Windows, `%APPDATA%` is already the current user's application-data directory under their user profile, so the store is user-specific even though the path is not written with a `~` prefix.
+
 ## Authentication errors
 
 - [`TekUnknownInstrument`][tekhsi.security.TekUnknownInstrument]: the endpoint is not trusted and no trust callback accepted it.
@@ -122,4 +124,4 @@ The generated API reference documents the implementation details for:
 - [`TekCertificateMismatch`][tekhsi.security.TekCertificateMismatch]
 - [`TekSecurityError`][tekhsi.security.TekSecurityError]
 - [`FastFrameLoadTiming`][tekhsi.load_timing.WaveformTransferTiming] (the compatibility alias for [`WaveformTransferTiming`][tekhsi.load_timing.WaveformTransferTiming])
-- [`FastFrameDigitalWaveform`](https://tm-data-types.readthedocs.io/en/stable/)
+- [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform]

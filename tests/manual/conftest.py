@@ -33,28 +33,22 @@ class DerivedWaveformHandler:
             print("Processing waveform")
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def manual_scope_enabled_fixture() -> None:
-    """Skip the test unless manual scope testing is explicitly enabled."""
-    if os.environ.get("TEKHSI_RUN_MANUAL_SCOPE") != "1":
-        pytest.skip("Set TEKHSI_RUN_MANUAL_SCOPE=1 to run against a real scope.")
+    """Skip the test unless a real scope address is configured."""
+    if not os.environ.get("TEKHSI_SCOPE_URL"):
+        pytest.skip("Set TEKHSI_SCOPE_URL to the instrument's TekHSI address (host:port).")
 
 
 @pytest.fixture
-def scope_url(  # pylint: disable=redefined-outer-name
-    manual_scope_enabled_fixture: None,
-) -> str:
-    """Return the instrument's TekHSI address, skipping if it isn't configured.
+def scope_url() -> str:
+    """Return the configured instrument's TekHSI address.
 
     There is intentionally no default - tests must be pointed at a real
-    instrument via ``TEKHSI_SCOPE_URL``. Depends on ``manual_scope_enabled``
-    so the enable/disable gate always runs first.
+    instrument via ``TEKHSI_SCOPE_URL``. The autouse gate validates that the
+    address is configured before this fixture runs.
     """
-    del manual_scope_enabled_fixture  # gate only; value is unused
-    url = os.environ.get("TEKHSI_SCOPE_URL")
-    if not url:
-        pytest.skip("Set TEKHSI_SCOPE_URL to the instrument's TekHSI address (host:port).")
-    return url
+    return os.environ["TEKHSI_SCOPE_URL"]
 
 
 @pytest.fixture

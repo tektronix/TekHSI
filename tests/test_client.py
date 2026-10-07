@@ -1259,7 +1259,11 @@ def test_read_waveform_with_stub_unknown_type() -> None:
     native_stub = object()
 
     with pytest.raises(ValueError, match="Unknown waveform type"):
-        TekHSIConnect._read_waveform_with_stub(client, header, native_stub)  # type: ignore[arg-type]
+        TekHSIConnect._read_waveform_with_stub(
+            client,
+            header,
+            native_stub,  # type: ignore[arg-type]
+        )
 
 
 def test_any_acq_with_new_key() -> None:

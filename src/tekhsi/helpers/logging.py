@@ -39,7 +39,6 @@ class LoggingLevels(Enum):
     """An enum member indicating no logging messages should be captured."""
 
 
-# pylint: disable=import-outside-toplevel
 def configure_logging(
     *,
     log_console_level: Union[str, LoggingLevels] = LoggingLevels.INFO,
@@ -76,7 +75,7 @@ def configure_logging(
         PACKAGE_NAME,
     )
 
-    global _logger_initialized  # noqa: PLW0603  # pylint: disable=global-statement
+    global _logger_initialized  # noqa: PLW0603
 
     _logger: logging.Logger = logging.getLogger(PACKAGE_NAME)
     if _logger_initialized:

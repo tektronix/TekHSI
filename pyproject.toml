@@ -200,6 +200,9 @@ disable = [
   "consider-using-with",  # TODO: enable this check
   "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
+  "fixme",  # caught by ruff
+  "global-statement",  # caught by ruff
+  "import-outside-toplevel",  # caught by ruff
   "invalid-name",  # caught by ruff
   "locally-disabled",  # local suppressions are reviewed at their usage sites
   "no-self-use",  # R6301
@@ -240,10 +243,6 @@ score = true
 output-format = "text"  # colorized could be another option
 
 [tool.pyright]
-# Manual tests import helpers from the examples and scripts directories.
-executionEnvironments = [
-  {extraPaths = ["examples", "scripts"], root = "tests/manual"},
-]
 ignore = [
   "**/output_*/**",
   "site/**",
@@ -349,10 +348,30 @@ order-by-type = false
   "FBT002",  # Callback protocol uses a boolean default
   "TRY003",  # Example keeps the failure message close to the check
 ]
-"src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
-  "ALL",
+"src/tekhsi/_tek_highspeed_server_pb2.py" = [
+  "E501",  # Protobuf serializes the descriptor as an unbreakable line
+  "ERA001",  # Generated insertion-point comment resembles commented-out code
+  "SLF001",  # Protobuf runtime requires generated access to private descriptors
+  "UP009",  # Protobuf generator emits the encoding declaration
 ]
-"src/tekhsi/credential_store.py" = ["ALL"]
+"src/tekhsi/_tek_highspeed_server_pb2.pyi" = [
+  "A002",  # Generated field names can shadow builtins
+  "N803",  # Generated constructor arguments match protobuf field names
+  "N815",  # Generated attributes match protobuf field names
+]
+"src/tekhsi/_tek_highspeed_server_pb2_grpc.py" = [
+  "ANN",  # Generated gRPC signatures are defined by the protocol compiler
+  "ARG",  # Generated gRPC methods receive protocol-required arguments
+  "D",  # Generated gRPC methods have compiler-provided documentation
+  "E501",  # Generated gRPC call signatures can exceed the project line length
+  "EM",  # Generated compatibility errors use inline messages
+  "FBT",  # Generated gRPC calls expose protocol boolean arguments
+  "ISC003",  # Generated error messages use explicit concatenation
+  "N",  # Generated RPC method names follow the service definition
+  "PLR0913",  # Generated RPC calls expose the grpcio argument set
+  "PLR0917",  # Generated RPC calls expose the grpcio positional argument set
+  "TRY003",  # Generated compatibility errors use inline messages
+]
 "src/tekhsi/security.py" = ["ALL"]
 "src/tekhsi/tek_hsi_connect.py" = ["ALL"]
 "tests/**" = [
