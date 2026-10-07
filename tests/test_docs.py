@@ -1,7 +1,6 @@
 """Test for the documentation."""
 
 import os
-import shlex
 import subprocess
 import sys
 import time
@@ -12,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import PROJECT_ROOT_DIR
+PROJECT_ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(name="docs_server")
@@ -40,7 +39,7 @@ def fixture_docs_server(site_dir: str) -> Generator[str, None, None]:
 def fixture_site_dir(pytestconfig: pytest.Config) -> str:
     """Create the site directory path for testing."""
     site_path = (
-        Path(__file__).parent.parent / f".site_{sys.version_info.major}{sys.version_info.minor}/"
+        PROJECT_ROOT_DIR / f".site_{sys.version_info.major}{sys.version_info.minor}/"
     ).resolve()
     if xml_path := pytestconfig.getoption("xmlpath"):
         site_path = Path(xml_path).parent / ".site_html/"  # pyright: ignore[reportArgumentType]
@@ -69,7 +68,17 @@ class TestDocs:  # pylint: disable=no-self-use
     @pytest.mark.order(1)
     def test_docs_html(self, site_dir: str) -> None:
         """Test creating html documentation."""
-        subprocess.check_call(shlex.split(f"mkdocs build --verbose --site-dir={site_dir}"))
+        config_file = PROJECT_ROOT_DIR / "mkdocs.yml"
+        assert config_file.is_file(), f"Missing MkDocs configuration: {config_file}"
+        subprocess.check_call(
+            [
+                "mkdocs",
+                "build",
+                f"--config-file={config_file}",
+                "--verbose",
+                f"--site-dir={site_dir}",
+            ],
+        )
 
     @pytest.mark.order(2)
     @pytest.mark.depends(on=["test_docs_html"])

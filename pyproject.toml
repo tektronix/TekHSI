@@ -469,7 +469,7 @@ commands =
     !tests: poetry build --output=.dist/{envname}
     !tests: twine check --strict .dist/{envname}/*
     !tests: pre-commit run --all-files
-    pytest -vv -k "not test_docs" -m "not manual" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
+    pytest -p no:github_report -vv -k "not test_docs" -m "not manual" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]
 basepython = python

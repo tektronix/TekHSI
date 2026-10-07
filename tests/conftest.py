@@ -27,7 +27,7 @@ from tm_data_types import Waveform
 
 from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
 
-PROJECT_ROOT_DIR = Path(__file__).parent.parent
+PROJECT_ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 ####################################################################################################
