@@ -88,7 +88,7 @@ docutils-stubs = "^0.0.22"
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"
 numpy = [
-  # This is required to be duplicated in the "main" and "dev" groups to ensure that the correct version is used in both cases
+  # Duplicated in "main" and "dev" groups so the correct version resolves in both
   {python = ">=3.10,<3.13", version = "^1.24"},
   {python = ">=3.13", version = "^2.1"},
 ]
@@ -131,7 +131,7 @@ nodeenv = "^1.9.1"
 packaging = "^26.2"
 pydantic = "^2.7.4"
 pygments = "^2.17.2"
-pymdown-extensions = "^11.0.1"
+pymdown-extensions = "^12.1.0"
 requests = "^2.31.0"
 symspellpy = "^6.7.7"
 tomli = "^2.0.1"
@@ -196,40 +196,34 @@ enable = ["all"]
 disable = [
   "broad-exception-caught",  # caught by ruff
   "consider-alternative-union-syntax",  # R6003
-  "consider-using-assignment-expr",  # explicit intermediates are clearer here
   "consider-using-with",  # TODO: enable this check
   "deprecated-typing-alias",  # caught by ruff
   "duplicate-code",
   "fixme",  # caught by ruff
   "global-statement",  # caught by ruff
-  "import-outside-toplevel",  # caught by ruff
   "invalid-name",  # caught by ruff
-  "locally-disabled",  # local suppressions are reviewed at their usage sites
+  "line-too-long",  # caught by ruff
+  "locally-disabled",  # allowed
+  "missing-class-docstring",  # caught by ruff
+  "missing-module-docstring",  # caught by ruff
+  "no-member",  # caught by pyright
   "no-self-use",  # R6301
   "protected-access",  # caught by ruff
   "raise-missing-from",  # caught by ruff
   "redefined-builtin",  # caught by ruff
   "suppressed-message",  # allowed
-  "too-few-public-methods",  # test doubles and data holders intentionally stay small
   "too-many-arguments",  # caught by ruff
   "too-many-branches",  # caught by ruff
   "too-many-lines",  # not necessary to check for
-  "too-many-locals",  # protocol negotiation necessarily carries several values
   "too-many-positional-arguments",  # caught by ruff
-  "too-many-public-methods",  # TekHSIConnect exposes the instrument API surface
-  "too-many-return-statements",  # protocol negotiation has distinct outcomes
   "too-many-statements",  # caught by ruff
   "unexpected-keyword-arg",  # caught by ruff
   "unnecessary-default-type-args",  # caught by ruff
   "unused-argument",  # caught by ruff
-  "use-implicit-booleaness-not-comparison",  # explicit comparisons improve protocol clarity
-  "use-implicit-booleaness-not-comparison-to-string",
-  "use-implicit-booleaness-not-comparison-to-zero",
   "use-set-for-membership",  # caught by ruff
   "useless-suppression",  # caught by ruff
   "while-used",  # caught by ruff
   "wrong-import-order",  # caught by ruff
-  "wrong-import-position",  # optional and manual-test imports are intentionally local
 ]
 
 [tool.pylint.reports]
@@ -276,7 +270,6 @@ junit_logging = "all"
 log_format = "[%(asctime)s] [%(levelname)8s] %(message)s"
 markers = [
   'docs',
-  'manual',
   'order',
   'slow',
 ]
@@ -300,7 +293,7 @@ flake8-quotes = {docstring-quotes = "double"}
 ignore = [
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in *args and **kwargs (allowed in this package)
   "COM812",  # Trailing comma missing (handled by formatter)
-  "CPY001",  # Missing copyright notice at top of file (not required in this package)
+  "CPY001",  # Missing copyright notice (allowed in this package)
   "FA100",  # Missing `from __future__ import annotations`, but uses ... (allowed in this package)
   "FIX002",  # Line contains TO DO (allowed in this package)
   "ISC001",  # single-line-implicit-string-concatenation (handled by formatter)
@@ -339,60 +332,15 @@ order-by-type = false
   "SIM117",  # Use a single `with` statement with multiple contexts instead of nested `with` statements
   "T201",  # `print` found
 ]
-"examples/fastframe_usage.py" = [
-  "ANN001",  # Certificate callback API provides untyped metadata
-  "ANN201",  # Certificate callback return type follows library protocol
-  "ARG001",  # Callback receives values not needed by this example
-  "EM101",  # Example keeps the failure message close to the check
-  "FBT001",  # Callback protocol requires a positional boolean
-  "FBT002",  # Callback protocol uses a boolean default
-  "TRY003",  # Example keeps the failure message close to the check
+"src/tekhsi/_tek_highspeed_server_pb2*.py*" = [
+  "ALL",
 ]
-"src/tekhsi/_tek_highspeed_server_pb2.py" = [
-  "E501",  # Protobuf serializes the descriptor as an unbreakable line
-  "ERA001",  # Generated insertion-point comment resembles commented-out code
-  "SLF001",  # Protobuf runtime requires generated access to private descriptors
-  "UP009",  # Protobuf generator emits the encoding declaration
-]
-"src/tekhsi/_tek_highspeed_server_pb2.pyi" = [
-  "A002",  # Generated field names can shadow builtins
-  "N803",  # Generated constructor arguments match protobuf field names
-  "N815",  # Generated attributes match protobuf field names
-]
-"src/tekhsi/_tek_highspeed_server_pb2_grpc.py" = [
-  "ANN",  # Generated gRPC signatures are defined by the protocol compiler
-  "ARG",  # Generated gRPC methods receive protocol-required arguments
-  "D",  # Generated gRPC methods have compiler-provided documentation
-  "E501",  # Generated gRPC call signatures can exceed the project line length
-  "EM",  # Generated compatibility errors use inline messages
-  "FBT",  # Generated gRPC calls expose protocol boolean arguments
-  "ISC003",  # Generated error messages use explicit concatenation
-  "N",  # Generated RPC method names follow the service definition
-  "PLR0913",  # Generated RPC calls expose the grpcio argument set
-  "PLR0917",  # Generated RPC calls expose the grpcio positional argument set
-  "TRY003",  # Generated compatibility errors use inline messages
-]
-"src/tekhsi/security.py" = ["ALL"]
-"src/tekhsi/tek_hsi_connect.py" = ["ALL"]
 "tests/**" = [
-  "ANN",  # Test doubles and fixtures intentionally use flexible signatures
-  "ARG",  # Pytest fixtures and callback parameters are intentionally unused
-  "D102",  # Test helper methods document behavior through their test names
-  "D103",  # Test functions document behavior through their test names
   "D104",  # Missing docstring in public package
-  "D107",  # Test helper constructors do not need public API docstrings
-  "FBT",  # Boolean arguments make test scenarios explicit
-  "PLC0415",  # Tests isolate optional/generated imports locally
   "PLC1901",  # compare-to-empty-string
-  "PLR0917",  # Test setup helpers mirror the production API signatures
   "PLR2004",  # Magic value used in comparison
-  "PTH116",  # Tests exercise os-level behavior
-  "S",  # Test credentials and temporary paths are non-production fixtures
   "S101",  # Use of assert detected
-  "SIM117",  # Nested contexts make test setup and teardown clearer
-  "SLF001",  # Tests intentionally inspect private implementation state
   "T201",  # `print` found
-  "TC003",  # Runtime annotations are used by test helpers
 ]
 "tests/server/tekhsi_test_server.py" = [
   # TODO: remove this entire ignore section
@@ -404,6 +352,10 @@ order-by-type = false
   "PLW0602",
   "PLW0603",
   "SIM",
+  "SLF001",  # Private member accessed
+]
+"tests/test_client.py" = [
+  "FBT001",  # Boolean-typed positional argument in function definition
   "SLF001",  # Private member accessed
 ]
 
@@ -468,8 +420,8 @@ commands =
     !tests: python -c "import shutil; shutil.rmtree('.dist/{envname}', ignore_errors=True)"
     !tests: poetry build --output=.dist/{envname}
     !tests: twine check --strict .dist/{envname}/*
-    !tests: pre-commit run --all-files
-    pytest -p no:github_report -vv -k "not test_docs" -m "not manual" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
+    !tests: pre-commit run --all-files --show-diff-on-failure
+    pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]
 basepython = python

@@ -143,22 +143,6 @@ Ready to contribute? Here's how to set up `TekHSI` for local development.
             - Code coverage report: `.results_tests/htmlcov/index.html`
             - Test results: `.results_tests/results.html`
 
-    - To run the manual live-scope tests, set the required environment variables
-        and run the manual test directory explicitly:
-
-        ```powershell
-        $env:TEKHSI_RUN_MANUAL_SCOPE = "1"
-        $env:TEKHSI_SCOPE_URL = "scope-host:5000"
-        $env:TEKHSI_SCOPE_CHANNEL = "ch1"
-        $env:TEKHSI_SCOPE_PASSWORD = "<scope-password>"
-        python -m pytest tests/manual/ -v -s
-        ```
-
-        `TEKHSI_SCOPE_URL` is required and has no default. The tests skip unless
-        `TEKHSI_RUN_MANUAL_SCOPE=1` is set. Never commit a real scope address or
-        password. The authentication/FastFrame test discovers the scope security
-        mode and reads a stopped FastFrame capture without changing scope settings.
-
     - To just build the documentation:
 
         ```console
