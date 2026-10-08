@@ -33,7 +33,7 @@ def _reset_package_logger() -> Generator[None, None, None]:  # pyright: ignore[r
     handlers_copy = logger.handlers.copy()
     for handler in handlers_copy:
         logger.removeHandler(handler)
-    tekhsi_logging.reset_logging()
+    tekhsi_logging._logger_initialized = False  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
     yield
     # Reset the handlers back to what they were
     for handler in logger.handlers.copy():

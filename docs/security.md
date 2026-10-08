@@ -75,9 +75,9 @@ These locations follow each operating system's per-user application-data convent
 
 ## Authentication errors
 
-- [`TekUnknownInstrument`][tekhsi.security.TekUnknownInstrument]: the endpoint is not trusted and no trust callback accepted it.
-- [`TekCertificateMismatch`][tekhsi.security.TekCertificateMismatch]: the endpoint certificate differs from the trusted fingerprint.
-- [`TekAuthenticationFailed`][tekhsi.security.TekAuthenticationFailed]: the scope rejected the supplied password or authentication negotiation.
+- [`TekUnknownInstrumentError`][tekhsi.security.TekUnknownInstrumentError]: the endpoint is not trusted and no trust callback accepted it.
+- [`TekCertificateMismatchError`][tekhsi.security.TekCertificateMismatchError]: the endpoint certificate differs from the trusted fingerprint.
+- [`TekAuthenticationFailedError`][tekhsi.security.TekAuthenticationFailedError]: the scope rejected the supplied password or authentication negotiation.
 - [`TekSecurityError`][tekhsi.security.TekSecurityError]: secure-channel setup failed for another security reason.
 
 ## FastFrame and authentication together
@@ -120,8 +120,8 @@ The generated API reference documents the implementation details for:
 - [`TekHSIConnect`][tekhsi.tek_hsi_connect.TekHSIConnect]
 - [`TekHSICredentials`][tekhsi.security.TekHSICredentials]
 - [`TekHSICredentialStore`][tekhsi.credential_store.TekHSICredentialStore]
-- [`TekAuthenticationFailed`][tekhsi.security.TekAuthenticationFailed]
-- [`TekCertificateMismatch`][tekhsi.security.TekCertificateMismatch]
+- [`TekAuthenticationFailedError`][tekhsi.security.TekAuthenticationFailedError]
+- [`TekCertificateMismatchError`][tekhsi.security.TekCertificateMismatchError]
 - [`TekSecurityError`][tekhsi.security.TekSecurityError]
 - [`FastFrameLoadTiming`][tekhsi.load_timing.WaveformTransferTiming] (the compatibility alias for [`WaveformTransferTiming`][tekhsi.load_timing.WaveformTransferTiming])
 - [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform]

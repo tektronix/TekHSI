@@ -78,25 +78,14 @@ for more information.
 ## Authentication and secure connections
 
 TekHSI supports legacy plaintext connections, TLS, and TLS with HTTP Basic authentication. See the [Security and Authentication](security.md) guide for certificate handling, credential storage, trust-on-first-use, and troubleshooting.
-For a complete FastFrame example using a credential store, see the [FastFrame example](https://github.com/tektronix/TekHSI/blob/main/examples/fastframe_usage.py).
 
 ## FastFrame multi-frame captures
 
 FastFrame captures are returned as [`FastFrameAnalogWaveform`][tm_data_types.FastFrameAnalogWaveform] or [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform]. Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stopped_data] when reading a stopped scope:
 
 ```python
-from tekhsi import TekHSIConnect
-from tm_data_types import FastFrameAnalogWaveform
-
-with TekHSIConnect("scope-host:5000") as scope:
-    with scope.access_stopped_data():
-        waveform = scope.get_data("ch1")
-if not isinstance(waveform, FastFrameAnalogWaveform):
-    raise RuntimeError("FastFrame data was not returned")
-print(waveform.num_frames)
-print(waveform.data_frame_count)
-print(waveform.summary_frame_index)
-print(len(waveform.frame_data(0)))
+# fmt: off
+--8<-- "examples/fastframe_usage.py"
 ```
 
 FastFrame APIs include:

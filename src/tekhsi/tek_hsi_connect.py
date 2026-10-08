@@ -110,6 +110,7 @@ def any_acq(
     return True
 
 
+# --8<-- [start:any_horizontal_change]
 def any_horizontal_change(
     previous_header: dict[str, WaveformHeader],
     current_header: dict[str, WaveformHeader],
@@ -128,6 +129,9 @@ def any_horizontal_change(
         ):
             return True
     return False
+
+
+# --8<-- [end:any_horizontal_change]
 
 
 def any_vertical_change(
@@ -208,7 +212,7 @@ class AcqWaitOn(Enum):
     """
 
 
-class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
+class TekHSIConnect:  # pylint:disable=too-many-instance-attributes,too-many-public-methods
     """Support for Tektronix High-Speed Interface data API.
 
     - This API is intended to aid in retrieving data from instruments as fast as possible.
@@ -216,38 +220,41 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
 
     _connections: ClassVar[dict[str, "TekHSIConnect"]] = {}
 
+    @staticmethod
+    def any_acq(
+        previous_header: dict[str, WaveformHeader], current_header: dict[str, WaveformHeader]
+    ) -> bool:
+        """Accept all new acquisitions."""
+        return any_acq(previous_header, current_header)
+
+    @staticmethod
+    def any_horizontal_change(
+        previous_header: dict[str, WaveformHeader], current_header: dict[str, WaveformHeader]
+    ) -> bool:
+        """Accept acquisitions with changes to horizontal settings."""
+        return any_horizontal_change(previous_header, current_header)
+
+    @staticmethod
+    def any_vertical_change(
+        previous_header: dict[str, WaveformHeader], current_header: dict[str, WaveformHeader]
+    ) -> bool:
+        """Accept acquisitions with changes to vertical settings."""
+        return any_vertical_change(previous_header, current_header)
+
     ################################################################################################
     # Magic Methods
     ################################################################################################
-    def __init__(  # noqa: PLR0912, PLR0915, D417
+    def __init__(  # noqa: PLR0912, PLR0915
         self, url: str, *legacy_args: object, **security_options: object
     ) -> None:
         """Initialize a connection to a Tektronix instrument using gRPC.
 
         Args:
             url: The IP Address and port of the TekHSI server.
-            activesymbols: A list of the symbols to transfer from the scope. If
-                `None`, then all available symbols are transferred. Otherwise, only the selected
-                list is transferred.
-            callback: An optional function to call when new data arrives. This
-                is the fastest way to access data, and it ensures no acquisitions are missed.
-                However, this happens in a background thread, which limits the libraries you can
-                call from this method.
-            data_filter: An optional function that is used to determine if
-                arriving data meets a custom criterion for acceptance by the client. If `None`,
-                all acquisitions are accepted. However, if customer behavior is desired, then this
-                method can be provided. Typically, these functions are used to look for specific
-                kinds of changes, such as record length changing.
-            credentials: Optional TLS or TLS+Basic credentials. When omitted with no other
-                security parameters, the legacy plaintext channel is used unchanged.
-            credential_store: Optional credential store for trust and passwords. When omitted
-                but another security parameter is set, the default platform store is used.
-            on_trust_prompt: Callback invoked for trust-on-first-use or when the server
-                requires a password after TLS trust is established.
-            require_tls: When True (with other security parameters), refuse plaintext fallback.
-            timeout: Security negotiation timeout in seconds. Passing ``timeout`` alone does
-                not enable security negotiation; at least one of ``credential_store``,
-                ``on_trust_prompt``, or ``require_tls=True`` is required.
+            legacy_args: Legacy positional arguments for symbols, callbacks, filters, and
+                positional security credentials.
+            security_options: Keyword options for credentials, credential stores, trust prompts,
+                TLS requirements, and security-negotiation timeout.
         """
         activesymbols, callback, data_filter, security_args = _normalize_constructor_args(
             legacy_args, security_options
@@ -283,7 +290,7 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
         self.v_datatypes = {1: np.int8, 2: np.int16, 4: np.float32, 8: np.double}
         self.iq_datatypes = {1: np.int8, 2: np.int16, 4: np.int32}
         # Public and internal digital datatype mappings are kept in sync.
-        self.d_datatypes = {1: np.int8, 2: np.int16}
+        self.d_datatypes = {1: np.int8}
         self._digital_datatypes = {1: np.int8, 2: np.int16}
 
         _legacy_plain = (
@@ -2206,9 +2213,3 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes
                 TekHSIConnect._connections[key].cleanup_at_exit()
             with contextlib.suppress(Exception):
                 TekHSIConnect._connections[key].close()
-
-
-# Preserve the historical class-level filter API after moving implementations to module scope.
-TekHSIConnect.any_acq = staticmethod(any_acq)
-TekHSIConnect.any_horizontal_change = staticmethod(any_horizontal_change)
-TekHSIConnect.any_vertical_change = staticmethod(any_vertical_change)

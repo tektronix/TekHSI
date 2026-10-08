@@ -242,9 +242,15 @@ def _call_on_trust(
     callback = cast("Callable[..., Any]", cb)
     try:
         sig = inspect.signature(callback)
-        if len(sig.parameters) >= _CALLBACK_ARGUMENT_COUNT:
-            parameters = tuple(sig.parameters.values())
-            if parameters[2].kind == inspect.Parameter.KEYWORD_ONLY:
+        parameters = tuple(sig.parameters.values())
+        accepts_three_arguments = len(parameters) >= _CALLBACK_ARGUMENT_COUNT or any(
+            parameter.kind == inspect.Parameter.VAR_POSITIONAL for parameter in parameters
+        )
+        if accepts_three_arguments:
+            if (
+                len(parameters) >= _CALLBACK_ARGUMENT_COUNT
+                and parameters[2].kind == inspect.Parameter.KEYWORD_ONLY
+            ):
                 return callback(host_port, cert_info, auth_required=auth_required)
             arguments: tuple[Any, ...] = (host_port, cert_info, auth_required)
             return callback(*arguments)
