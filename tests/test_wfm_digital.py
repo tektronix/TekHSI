@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -24,6 +24,9 @@ from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=
 from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error,no-name-in-module
     FastFrameDigitalWaveform,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_digital_bitmask_wfm_roundtrip(tmp_path: Path) -> None:

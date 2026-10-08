@@ -55,7 +55,7 @@ _logger.addHandler(_unit_test_console_handler)
 ####################################################################################################
 
 
-class DerivedWaveform(Waveform, ABC):
+class DerivedWaveform(Waveform, ABC):  # pylint: disable=too-few-public-methods
     """A derived waveform class for testing purposes."""
 
     @property
@@ -110,7 +110,8 @@ class TestServerManager:
             raise RuntimeError(msg)
 
             # Start the server
-        self.server_process = subprocess.Popen(
+        # Trusted repository-local test server; arguments are not user-controlled.
+        self.server_process = subprocess.Popen(  # noqa: S603
             [sys.executable, server_script.as_posix(), "--verbose"]
         )
         # Wait a few seconds for the server to start

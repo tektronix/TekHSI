@@ -38,8 +38,7 @@ def tls_server_name_from_pem(cert_pem: bytes) -> str | None:
                 return str(name.value)
     except x509.ExtensionNotFound as exc:
         _LOGGER.debug("Certificate has no subject-alternative-name extension", exc_info=exc)
-    attrs = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-    if attrs:
+    if attrs := cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME):
         return str(attrs[0].value)
     return None
 
@@ -148,8 +147,7 @@ class TekHSICredentialStore:
 
     def save(self) -> None:
         """Write store atomically (temp + rename). Creates parent directory if needed."""
-        dirpath = str(Path(self._path).parent)
-        if dirpath:
+        if dirpath := str(Path(self._path).parent):
             Path(dirpath).mkdir(parents=True, exist_ok=True)
         parser = ConfigParser()
         for host, opts in sorted(self._data.items()):
@@ -180,8 +178,7 @@ class TekHSICredentialStore:
     def get(self, host: str) -> dict[str, str | None] | None:
         """Return entry for host or None if not found."""
         key = self._normalize_host(host)
-        raw = self._data.get(key)
-        if raw is None:
+        if (raw := self._data.get(key)) is None:
             return None
         return {
             "cert_fingerprint": raw.get("cert_fingerprint") or None,
@@ -201,8 +198,7 @@ class TekHSICredentialStore:
         password: str | None = None,
     ) -> None:
         """Write or update entry for host. Omitted keys left unchanged; explicit None clears."""
-        key = self._normalize_host(host)
-        if key not in self._data:
+        if (key := self._normalize_host(host)) not in self._data:
             self._data[key] = {}
         entry = self._data[key]
         if cert_fingerprint is not None:

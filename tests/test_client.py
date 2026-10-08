@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -15,6 +15,7 @@ from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     RawReply,
     WaveformHeader,
+    WaveformRequest,
     WfmReplyStatus,
     WfmType,
 )
@@ -32,7 +33,9 @@ from tm_data_types import (
 def _mock_native_get_waveform(chunks: list[bytes]) -> Callable[..., object]:
     """Return a GetWaveform stand-in that yields SUCCESS chunks (no live server)."""
 
-    def _get_waveform(_request, timeout=None):
+    def _get_waveform(
+        _request: WaveformRequest, _timeout: float | None = None
+    ) -> Iterator[RawReply]:
         for chunk in chunks:
             reply = RawReply()
             reply.status = WfmReplyStatus.WFMREPLYSTATUS_SUCCESS
@@ -52,6 +55,7 @@ def test_server_connection(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
+    *,
     instrument: bool,
     sum_count: int,
     sum_acq_time: float,
@@ -366,6 +370,7 @@ def test_get_data(
 )
 def test_done_with_data(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
+    *,
     cache_enabled: bool,
     wait_for_data_count: int,
     acqcount: int,
@@ -481,6 +486,7 @@ def test_done_with_data_lock(tekhsi_client: TekHSIConnect) -> None:
 )
 def test_wait_for_data(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
+    *,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
@@ -656,6 +662,7 @@ def test_is_header_value(header: WaveformHeader, expected: bool) -> None:
 )
 def test_wait_for_data_acq_time(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
+    *,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     after: int,
@@ -760,6 +767,7 @@ def test_wait_for_data_any_acq(
 )
 def test_wait_for_data_new_and_next_acq(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
+    *,
     cache_enabled: bool,
     wait_on: AcqWaitOn,
     datacache: dict[str, str],
@@ -950,6 +958,7 @@ def test_read_waveform_analog(
 )
 def test_instrumentation(  # noqa: PLR0913
     tekhsi_client: TekHSIConnect,
+    *,
     instrument: bool,
     connected: bool,
     is_exiting: bool,
@@ -1054,6 +1063,11 @@ class DummyConnection:  # pylint: disable=too-few-public-methods
         """Mark data access as finished."""
         self.finished_with_data_access_called = True
 
+    def cleanup_at_exit(self) -> None:
+        """Release data access when the test connection is terminated."""
+        if self._holding_scope_open:
+            self._finished_with_data_access()
+
     def close(self) -> None:
         """Close the connection."""
         self.close_called = True
@@ -1068,12 +1082,9 @@ def fixture_setup_tekhsi_connections() -> None:
     }
 
 
-def test_terminate(setup_tekhsi_connections: None) -> None:
-    """Test the _terminate method of TekHSIConnect.
-
-    Args:
-        setup_tekhsi_connections (fixture): Fixture to set up dummy connections.
-    """
+@pytest.mark.usefixtures("setup_tekhsi_connections")
+def test_terminate() -> None:
+    """Test the _terminate method of TekHSIConnect."""
     TekHSIConnect._terminate()
 
     conn1 = TekHSIConnect._connections["conn1"]
@@ -1331,7 +1342,7 @@ def test_read_headers_retries_pending_placeholder() -> None:
     )
     responses = iter([pending, valid])
 
-    def fake_read_header(name: str) -> WaveformHeader:
+    def fake_read_header(_name: str) -> WaveformHeader:
         return next(responses)
 
     client._read_header = fake_read_header  # type: ignore[method-assign]

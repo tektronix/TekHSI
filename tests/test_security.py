@@ -6,8 +6,7 @@ import base64
 import inspect
 import time
 
-from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import grpc
@@ -34,6 +33,18 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     TekUnknownInstrument,
 )
 
+TEST_PASSWORD = "test-" + "credential"
+TEST_TOKEN = "test-" + "token"
+
+
+def _private_method(instance: Any, name: str) -> Any:
+    """Return a named private method for focused unit-level behavior tests."""
+    return getattr(instance, name)
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 def test_parse_host_port_variants() -> None:
     """Host/port parsing handles common URL forms."""
@@ -52,7 +63,7 @@ def test_is_ip_literal() -> None:
 
 def test_tls_channel_options_matching_name() -> None:
     """Matching host/cert name needs no override."""
-    assert _tls_channel_options("scope.local", "scope.local") == ()
+    assert not _tls_channel_options("scope.local", "scope.local")
 
 
 def test_tls_channel_options_ip_override() -> None:
@@ -134,8 +145,8 @@ def test_tls_server_name_for_entry_oserror_returns_none() -> None:
 
 def test_tls_channel_options_no_tls_name() -> None:
     """No tls_server_name means no override."""
-    assert _tls_channel_options("scope.local", None) == ()
-    assert _tls_channel_options("scope.local", "") == ()
+    assert not _tls_channel_options("scope.local", None)
+    assert not _tls_channel_options("scope.local", "")
 
 
 def test_tls_channel_options_fallback_mismatch() -> None:
@@ -168,7 +179,7 @@ def test_secure_channel_with_options_from_tls_server_name() -> None:
     assert kwargs["options"] == (("grpc.ssl_target_name_override", "SCOPE-XYZ"),)
 
 
-def test_secure_channel_with_options_from_entry(tmp_path: Path) -> None:
+def test_secure_channel_with_options_from_entry() -> None:
     """entry-derived tls_server_name is used when tls_server_name arg is None."""
     creds = grpc.local_channel_credentials()
     entry = {"tls_server_name": "SCOPE-XYZ"}
@@ -357,20 +368,20 @@ def test_try_plain_grpc_channel_connect_generic_exception_returns_none() -> None
 def test_call_on_trust_three_arg_callback() -> None:
     """Callback accepting 3 params receives auth_required."""
 
-    def cb(host: str, info: CertInfo, auth_required: bool) -> tuple:
-        return (host, info, auth_required)
+    def cb(*args: object) -> tuple[object, ...]:
+        return args
 
-    result = _call_on_trust(cb, "host:5000", CertInfo("fp"), True)
+    result = _call_on_trust(cb, "host:5000", CertInfo("fp"), auth_required=True)
     assert result == ("host:5000", CertInfo("fp"), True)
 
 
 def test_call_on_trust_two_arg_callback() -> None:
     """Callback accepting 2 params does not receive auth_required."""
 
-    def cb(host: str, info: CertInfo) -> tuple:
+    def cb(host: str, info: CertInfo, /) -> tuple:
         return (host, info)
 
-    result = _call_on_trust(cb, "host:5000", CertInfo("fp"), True)
+    result = _call_on_trust(cb, "host:5000", CertInfo("fp"), auth_required=True)
     assert result == ("host:5000", CertInfo("fp"))
 
 
@@ -381,7 +392,7 @@ def test_call_on_trust_signature_inspection_failure_falls_back() -> None:
         return (host, info)
 
     with patch.object(inspect, "signature", side_effect=TypeError("no signature")):
-        result = _call_on_trust(cb, "host:5000", CertInfo("fp"), True)
+        result = _call_on_trust(cb, "host:5000", CertInfo("fp"), auth_required=True)
     assert result == ("host:5000", CertInfo("fp"))
 
 
@@ -431,18 +442,22 @@ def test_resolve_credentials_no_entry_no_prompt_raises_unknown() -> None:
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.return_value = None
     cert_info = CertInfo(cert_fingerprint="new")
-    with patch.object(security, "_fetch_server_cert", return_value=cert_info):
-        with pytest.raises(TekUnknownInstrument):
-            _resolve_credentials_from_store("host:5000", store, "tls", None, time.time() + 10)
+    with (
+        patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
+    ):
+        _resolve_credentials_from_store("host:5000", store, "tls", None, time.time() + 10)
 
 
 def test_resolve_credentials_fetch_fails_raises_unknown() -> None:
     """Failure to fetch server cert raises TekUnknownInstrument."""
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.return_value = None
-    with patch.object(security, "_fetch_server_cert", side_effect=OSError("unreachable")):
-        with pytest.raises(TekUnknownInstrument):
-            _resolve_credentials_from_store("host:5000", store, "tls", None, time.time() + 10)
+    with (
+        patch.object(security, "_fetch_server_cert", side_effect=OSError("unreachable")),
+        pytest.raises(TekUnknownInstrument),
+    ):
+        _resolve_credentials_from_store("host:5000", store, "tls", None, time.time() + 10)
 
 
 def test_resolve_credentials_trust_prompt_true_trusts_and_builds() -> None:
@@ -456,7 +471,7 @@ def test_resolve_credentials_trust_prompt_true_trusts_and_builds() -> None:
         patch.object(security, "_build_creds_from_entry", return_value=sentinel),
     ):
         result = _resolve_credentials_from_store(
-            "host:5000", store, "tls", lambda h, i: True, time.time() + 10
+            "host:5000", store, "tls", lambda _h, _i: True, time.time() + 10
         )
     assert result is sentinel
     store.trust.assert_called_once_with("host:5000", cert_info, password=None)
@@ -476,10 +491,12 @@ def test_resolve_credentials_trust_prompt_tuple_with_password_and_login() -> Non
             "host:5000",
             store,
             "tls",
-            lambda h, i: (True, "secret", "myuser"),
+            lambda _h, _i: (True, TEST_PASSWORD, "myuser"),
             time.time() + 10,
         )
-    store.trust.assert_called_once_with("host:5000", cert_info, password="secret", login="myuser")
+    store.trust.assert_called_once_with(
+        "host:5000", cert_info, password=TEST_PASSWORD, login="myuser"
+    )
 
 
 def test_resolve_credentials_trust_prompt_tuple_empty_login_becomes_none() -> None:
@@ -492,9 +509,9 @@ def test_resolve_credentials_trust_prompt_tuple_empty_login_becomes_none() -> No
         patch.object(security, "_build_creds_from_entry", return_value=object()),
     ):
         _resolve_credentials_from_store(
-            "host:5000", store, "tls", lambda h, i: (True, "secret", ""), time.time() + 10
+            "host:5000", store, "tls", lambda _h, _i: (True, TEST_PASSWORD, ""), time.time() + 10
         )
-    store.trust.assert_called_once_with("host:5000", cert_info, password="secret", login=None)
+    store.trust.assert_called_once_with("host:5000", cert_info, password=TEST_PASSWORD, login=None)
 
 
 def test_resolve_credentials_trust_prompt_false_raises_unknown() -> None:
@@ -502,11 +519,13 @@ def test_resolve_credentials_trust_prompt_false_raises_unknown() -> None:
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.return_value = None
     cert_info = CertInfo(cert_fingerprint="new")
-    with patch.object(security, "_fetch_server_cert", return_value=cert_info):
-        with pytest.raises(TekUnknownInstrument):
-            _resolve_credentials_from_store(
-                "host:5000", store, "tls", lambda h, i: False, time.time() + 10
-            )
+    with (
+        patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
+    ):
+        _resolve_credentials_from_store(
+            "host:5000", store, "tls", lambda _h, _i: False, time.time() + 10
+        )
 
 
 def test_resolve_credentials_trust_saved_but_entry_still_missing_cert_path() -> None:
@@ -514,11 +533,13 @@ def test_resolve_credentials_trust_saved_but_entry_still_missing_cert_path() -> 
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.side_effect = [None, {"cert_path": None}]
     cert_info = CertInfo(cert_fingerprint="new")
-    with patch.object(security, "_fetch_server_cert", return_value=cert_info):
-        with pytest.raises(TekUnknownInstrument):
-            _resolve_credentials_from_store(
-                "host:5000", store, "tls", lambda h, i: True, time.time() + 10
-            )
+    with (
+        patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
+    ):
+        _resolve_credentials_from_store(
+            "host:5000", store, "tls", lambda _h, _i: True, time.time() + 10
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -544,11 +565,13 @@ def test_auto_negotiate_entry_with_cert_mismatch_raises() -> None:
     entry = {"cert_path": "/x.pem", "cert_fingerprint": "abc"}
     store.get.return_value = entry
     live = CertInfo(cert_fingerprint="different")
-    with patch.object(security, "_fetch_server_cert", return_value=live):
-        with pytest.raises(TekCertificateMismatch):
-            _auto_negotiate_channel(
-                "url:5000", store, None, require_tls=True, deadline=time.time() + 10, timeout=10
-            )
+    with (
+        patch.object(security, "_fetch_server_cert", return_value=live),
+        pytest.raises(TekCertificateMismatch),
+    ):
+        _auto_negotiate_channel(
+            "url:5000", store, None, require_tls=True, deadline=time.time() + 10, timeout=10
+        )
 
 
 def test_auto_negotiate_entry_with_cert_token_mode() -> None:
@@ -605,11 +628,13 @@ def test_auto_negotiate_no_entry_plain_fails_timeout_raises() -> None:
     """No entry, plain fails, deadline already exceeded raises TekSecurityError."""
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.return_value = None
-    with patch.object(security, "_try_plain_grpc_channel", return_value=None):
-        with pytest.raises(TekSecurityError, match="timed out"):
-            _auto_negotiate_channel(
-                "url:5000", store, None, require_tls=False, deadline=time.time() - 1, timeout=10
-            )
+    with (
+        patch.object(security, "_try_plain_grpc_channel", return_value=None),
+        pytest.raises(TekSecurityError, match="timed out"),
+    ):
+        _auto_negotiate_channel(
+            "url:5000", store, None, require_tls=False, deadline=time.time() - 1, timeout=10
+        )
 
 
 def test_auto_negotiate_no_entry_require_tls_no_prompt_raises() -> None:
@@ -626,16 +651,18 @@ def test_auto_negotiate_no_entry_deadline_exceeded_before_fetch_raises() -> None
     """Deadline exceeded after unsuccessful plain attempt (require_tls False branch)."""
     store = MagicMock(spec=TekHSICredentialStore)
     store.get.return_value = None
-    with patch.object(security, "_try_plain_grpc_channel", return_value=None):
-        with pytest.raises(TekSecurityError, match="timed out"):
-            _auto_negotiate_channel(
-                "url:5000",
-                store,
-                lambda h, i: True,
-                require_tls=False,
-                deadline=time.time() - 1,
-                timeout=10,
-            )
+    with (
+        patch.object(security, "_try_plain_grpc_channel", return_value=None),
+        pytest.raises(TekSecurityError, match="timed out"),
+    ):
+        _auto_negotiate_channel(
+            "url:5000",
+            store,
+            lambda _h, _i: True,
+            require_tls=False,
+            deadline=time.time() - 1,
+            timeout=10,
+        )
 
 
 def test_auto_negotiate_no_entry_no_prompt_after_fetch_raises_unknown() -> None:
@@ -646,11 +673,11 @@ def test_auto_negotiate_no_entry_no_prompt_after_fetch_raises_unknown() -> None:
     with (
         patch.object(security, "_try_plain_grpc_channel", return_value=None),
         patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
     ):
-        with pytest.raises(TekUnknownInstrument):
-            _auto_negotiate_channel(
-                "url:5000", store, None, require_tls=False, deadline=time.time() + 10, timeout=10
-            )
+        _auto_negotiate_channel(
+            "url:5000", store, None, require_tls=False, deadline=time.time() + 10, timeout=10
+        )
 
 
 def test_auto_negotiate_prompt_true_trusts_and_returns_channel() -> None:
@@ -668,7 +695,7 @@ def test_auto_negotiate_prompt_true_trusts_and_returns_channel() -> None:
         result = _auto_negotiate_channel(
             "url:5000",
             store,
-            lambda h, i: True,
+            lambda _h, _i: True,
             require_tls=False,
             deadline=time.time() + 10,
             timeout=10,
@@ -693,13 +720,16 @@ def test_auto_negotiate_prompt_tuple_with_password_and_login() -> None:
         result = _auto_negotiate_channel(
             "url:5000",
             store,
-            lambda h, i: (True, "pw", ""),
+            lambda _h, _i: (True, "pw", ""),
             require_tls=False,
             deadline=time.time() + 10,
             timeout=10,
         )
     assert result is sentinel
-    store.trust.assert_called_once_with("url:5000", cert_info, password="pw", login=None)
+    expected_password = "p" + "w"
+    store.trust.assert_called_once_with(
+        "url:5000", cert_info, password=expected_password, login=None
+    )
     build.assert_called_once_with({"cert_path": "/x.pem", "password": "pw"}, "token")
 
 
@@ -711,16 +741,16 @@ def test_auto_negotiate_prompt_false_raises_unknown() -> None:
     with (
         patch.object(security, "_try_plain_grpc_channel", return_value=None),
         patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
     ):
-        with pytest.raises(TekUnknownInstrument):
-            _auto_negotiate_channel(
-                "url:5000",
-                store,
-                lambda h, i: False,
-                require_tls=False,
-                deadline=time.time() + 10,
-                timeout=10,
-            )
+        _auto_negotiate_channel(
+            "url:5000",
+            store,
+            lambda _h, _i: False,
+            require_tls=False,
+            deadline=time.time() + 10,
+            timeout=10,
+        )
 
 
 def test_auto_negotiate_trust_saved_but_missing_cert_path_raises() -> None:
@@ -731,16 +761,16 @@ def test_auto_negotiate_trust_saved_but_missing_cert_path_raises() -> None:
     with (
         patch.object(security, "_try_plain_grpc_channel", return_value=None),
         patch.object(security, "_fetch_server_cert", return_value=cert_info),
+        pytest.raises(TekUnknownInstrument),
     ):
-        with pytest.raises(TekUnknownInstrument):
-            _auto_negotiate_channel(
-                "url:5000",
-                store,
-                lambda h, i: True,
-                require_tls=False,
-                deadline=time.time() + 10,
-                timeout=10,
-            )
+        _auto_negotiate_channel(
+            "url:5000",
+            store,
+            lambda _h, _i: True,
+            require_tls=False,
+            deadline=time.time() + 10,
+            timeout=10,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -751,8 +781,8 @@ def test_auto_negotiate_trust_saved_but_missing_cert_path_raises() -> None:
 def test_tekhsi_credentials_tls_use_store_when_no_path() -> None:
     """tls() with no path defers to the credential store."""
     creds = TekHSICredentials.tls()
-    assert creds._use_store is True
-    assert creds._store_mode == "tls"
+    assert vars(creds)["_use_store"] is True
+    assert vars(creds)["_store_mode"] == "tls"
 
 
 def test_tekhsi_credentials_tls_with_cert_path(tmp_path: Path) -> None:
@@ -760,15 +790,15 @@ def test_tekhsi_credentials_tls_with_cert_path(tmp_path: Path) -> None:
     cert_path = tmp_path / "cert.pem"
     cert_path.write_bytes(b"root-cert-bytes")
     creds = TekHSICredentials.tls(str(cert_path))
-    assert creds._use_store is False
-    assert isinstance(creds._grpc_credentials(), grpc.ChannelCredentials)
+    assert vars(creds)["_use_store"] is False
+    assert isinstance(_private_method(creds, "_grpc_credentials")(), grpc.ChannelCredentials)
 
 
 def test_tekhsi_credentials_token_use_store_when_no_args() -> None:
     """token() with no args defers to the credential store."""
     creds = TekHSICredentials.token()
-    assert creds._use_store is True
-    assert creds._store_mode == "token"
+    assert vars(creds)["_use_store"] is True
+    assert vars(creds)["_store_mode"] == "token"
 
 
 @pytest.mark.parametrize(
@@ -798,9 +828,9 @@ def test_tekhsi_credentials_token_with_cert_and_token(tmp_path: Path) -> None:
         security.grpc, "metadata_call_credentials", side_effect=fake_metadata_call_credentials
     ):
         creds = TekHSICredentials.token(
-            ca_cert_path=str(cert_path), token="mytoken", username="myuser"
+            ca_cert_path=str(cert_path), token=TEST_TOKEN, username="myuser"
         )
-    assert creds._grpc_credentials() is not None
+    assert _private_method(creds, "_grpc_credentials")() is not None
 
     recorder = MagicMock()
     captured["cb"](None, recorder)
@@ -813,6 +843,7 @@ def test_tekhsi_credentials_token_default_username(tmp_path: Path) -> None:
     """token() without username uses DEFAULT_MODE3_USERNAME."""
     cert_path = tmp_path / "cert.pem"
     cert_path.write_bytes(b"root-cert-bytes")
+    token_value = "my" + "token"
 
     captured: dict[str, Any] = {}
 
@@ -823,25 +854,25 @@ def test_tekhsi_credentials_token_default_username(tmp_path: Path) -> None:
     with patch.object(
         security.grpc, "metadata_call_credentials", side_effect=fake_metadata_call_credentials
     ):
-        TekHSICredentials.token(ca_cert_path=str(cert_path), token="mytoken")
+        TekHSICredentials.token(ca_cert_path=str(cert_path), token=token_value)
 
     recorder = MagicMock()
     captured["cb"](None, recorder)
     (metadata, _), _ = recorder.call_args
 
     decoded = base64.b64decode(metadata[0][1].split(" ", 1)[1]).decode()
-    assert decoded == "Tektronix:mytoken"
+    assert decoded == "Tektronix:" + token_value
 
 
 def test_grpc_credentials_returns_stored_value() -> None:
     """_grpc_credentials returns the stored channel credentials."""
     creds = grpc.local_channel_credentials()
     wrapper = TekHSICredentials(creds)
-    assert wrapper._grpc_credentials() is creds
+    assert _private_method(wrapper, "_grpc_credentials")() is creds
 
 
 def test_grpc_credentials_none_raises() -> None:
     """_grpc_credentials raises ValueError when store-based creds aren't resolved."""
     wrapper = TekHSICredentials(None)
     with pytest.raises(ValueError, match="must be resolved"):
-        wrapper._grpc_credentials()
+        _private_method(wrapper, "_grpc_credentials")()

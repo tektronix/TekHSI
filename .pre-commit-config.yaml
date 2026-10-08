@@ -132,7 +132,7 @@ repos:
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
         always_run: true
         # Remove the nltk ignore once the patched release tracked in
-        # https://github.com/pyupio/safety/issues/625 is available.
+        # https://github.com/nltk/nltk/pull/3826 is available.
         args: [--json, --ignore-package=nltk]
       - id: poetry-check
         name: poetry-check

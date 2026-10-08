@@ -3,11 +3,15 @@
 import os
 
 from tekhsi import TekHSIConnect
-from tekhsi.credential_store import TekHSICredentialStore
+from tekhsi.credential_store import CertInfo, TekHSICredentialStore
 from tm_data_types import FastFrameAnalogWaveform
 
 
-def auto_trust(host: str, cert_info, auth_required: bool = False):
+def auto_trust(
+    _host: str,
+    _cert_info: CertInfo,
+    auth_required: bool = False,  # noqa: FBT001, FBT002
+) -> bool | tuple[bool, str, str]:
     """Accept the scope certificate (set TEKHSI_PASSWORD if auth is required)."""
     if auth_required:
         if not (password := os.environ.get("TEKHSI_PASSWORD")):
@@ -29,7 +33,8 @@ with TekHSIConnect(
         waveform = connection.get_data("ch1")
 
 if waveform is None:
-    raise RuntimeError("No waveform returned for ch1")
+    message = "No waveform returned for ch1"
+    raise RuntimeError(message)
 
 if not isinstance(waveform, FastFrameAnalogWaveform):
     print(f"Expected FastFrameAnalogWaveform, got {type(waveform).__name__}")

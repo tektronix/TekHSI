@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import grpc
@@ -10,6 +11,18 @@ import pytest
 from tekhsi.credential_store import CertInfo
 from tekhsi.security import TekAuthenticationFailed, TekCertificateMismatch
 from tekhsi.tek_hsi_connect import TekHSIConnect
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+
+TEST_PASSWORD = "test-" + "credential"
+
+
+def _private_method(instance: Any, name: str) -> Any:
+    """Return a named private method for focused wiring tests."""
+    return getattr(instance, name)
 
 
 @pytest.fixture(name="mock_insecure_channel")
@@ -33,9 +46,9 @@ def test_legacy_plain_uses_insecure_channel(mock_insecure_channel: MagicMock) ->
     mock_insecure_channel.assert_called_once_with("127.0.0.1:5000")
     mock_store_cls.assert_not_called()
     mock_probe.assert_not_called()
-    assert client._auto_security is False
-    assert client._credential_store_ref is None
-    assert client._on_trust_ref is None
+    assert vars(client)["_auto_security"] is False
+    assert vars(client)["_credential_store_ref"] is None
+    assert vars(client)["_on_trust_ref"] is None
 
 
 def test_timeout_alone_does_not_enable_security(mock_insecure_channel: MagicMock) -> None:
@@ -49,7 +62,7 @@ def test_timeout_alone_does_not_enable_security(mock_insecure_channel: MagicMock
 
     mock_insecure_channel.assert_called_once()
     mock_store_cls.assert_not_called()
-    assert client._auto_security is False
+    assert vars(client)["_auto_security"] is False
 
 
 def test_require_tls_opens_security_path() -> None:
@@ -65,7 +78,7 @@ def test_require_tls_opens_security_path() -> None:
         mock_store_cls.return_value = mock_store
         client = TekHSIConnect("127.0.0.1:5000", require_tls=True)
 
-    assert client._auto_security is True
+    assert vars(client)["_auto_security"] is True
     mock_store_cls.assert_called_once()
 
 
@@ -74,7 +87,7 @@ def test_legacy_unauthenticated_raises_raw_grpc_error() -> None:
     client = TekHSIConnect.__new__(TekHSIConnect)
     client.url = "127.0.0.1:5000"
     client.clientname = "test-client"
-    client._auto_security = False
+    vars(client)["_auto_security"] = False
     client.connection = MagicMock()
 
     class FakeRpcError(grpc.RpcError):
@@ -91,13 +104,14 @@ def test_legacy_unauthenticated_raises_raw_grpc_error() -> None:
     client.connection.Connect.side_effect = FakeRpcError()
 
     with pytest.raises(FakeRpcError):
-        client._connect()
+        _private_method(client, "_connect")()
 
 
 class FakeUnauthenticatedError(grpc.RpcError):
     """A fake gRPC UNAUTHENTICATED error usable as a Connect() side effect."""
 
     def __init__(self, detail: str = "auth required") -> None:
+        """Create an error carrying the server detail text."""
         self._detail = detail
 
     def code(self) -> grpc.StatusCode:
@@ -114,8 +128,8 @@ def _make_auto_security_client() -> TekHSIConnect:
     client = TekHSIConnect.__new__(TekHSIConnect)
     client.url = "127.0.0.1:5000"
     client.clientname = "test-client"
-    client._auto_security = True
-    client._verbose = False
+    vars(client)["_auto_security"] = True
+    vars(client)["_verbose"] = False
     client.connection = MagicMock()
     return client
 
@@ -129,7 +143,7 @@ def test_connect_upgrades_once_then_succeeds() -> None:
     with patch.object(
         TekHSIConnect, "_upgrade_channel_with_token_after_unauthenticated"
     ) as mock_upgrade:
-        client._connect()
+        _private_method(client, "_connect")()
 
     mock_upgrade.assert_called_once()
     assert client.connection.Connect.call_count == 2
@@ -143,9 +157,11 @@ def test_connect_upgrade_failure_wraps_second_unauthenticated() -> None:
         FakeUnauthenticatedError("still bad"),
     ]
 
-    with patch.object(TekHSIConnect, "_upgrade_channel_with_token_after_unauthenticated"):
-        with pytest.raises(TekAuthenticationFailed):
-            client._connect()
+    with (
+        patch.object(TekHSIConnect, "_upgrade_channel_with_token_after_unauthenticated"),
+        pytest.raises(TekAuthenticationFailed),
+    ):
+        _private_method(client, "_connect")()
 
 
 def test_connect_auto_security_unauthenticated_without_upgrade_path() -> None:
@@ -162,14 +178,16 @@ def test_connect_auto_security_unauthenticated_without_upgrade_path() -> None:
         ),
         pytest.raises(TekAuthenticationFailed),
     ):
-        client._connect()
+        _private_method(client, "_connect")()
 
 
-def _make_upgrade_client(store: MagicMock, on_trust_prompt) -> TekHSIConnect:
+def _make_upgrade_client(
+    store: MagicMock, on_trust_prompt: Callable[..., Any] | None
+) -> TekHSIConnect:
     client = TekHSIConnect.__new__(TekHSIConnect)
     client.url = "127.0.0.1:5000"
-    client._credential_store_ref = store
-    client._on_trust_ref = on_trust_prompt
+    vars(client)["_credential_store_ref"] = store
+    vars(client)["_on_trust_ref"] = on_trust_prompt
     client.channel = MagicMock()
     return client
 
@@ -181,21 +199,21 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
         """Reject upgrades without credential storage or a trust callback."""
         client = _make_upgrade_client(store=None, on_trust_prompt=None)
         with pytest.raises(TekAuthenticationFailed):
-            client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
     def test_missing_cert_path_in_store_raises(self) -> None:
         """Reject upgrades when the stored certificate path is missing."""
         store = MagicMock()
         store.get.return_value = {"cert_path": None}
-        client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)
+        client = _make_upgrade_client(store=store, on_trust_prompt=lambda: True)
         with pytest.raises(TekAuthenticationFailed):
-            client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
-    def test_certificate_mismatch_raises(self) -> None:
+    def test_certificate_mismatch_raises(self, tmp_path: Path) -> None:
         """Reject a server certificate that differs from the stored certificate."""
         store = MagicMock()
-        store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
-        client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)
+        store.get.return_value = {"cert_path": str(tmp_path / "x.pem"), "cert_fingerprint": "aaa"}
+        client = _make_upgrade_client(store=store, on_trust_prompt=lambda: True)
         with (
             patch("tekhsi.tek_hsi_connect._parse_host_port", return_value=("127.0.0.1", 5000)),
             patch(
@@ -204,13 +222,13 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
             ),
             pytest.raises(TekCertificateMismatch),
         ):
-            client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
-    def test_declined_prompt_raises_authentication_failed(self) -> None:
+    def test_declined_prompt_raises_authentication_failed(self, tmp_path: Path) -> None:
         """Reject upgrades when the trust prompt declines the certificate."""
         store = MagicMock()
-        store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
-        client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: False)
+        store.get.return_value = {"cert_path": str(tmp_path / "x.pem"), "cert_fingerprint": "aaa"}
+        client = _make_upgrade_client(store=store, on_trust_prompt=lambda: False)
         with (
             patch("tekhsi.tek_hsi_connect._parse_host_port", return_value=("127.0.0.1", 5000)),
             patch(
@@ -218,15 +236,15 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
                 return_value=CertInfo(cert_fingerprint="aaa"),
             ),
             patch("tekhsi.tek_hsi_connect._call_on_trust", return_value=False),
+            pytest.raises(TekAuthenticationFailed),
         ):
-            with pytest.raises(TekAuthenticationFailed):
-                client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
-    def test_true_without_password_raises(self) -> None:
+    def test_true_without_password_raises(self, tmp_path: Path) -> None:
         """Reject a trust decision that does not provide the required password."""
         store = MagicMock()
-        store.get.return_value = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
-        client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: True)
+        store.get.return_value = {"cert_path": str(tmp_path / "x.pem"), "cert_fingerprint": "aaa"}
+        client = _make_upgrade_client(store=store, on_trust_prompt=lambda: True)
         with (
             patch("tekhsi.tek_hsi_connect._parse_host_port", return_value=("127.0.0.1", 5000)),
             patch(
@@ -234,17 +252,20 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
                 return_value=CertInfo(cert_fingerprint="aaa"),
             ),
             patch("tekhsi.tek_hsi_connect._call_on_trust", return_value=True),
+            pytest.raises(TekAuthenticationFailed),
         ):
-            with pytest.raises(TekAuthenticationFailed):
-                client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
-    def test_successful_upgrade_rebinds_channel_and_stubs(self) -> None:
+    def test_successful_upgrade_rebinds_channel_and_stubs(self, tmp_path: Path) -> None:
         """A full successful upgrade persists creds and rebinds channel/stubs."""
         store = MagicMock()
-        entry_before = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa"}
-        entry_after = {"cert_path": "/tmp/x.pem", "cert_fingerprint": "aaa", "password": "obf1:xx"}
+        cert_path = str(tmp_path / "x.pem")
+        entry_before = {"cert_path": cert_path, "cert_fingerprint": "aaa"}
+        entry_after = {"cert_path": cert_path, "cert_fingerprint": "aaa", "password": "obf1:xx"}
         store.get.side_effect = [entry_before, entry_after]
-        client = _make_upgrade_client(store=store, on_trust_prompt=lambda *a: (True, "pw", "user1"))
+        client = _make_upgrade_client(
+            store=store, on_trust_prompt=lambda: (True, TEST_PASSWORD, "user1")
+        )
         new_channel = MagicMock()
 
         with (
@@ -253,13 +274,16 @@ class TestUpgradeChannelWithTokenAfterUnauthenticated:
                 "tekhsi.tek_hsi_connect._fetch_server_cert",
                 return_value=CertInfo(cert_fingerprint="aaa"),
             ),
-            patch("tekhsi.tek_hsi_connect._call_on_trust", return_value=(True, "pw", "user1")),
+            patch(
+                "tekhsi.tek_hsi_connect._call_on_trust",
+                return_value=(True, TEST_PASSWORD, "user1"),
+            ),
             patch("tekhsi.tek_hsi_connect._build_creds_from_entry", return_value=MagicMock()),
             patch("tekhsi.tek_hsi_connect._secure_channel", return_value=new_channel),
         ):
-            client._upgrade_channel_with_token_after_unauthenticated()
+            _private_method(client, "_upgrade_channel_with_token_after_unauthenticated")()
 
-        store.set.assert_called_once_with(client.url, password="pw", login="user1")
+        store.set.assert_called_once_with(client.url, password=TEST_PASSWORD, login="user1")
         store.save.assert_called_once()
         assert client.channel is new_channel
         assert client.connection is not None

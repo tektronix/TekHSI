@@ -33,7 +33,7 @@ def _reset_package_logger() -> Generator[None, None, None]:  # pyright: ignore[r
     handlers_copy = logger.handlers.copy()
     for handler in handlers_copy:
         logger.removeHandler(handler)
-    tekhsi_logging._logger_initialized = False  # pyright: ignore[reportPrivateUsage]
+    tekhsi_logging.reset_logging()
     yield
     # Reset the handlers back to what they were
     for handler in logger.handlers.copy():
@@ -42,7 +42,8 @@ def _reset_package_logger() -> Generator[None, None, None]:  # pyright: ignore[r
         logger.addHandler(handler)
 
 
-def test_configure_logger_full(reset_package_logger: None) -> None:
+@pytest.mark.usefixtures("reset_package_logger")
+def test_configure_logger_full() -> None:
     """Test the configuration function with all types of logs."""
     log_dir = (
         Path(__file__).parent / f"generated_logs_py{sys.version_info.major}{sys.version_info.minor}"
@@ -69,7 +70,8 @@ def test_configure_logger_full(reset_package_logger: None) -> None:
     ]
 
 
-def test_configure_logger_no_file(reset_package_logger: None) -> None:
+@pytest.mark.usefixtures("reset_package_logger")
+def test_configure_logger_no_file() -> None:
     """Test the configuration function with no file logging."""
     assert len(logging.getLogger(PACKAGE_NAME).handlers) == 0  # pylint: disable=use-implicit-booleaness-not-comparison-to-zero
     logger = configure_logging(

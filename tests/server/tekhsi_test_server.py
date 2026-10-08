@@ -240,7 +240,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
     slower than the native server.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, _context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as normalized data. This usually slower than using the raw service
@@ -252,8 +252,6 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
         """
         global connect_server
         global verbose
@@ -281,7 +279,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
             print(e)
         return
 
-    def GetHeader(self, request, context):
+    def GetHeader(self, request, _context):
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -289,8 +287,6 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
@@ -345,7 +341,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
     normalized version.
     """
 
-    def GetWaveform(self, request, context):
+    def GetWaveform(self, request, _context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as native data. How the data is represented is defined in the
@@ -356,8 +352,6 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
@@ -395,7 +389,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
 
-    def GetHeader(self, request, context):  # noqa: PLR0912, PLR0915, C901
+    def GetHeader(self, request, _context):  # noqa: PLR0912, PLR0915, C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -403,8 +397,6 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
