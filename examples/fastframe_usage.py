@@ -2,9 +2,10 @@
 
 import os
 
+from tm_data_types import FastFrameAnalogWaveform
+
 from tekhsi import TekHSIConnect
 from tekhsi.credential_store import CertInfo, TekHSICredentialStore
-from tm_data_types import FastFrameAnalogWaveform
 
 
 def auto_trust(

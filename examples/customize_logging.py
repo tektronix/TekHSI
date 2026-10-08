@@ -1,7 +1,8 @@
 """A script demonstrating how to customize the logging that happens during runtime."""
 
-from tekhsi import configure_logging, LoggingLevels, TekHSIConnect
 from tm_data_types import AnalogWaveform, write_file
+
+from tekhsi import configure_logging, LoggingLevels, TekHSIConnect
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 

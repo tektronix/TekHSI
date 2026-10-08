@@ -3,8 +3,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tekhsi import AcqWaitOn, TekHSIConnect
 from tm_data_types import AnalogWaveform
+
+from tekhsi import AcqWaitOn, TekHSIConnect
 
 source = "ch1"
 address = "192.168.0.1"  # Replace with the IP address of your instrument

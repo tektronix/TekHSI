@@ -22,6 +22,18 @@ from typing import ClassVar, NoReturn, TYPE_CHECKING, TypeVar
 import grpc
 import numpy as np
 
+from tm_data_types import (
+    AnalogWaveform,
+    DigitalWaveform,
+    FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
+    FrameTimingInfo,
+    IQWaveform,
+    IQWaveformMetaInfo,
+    SummaryFrameType,
+    Waveform,
+)
+
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     ConnectRequest,
     WaveformHeader,
@@ -51,17 +63,6 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     TekCertificateMismatch,
     TekHSICredentials,
     TekSecurityError,
-)
-from tm_data_types import (
-    AnalogWaveform,
-    DigitalWaveform,
-    FastFrameAnalogWaveform,
-    FastFrameDigitalWaveform,
-    FrameTimingInfo,
-    IQWaveform,
-    IQWaveformMetaInfo,
-    SummaryFrameType,
-    Waveform,
 )
 
 if TYPE_CHECKING:

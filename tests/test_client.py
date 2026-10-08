@@ -11,6 +11,15 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from tm_data_types import (
+    AnalogWaveform,
+    DigitalWaveform,
+    FrameTimingInfo,
+    IQWaveform,
+    SummaryFrameType,
+    Waveform,
+)
+
 from conftest import DerivedWaveform, DerivedWaveformHandler
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     RawReply,
@@ -20,14 +29,6 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WfmType,
 )
 from tekhsi.tek_hsi_connect import AcqWaitOn, TekHSIConnect
-from tm_data_types import (
-    AnalogWaveform,
-    DigitalWaveform,
-    FrameTimingInfo,
-    IQWaveform,
-    SummaryFrameType,
-    Waveform,
-)
 
 
 def _mock_native_get_waveform(chunks: list[bytes]) -> Callable[..., object]:

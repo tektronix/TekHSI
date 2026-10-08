@@ -18,6 +18,13 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 import pytest
 
+from tm_data_types import (
+    FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
+    FrameTimingInfo,
+    SummaryFrameType,
+)
+
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     FrameBoundary,
     FrameInfo,
@@ -28,12 +35,6 @@ from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-mod
     WfmType,
 )
 from tekhsi.tek_hsi_connect import TekHSIConnect
-from tm_data_types import (
-    FastFrameAnalogWaveform,
-    FastFrameDigitalWaveform,
-    FrameTimingInfo,
-    SummaryFrameType,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

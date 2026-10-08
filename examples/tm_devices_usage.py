@@ -1,10 +1,10 @@
 """Command & control using tm_devices, but retrieving waveform data using TekHSI."""
 
+from tm_data_types import AnalogWaveform
 from tm_devices import DeviceManager
 from tm_devices.drivers import MSO6B
 
 from tekhsi import AcqWaitOn, TekHSIConnect
-from tm_data_types import AnalogWaveform
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 

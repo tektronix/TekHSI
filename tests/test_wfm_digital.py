@@ -8,6 +8,13 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error,no-name-in-module
+    DigitalWaveformMetaInfo,
+)
+from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error,no-name-in-module
+    FastFrameDigitalWaveform,
+)
+
 from tekhsi import wfm_digital
 from tekhsi.wfm_digital import (  # pylint: disable=import-private-name
     _bitmask_from_probe_states,
@@ -17,12 +24,6 @@ from tekhsi.wfm_digital import (  # pylint: disable=import-private-name
     restore_digital_bitmask_from_meta,
     stamp_digital_bitmask_meta,
     write_digital_wfm,
-)
-from tm_data_types.datum.waveforms.digital_waveform import (  # pylint: disable=import-error,no-name-in-module
-    DigitalWaveformMetaInfo,
-)
-from tm_data_types.datum.waveforms.fastframe_digital_waveform import (  # pylint: disable=import-error,no-name-in-module
-    FastFrameDigitalWaveform,
 )
 
 if TYPE_CHECKING:
