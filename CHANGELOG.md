@@ -16,6 +16,26 @@ Valid subsections within a version are:
 
 ## Unreleased
 
+Things to be included in the next release go here.
+
+---
+
+## v1.2.0 (2026-10-09)
+
+### Merged Pull Requests
+
+- docs: update changelog for secure connections and FastFrame ([#195](https://github.com/tektronix/TekHSI/pull/195))
+- feat: add secure connections and FastFrame support ([#192](https://github.com/tektronix/TekHSI/pull/192))
+- python-deps(deps): bump the python-dependencies group across 1 directory with 4 updates ([#184](https://github.com/tektronix/TekHSI/pull/184))
+- gh-actions(deps): bump the gh-actions-dependencies group with 11 updates ([#185](https://github.com/tektronix/TekHSI/pull/185))
+- pre-commit-deps(deps): bump the pre-commit-dependencies group with 2 updates ([#174](https://github.com/tektronix/TekHSI/pull/174))
+- python-deps(deps-dev): update wheel requirement ([#178](https://github.com/tektronix/TekHSI/pull/178))
+- python-deps(deps-dev): update pylint requirement ([#176](https://github.com/tektronix/TekHSI/pull/176))
+- python-deps(deps-dev): update twine requirement ([#173](https://github.com/tektronix/TekHSI/pull/173))
+- gh-actions(deps): bump the gh-actions-dependencies group across 1 directory with 12 updates ([#171](https://github.com/tektronix/TekHSI/pull/171))
+- pre-commit-deps(deps): bump https://github.com/astral-sh/ruff-pre-commit from v0.15.22 to 0.16.0 in the pre-commit-dependencies group ([#170](https://github.com/tektronix/TekHSI/pull/170))
+- python-deps(deps): bump the python-dependencies group across 1 directory with 31 updates ([#169](https://github.com/tektronix/TekHSI/pull/169))
+
 ### Added
 
 - Added secure scope connections with TLS and HTTP Basic authentication support.

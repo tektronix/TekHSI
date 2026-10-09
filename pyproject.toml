@@ -81,7 +81,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
-version = "1.1.1"
+version = "1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 docutils-stubs = "^0.0.22"
