@@ -41,6 +41,8 @@ supporting gRPC, including Windows, Linux, and macOS.
 5. Richer Synchronization - `TekHSI` allows a rich set of synchronization options. This includes
     accepting any arriving acquisition, accepting acquisitions with vertical or horizontal changes,
     or only accepting acquisitions after a certain time.
+6. Secure connections - TLS and TLS plus HTTP Basic authentication are supported, with certificate trust and credential-store support.
+7. FastFrame acquisitions - stopped-scope analog and digital multi-frame waveforms include frame metadata, summary-frame handling, and transfer timing diagnostics.
 
 In summary, if you need a reliable and efficient way to transfer data between your Tektronix scope
 and host computer, `TekHSI` is the library for you. With its low latency, high speed, and

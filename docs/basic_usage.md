@@ -75,6 +75,30 @@ The [`TekHSIConnect`][tekhsi.tek_hsi_connect.TekHSIConnect] class handles the co
 data retrieval for TekHSI, check out [its API documentation][tekhsi.tek_hsi_connect.TekHSIConnect]
 for more information.
 
+## Authentication and secure connections
+
+TekHSI supports legacy plaintext connections, TLS, and TLS with HTTP Basic authentication. See the [Security and Authentication](security.md) guide for certificate handling, credential storage, trust-on-first-use, and troubleshooting.
+
+## FastFrame multi-frame captures
+
+FastFrame captures are returned as [`FastFrameAnalogWaveform`][tm_data_types.FastFrameAnalogWaveform] or [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform]. Use [`access_stopped_data()`][tekhsi.tek_hsi_connect.TekHSIConnect.access_stopped_data] when reading a stopped scope:
+
+```python
+# fmt: off
+--8<-- "examples/fastframe_usage.py"
+```
+
+FastFrame APIs include:
+
+- `frame_data(index)` for raw digitizer samples.
+- `frame_array(index)` for normalized samples.
+- `frame(index)` for a frame waveform object.
+- `num_frames` for the total frame count.
+- `data_frame_count` for data frames excluding a summary frame.
+- `summary_frame_index`, which is `None` when no summary frame exists.
+- `load_timing` for transfer and publish timing diagnostics.
+    FastFrame digital captures use [`FastFrameDigitalWaveform`][tm_data_types.FastFrameDigitalWaveform] and the digital waveform helpers in [`tekhsi.wfm_digital`][tekhsi.wfm_digital]. Digital bitmask metadata is preserved when writing and restoring waveform files.
+
 ## Acquisition Filters
 
 An acquisition filter allows custom rules to be applied that can be used to filter (or restrict)

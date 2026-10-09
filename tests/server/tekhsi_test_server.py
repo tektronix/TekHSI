@@ -1,4 +1,4 @@
-# pylint: disable=global-variable-not-assigned
+# pylint: disable=global-variable-not-assigned,no-member
 """This file provides a simple TekHSI streaming server implementation for testing.
 
 The primary usage for this is to allow unit testing to occur on GitHub. An alternative usage is as
@@ -228,7 +228,8 @@ class ServerWaveform:  # pylint: disable=too-many-instance-attributes
 
         This is to make it visually clear that each waveform is unique.
         """
-        return np.array(array) + np.random.normal(loc=0.0, scale=noise_range / 4, size=len(array))  # noqa: NPY002
+        rng = np.random.default_rng()
+        return np.array(array) + rng.normal(loc=0.0, scale=noise_range / 4, size=len(array))
 
 
 class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
@@ -239,7 +240,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
     slower than the native server.
     """
 
-    def GetWaveform(self, request, context):  # noqa: ARG002
+    def GetWaveform(self, request, _context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as normalized data. This usually slower than using the raw service
@@ -251,8 +252,6 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
         """
         global connect_server
         global verbose
@@ -280,7 +279,7 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
             print(e)
         return
 
-    def GetHeader(self, request, context):  # noqa: ARG002
+    def GetHeader(self, request, _context):
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -288,8 +287,6 @@ class TekHSI_NormalizedDataServer(tekhsi_pb2_grpc.NormalizedDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
@@ -344,7 +341,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
     normalized version.
     """
 
-    def GetWaveform(self, request, context):  # noqa: ARG002
+    def GetWaveform(self, request, _context):
         """This message returns the stream of the data representing the requested channel/math.
 
         The data is returned as native data. How the data is represented is defined in the
@@ -355,8 +352,6 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
@@ -394,7 +389,7 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
             status=tekhsi_pb2.WfmReplyStatus.Value("WFMREPLYSTATUS_SOURCENAME_MISSING_FAILURE")
         )
 
-    def GetHeader(self, request, context):  # noqa: ARG002,PLR0912,PLR0915,C901
+    def GetHeader(self, request, _context):  # noqa: PLR0912, PLR0915, C901
         """The message returns the header (equivalent to preamble when using SCPI commands).
 
         Parameters
@@ -402,8 +397,6 @@ class TekHSI_NativeDataServer(tekhsi_pb2_grpc.NativeDataServicer):
         request : WaveformRequest
             This contains sourcename, and chunksize
 
-        context : Any
-            This contains information relevant to the current gRPC call.
 
         Returns:
         -------
@@ -725,8 +718,8 @@ def periodic_data_creation():
     If you want to change the named sets of data returned you should modify 'make_new_data()'
     """
     while True:
-        global connect_server
-        global acq_id
+        global connect_server  # pylint: disable=global-statement
+        global acq_id  # pylint: disable=global-statement
         try:
             mutex.acquire()
             try:
@@ -757,7 +750,7 @@ def make_new_data():
         "ch1_iq": ServerWaveform(encoding=WfmEncoding.IQ, wfm_data_type=WfmDataType.Int16),
         "ch2": ServerWaveform(wfm_data_type=WfmDataType.Int16),
         "ch3": ServerWaveform(wfm_data_type=WfmDataType.Int16),
-        # FUTURE # "ch4_DAll": ServerWaveform(encoding=WfmEncoding.Digital, wfm_data_type=WfmDataType.Int8),  # noqa: E501
+        # FUTURE: digital channel support.
         "math1": ServerWaveform(wfm_data_type=WfmDataType.Float),
         "math2": ServerWaveform(wfm_data_type=WfmDataType.Float),
     }
@@ -765,9 +758,9 @@ def make_new_data():
 
 def serve():
     """Startups up the server."""
-    global connect_server
-    global server
-    global background_thread
+    global connect_server  # pylint: disable=global-statement
+    global server  # pylint: disable=global-statement
+    global background_thread  # pylint: disable=global-statement
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     connect_server = TekHSI_Connect()
     tekhsi_pb2_grpc.add_ConnectServicer_to_server(connect_server, server)

@@ -6,6 +6,7 @@ any_vertical_change
 artifact
 behaviors
 benchmarked
+bitmask
 bitstream
 changelog
 csv
@@ -23,6 +24,7 @@ linting
 matplotlib
 opensource
 parallelization
+plaintext
 pre
 readthedocs
 repo

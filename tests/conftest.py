@@ -27,7 +27,7 @@ from tekhsi.tek_hsi_connect import TekHSIConnect
 
 from server.tekhsi_test_server import TEST_SERVER_ADDRESS, TEST_SERVER_PORT_NUMBER
 
-PROJECT_ROOT_DIR = Path(__file__).parent.parent
+PROJECT_ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 ####################################################################################################
@@ -55,7 +55,7 @@ _logger.addHandler(_unit_test_console_handler)
 ####################################################################################################
 
 
-class DerivedWaveform(Waveform, ABC):
+class DerivedWaveform(Waveform, ABC):  # pylint: disable=too-few-public-methods
     """A derived waveform class for testing purposes."""
 
     @property
@@ -110,6 +110,7 @@ class TestServerManager:
             raise RuntimeError(msg)
 
             # Start the server
+        # Trusted repository-local test server; arguments are not user-controlled.
         self.server_process = subprocess.Popen(  # noqa: S603
             [sys.executable, server_script.as_posix(), "--verbose"]
         )

@@ -1,4 +1,4 @@
-"""An example script for connecting to a scope, retrieving waveform data from multiple channels, and plotting it."""
+"""Connect to a scope, retrieve multiple channels, and plot the waveforms."""
 
 import matplotlib.pyplot as plt
 

@@ -8,6 +8,7 @@ authors = [
 ]
 dependencies = [
   "colorlog~=6.9",
+  "cryptography>=42.0.0",
   "grpcio-tools~=1.66",
   "grpcio~=1.66",
   "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
@@ -419,7 +420,7 @@ commands =
     !tests: python -c "import shutil; shutil.rmtree('.dist/{envname}', ignore_errors=True)"
     !tests: poetry build --output=.dist/{envname}
     !tests: twine check --strict .dist/{envname}/*
-    !tests: pre-commit run --all-files
+    !tests: pre-commit run --all-files --show-diff-on-failure
     pytest -vv -k "not test_docs" --showlocals --cov --junitxml={tox_root}/.results_{envname}/results.xml --cov-report=term --cov-report=xml:{tox_root}/.coverage_{envname}.xml --cov-report=html:{tox_root}/.results_{envname}/html --self-contained-html --html={tox_root}/.results_{envname}/results.html
 
 [testenv:tests]

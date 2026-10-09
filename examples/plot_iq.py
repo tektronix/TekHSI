@@ -1,4 +1,4 @@
-"""An example script for connecting to a Tek instrument, retrieving IQ waveform data, and plotting it."""
+"""Connect to a Tek instrument, retrieve IQ waveform data, and plot it."""
 
 import matplotlib.pyplot as plt
 import numpy as np
