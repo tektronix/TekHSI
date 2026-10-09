@@ -16,18 +16,10 @@ import colorlog
 
 from tzlocal import get_localzone  # pyright: ignore[reportUnknownVariableType]
 
-from tekhsi.helpers.constants import PACKAGE_NAME
-
 if TYPE_CHECKING:
     import os
 
 _logger_initialized = False
-
-
-def reset_logging() -> None:
-    """Reset package logging initialization state without touching handlers."""
-    global _logger_initialized  # noqa: PLW0603
-    _logger_initialized = False
 
 
 class LoggingLevels(Enum):
@@ -47,6 +39,7 @@ class LoggingLevels(Enum):
     """An enum member indicating no logging messages should be captured."""
 
 
+# pylint: disable=import-outside-toplevel
 def configure_logging(
     *,
     log_console_level: Union[str, LoggingLevels] = LoggingLevels.INFO,
@@ -79,6 +72,10 @@ def configure_logging(
         The base logger for the package, this base logger can also be accessed using
             `logging.getLogger(tekhsi.PACKAGE_NAME)`.
     """
+    from tekhsi.helpers.constants import (  # noqa: PLC0415
+        PACKAGE_NAME,
+    )
+
     global _logger_initialized  # noqa: PLW0603
 
     _logger: logging.Logger = logging.getLogger(PACKAGE_NAME)
@@ -115,8 +112,7 @@ def configure_logging(
         _logger.addHandler(file_handler)
 
     # Log a few things to just the file
-    timezone = str(get_localzone())
-    _logger.debug("timezone==%s", timezone)
+    _logger.debug("timezone==%s", get_localzone())  # pyright: ignore[reportUnknownArgumentType,reportUnnecessaryTypeIgnoreComment]
     _logger.debug("%s==%s", PACKAGE_NAME, importlib.metadata.version(PACKAGE_NAME))
 
     if log_console_level != LoggingLevels.NONE:
