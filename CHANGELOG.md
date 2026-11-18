@@ -16,7 +16,11 @@ Valid subsections within a version are:
 
 ## Unreleased
 
-Things to be included in the next release go here.
+### Added
+
+- Added secure scope connections with TLS and HTTP Basic authentication support.
+- Added FastFrame acquisition support for stopped-scope analog and digital waveforms, including
+    frame metadata and transfer timing diagnostics.
 
 ---
 

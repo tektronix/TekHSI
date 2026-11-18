@@ -9,7 +9,6 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
-import sys
 import threading
 import time
 import uuid
@@ -21,18 +20,6 @@ from typing import ClassVar, NoReturn, TYPE_CHECKING, TypeVar
 
 import grpc
 import numpy as np
-
-from tm_data_types import (
-    AnalogWaveform,
-    DigitalWaveform,
-    FastFrameAnalogWaveform,
-    FastFrameDigitalWaveform,
-    FrameTimingInfo,
-    IQWaveform,
-    IQWaveformMetaInfo,
-    SummaryFrameType,
-    Waveform,
-)
 
 from tekhsi._tek_highspeed_server_pb2 import (  # pylint: disable=no-name-in-module
     ConnectRequest,
@@ -64,13 +51,22 @@ from tekhsi.security import (  # pylint: disable=import-private-name
     TekHSICredentials,
     TekSecurityError,
 )
+from tm_data_types import (
+    AnalogWaveform,
+    DigitalWaveform,
+    FastFrameAnalogWaveform,
+    FastFrameDigitalWaveform,
+    FrameTimingInfo,
+    IQWaveform,
+    IQWaveformMetaInfo,
+    SummaryFrameType,
+    Waveform,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from types import TracebackType
-    from typing import Any
-
-    from typing_extensions import Self
+    from typing import Any, Self
 
 _logger = logging.getLogger(__name__)
 
@@ -1818,11 +1814,6 @@ class TekHSIConnect:  # pylint:disable=too-many-instance-attributes,too-many-pub
         Returns:
             True if parallel reads are supported, False otherwise.
         """
-        # Python 3.8-3.12: Enable for I/O-bound gRPC calls
-        # (gRPC releases GIL during I/O, so parallel reads can theoretically help)
-        if sys.version_info < (3, 11):
-            return False
-
         # Python 3.13+: Free-threaded mode available but experimental
         # Note: Free-threaded mode helps CPU-bound work, not I/O-bound
         # Since gRPC is I/O-bound and already releases GIL, free-threaded mode
