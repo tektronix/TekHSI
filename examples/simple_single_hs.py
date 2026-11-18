@@ -1,8 +1,7 @@
 """A script for connecting to a scope, retrieving waveform data, and saving it to a file."""
 
-from tm_data_types import AnalogWaveform, write_file
-
 from tekhsi import AcqWaitOn, TekHSIConnect
+from tm_data_types import AnalogWaveform, write_file
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 

@@ -111,7 +111,8 @@ repos:
 #        args: [--verifytypes, TekHSI, --ignoreexternal]
       - id: pyroma
         name: pyroma
-        entry: pyroma
+        entry: python -c "import os; os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib';
+          import runpy; runpy.run_module('pyroma', run_name='__main__')"
         language: system
         types: [python]
         pass_filenames: false
@@ -133,7 +134,10 @@ repos:
         always_run: true
         # Remove the nltk ignore once the patched release tracked in
         # https://github.com/nltk/nltk/pull/3826 is available.
-        args: [--json, --ignore-package=nltk]
+        # Remove the filelock ignore once `safety` (currently pinned to <4.0, see the
+        # TODO on the "safety" dependency in pyproject.toml) raises its own filelock
+        # upper bound to allow >=4.2.1, which contains the upstream CVE fixes.
+        args: [--json, '--ignore-package=nltk,filelock']
       - id: poetry-check
         name: poetry-check
         entry: poetry check

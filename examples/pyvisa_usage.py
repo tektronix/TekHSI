@@ -2,9 +2,8 @@
 
 import pyvisa
 
-from tm_data_types import AnalogWaveform
-
 from tekhsi import AcqWaitOn, TekHSIConnect
+from tm_data_types import AnalogWaveform
 
 addr = "192.168.0.1"  # Replace with the IP address of your instrument
 

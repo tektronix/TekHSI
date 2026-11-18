@@ -11,11 +11,11 @@ dependencies = [
   "cryptography>=42.0.0",
   "grpcio-tools~=1.66",
   "grpcio~=1.66",
-  "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
-  "numpy~=2.1; python_version >= '3.13'",
+  "numpy~=2.0",
   "protobuf~=7.35",
   "python-dateutil~=2.8",
-  "tm_data_types~=0.5.0",
+  "scipy~=1.13",
+  "tm_data_types~=0.6.0",
   "typing_extensions~=4.12",
   "tzlocal~=5.2",
 ]
@@ -31,7 +31,7 @@ maintainers = [
 ]
 name = "TekHSI"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"  # This is the main Python version requirement
+requires-python = ">=3.11,<3.16"  # This is the main Python version requirement
 
 [project.urls]
 "Bug Tracker" = "https://github.com/tektronix/TekHSI/issues"
@@ -81,17 +81,13 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
-version = "1.1.1"
+version = "1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 docutils-stubs = "^0.0.22"
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"
-numpy = [
-  # Duplicated in "main" and "dev" groups so the correct version resolves in both
-  {python = ">=3.10,<3.13", version = "^1.24"},
-  {python = ">=3.13", version = "^2.1"},
-]
+numpy = "~=2.0"
 pip = "^26.0"
 poetry = "^2.3.0"
 poetry-audit-plugin = "^1.0.0"
@@ -103,7 +99,8 @@ pyright = {extras = ["nodejs"], version = "1.1.414"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
 safety = "~3.7.0"  # TODO: Remove this version pin once the issue with safety is resolved
-tm_devices = "^3.2.0"
+scipy = "~=1.13"
+tm_devices = {python = "<3.15", version = "^3.2.0"}  # TODO: Remove the python marker once tm_devices supports Python 3.15
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
 twine = "^7.0.0"
@@ -111,6 +108,7 @@ types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
 wheel = "^0.48.0"
+zeroconf = ">=0.149.16"
 
 [tool.poetry.group.docs.dependencies]
 black = "^26.3.1"
@@ -127,7 +125,7 @@ mkdocs-section-index = "^0.3.10"
 mkdocs-spellcheck = "^1.2.0"
 mkdocstrings = "^1.0.2"
 mkdocstrings-python = "^2.0.1"
-nodeenv = "^1.9.1"
+nodeenv = "^1.12.0"
 packaging = "^26.2"
 pydantic = "^2.7.4"
 pygments = "^2.17.2"
@@ -188,7 +186,7 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.10"  # PYTHON VERSION MARKER
+py-version = "3.11"  # PYTHON VERSION MARKER
 recursive = true
 
 [tool.pylint.messages_control]
@@ -243,7 +241,7 @@ ignore = [
   "temp_*.py",
 ]
 pythonPlatform = "All"
-pythonVersion = "3.10"  # PYTHON VERSION MARKER
+pythonVersion = "3.11"  # PYTHON VERSION MARKER
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -283,7 +281,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py310"  # always generate Python 3.10 compatible code  # PYTHON VERSION MARKER
+target-version = "py311"  # always generate Python 3.11 compatible code  # PYTHON VERSION MARKER
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -391,27 +389,44 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
+envlist = py311,py312,py313,py314,py315,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =
-  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKER
+  basic = py311,py312,py313,py314,py315,tests  # PYTHON VERSION MARKER
   documentation = docs,doctests
 
 [gh-actions]
 python =  # PYTHON VERSION MARKER
-    3.10: py310
     3.11: py311
     3.12: py312
     3.13: py313
+    3.14: py314
+    3.15: py315
 
 [testenv]
 package = wheel
+allowlist_externals =
+    pre-commit
+    twine
 install_command = python -I -m pip install --upgrade --upgrade-strategy=eager {opts} {packages}
 deps =
     poetry
+    poetry-audit-plugin
+    safety~=3.7.0  # TODO: Remove this version pin once the issue with safety is resolved
 setenv =
     COVERAGE_FILE = .coverage_{envname}
     DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
+    # Prevent poetry from hijacking a contributor's own project-root ".venv" (e.g. an IDE-created
+    # virtualenv) instead of installing into this tox-managed environment. Without this, "poetry
+    # install" silently no-ops against the wrong venv whenever a local ".venv" directory exists
+    # alongside pyproject.toml, leaving packages like pytest missing from the tox environment.
+    POETRY_VIRTUALENVS_IN_PROJECT = false
+    # Force poetry to install directly into the currently active (tox-managed) environment instead
+    # of creating/using its own separate poetry-managed virtualenv. Without this, "poetry install"
+    # installs the dev/docs/tests dependency groups (e.g. pytest) into a venv that tox and its
+    # "pytest" command never see, causing "pytest is not allowed, use allowlist_externals" errors.
+    POETRY_VIRTUALENVS_CREATE = false
+    SETUPTOOLS_USE_DISTUTILS = stdlib
     # Skip pre-commit checks that are not needed
     SKIP = file-contents-sorter
 commands_pre =
