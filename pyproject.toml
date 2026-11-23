@@ -81,7 +81,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
-version = "1.2.0"
+version = "1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 docutils-stubs = "^0.0.22"
@@ -316,6 +316,9 @@ known-local-folder = [
   "server",
   "tests",
 ]
+known-third-party = [
+  "tm_data_types",
+]
 lines-between-types = 1
 order-by-type = false
 
@@ -438,7 +441,12 @@ setenv =
 commands_pre =
 
 [testenv:docs]
-basepython = {env:DOC_PYTHON_VERSION}
+# Explicit interpreter is required because tox >=4.67 resolves base_python for every env in
+# envlist up front (even when running a single unrelated env), and an "auto"/empty-resolving
+# fallback (e.g. a {env:DOC_PYTHON_VERSION:python} substitution that tox fails to expand) can
+# leave base_python empty, aborting the run before docs/doctests ever execute. This must stay
+# in sync with the python-version used in .github/workflows/test-docs.yml and .readthedocs.yml.
+basepython = python3.11
 deps =
     -rdocs/requirements.txt
 commands_pre =
@@ -448,7 +456,7 @@ commands =
     mkdocs --verbose build --site-dir .results_{envname}
 
 [testenv:doctests]
-basepython = {env:DOC_PYTHON_VERSION}
+basepython = python3.11
 deps =
     -rdocs/requirements.txt
     -rtests/requirements.txt

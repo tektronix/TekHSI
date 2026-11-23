@@ -21,6 +21,15 @@ Valid subsections within a version are:
 - Added secure scope connections with TLS and HTTP Basic authentication support.
 - Added FastFrame acquisition support for stopped-scope analog and digital waveforms, including
     frame metadata and transfer timing diagnostics.
+- Added support for Python 3.14 and 3.15.
+
+### Changed
+
+- Bumped the minimum supported Python version to 3.11.5 (from 3.11.0) to allow `soupsieve>=3.0.2` (CVE fixes).
+
+### Removed
+
+- Python 3.10 support has been removed from the package. The minimum supported version is now Python 3.11.5.
 
 ---
 

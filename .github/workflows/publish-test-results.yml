@@ -1,7 +1,11 @@
 ---
 name: Publish Test Results
 on:
-  workflow_run:
+  # workflow_run is used intentionally here (not checking out or executing untrusted PR code
+  # directly) to safely obtain "checks"/"pull-requests" write permissions for commenting on PRs
+  # from forks, which "pull_request"-triggered workflows cannot be granted for security reasons.
+  # The actual work is delegated to a pinned, version-tagged, trusted reusable workflow.
+  workflow_run:  # zizmor: ignore[dangerous-triggers]
     workflows: [Test code]
     types: [completed]
 jobs:

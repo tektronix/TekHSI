@@ -5,6 +5,8 @@ Provides access to commonly imported items from the `TekHSI` package.
 
 from importlib.metadata import version
 
+from tm_data_types import FastFrameAnalogWaveform, FastFrameDigitalWaveform, FrameTimingInfo
+
 from tekhsi._tek_highspeed_server_pb2 import WaveformHeader  # pylint: disable= no-name-in-module
 from tekhsi.credential_store import CertInfo, TekCredentialStore, TekHSICredentialStore
 from tekhsi.helpers import configure_logging, LoggingLevels, PACKAGE_NAME
@@ -30,7 +32,6 @@ from tekhsi.wfm_digital import (
     stamp_digital_bitmask_meta,
     write_digital_wfm,
 )
-from tm_data_types import FastFrameAnalogWaveform, FastFrameDigitalWaveform, FrameTimingInfo
 
 # Read version from installed package.
 __version__ = version(PACKAGE_NAME)
