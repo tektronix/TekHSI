@@ -18,9 +18,6 @@ Valid subsections within a version are:
 
 ### Added
 
-- Added secure scope connections with TLS and HTTP Basic authentication support.
-- Added FastFrame acquisition support for stopped-scope analog and digital waveforms, including
-    frame metadata and transfer timing diagnostics.
 - Added support for Python 3.14 and 3.15.
 
 ### Changed
