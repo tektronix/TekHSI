@@ -112,8 +112,7 @@ repos:
       - id: pyroma
         name: pyroma
         entry: pyroma
-        language: python
-        additional_dependencies: [pyroma]
+        language: system
         types: [python]
         pass_filenames: false
         always_run: true

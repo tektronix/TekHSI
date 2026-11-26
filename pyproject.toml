@@ -138,6 +138,7 @@ pytest = "^9.0.3"
 pytest-cov = "^7.1.0"
 pytest-depends = "^1.0.1"
 pytest-env = "^1.1.3"
+pytest-github-report = "^0.0.1"
 pytest-html = "^4.1.1"
 pytest-order = "^1.2.1"
 
@@ -162,7 +163,7 @@ ignore-patterns = [
   "^_tek_highspeed_server_pb2_grpc\\.py",
   "^temp_.*\\..*",
 ]
-jobs = 0
+jobs = 1
 load-plugins = """
 pylint.extensions.check_elif,
 pylint.extensions.code_style,
@@ -314,9 +315,6 @@ known-local-folder = [
   "server",
   "tests",
 ]
-known-third-party = [
-  "tm_data_types",
-]
 lines-between-types = 1
 order-by-type = false
 
@@ -403,22 +401,16 @@ python =  # PYTHON VERSION MARKER
 
 [testenv]
 package = wheel
+install_command = python -I -m pip install --upgrade --upgrade-strategy=eager {opts} {packages}
 deps =
     poetry
-    # Installed from a frozen requirements file (instead of "poetry install --no-root
-    # --without=main") because newer Poetry releases (2.5+) unreliably detect a tox-managed
-    # virtualenv as "the active environment" on Windows (poetry env info reports the venv as
-    # NA and silently installs dev/docs/tests group packages, e.g. twine/pytest, into the
-    # global/base Python instead), leaving them missing from the tox env and causing
-    # "<tool> is not allowed, use allowlist_externals" failures. Regenerate this file with
-    # `tox -e export-reqs` whenever poetry.lock changes.
-    -rrequirements-dev.txt
 setenv =
     COVERAGE_FILE = .coverage_{envname}
-    SETUPTOOLS_USE_DISTUTILS = stdlib
+    DOC_PYTHON_VERSION = python3.11  # Keep this in sync with .readthedocs.yml and any CI scripts
     # Skip pre-commit checks that are not needed
     SKIP = file-contents-sorter
 commands_pre =
+    python -m poetry install --no-root --without=main
 commands =
     !tests: python -c "import shutil; shutil.rmtree('.dist/{envname}', ignore_errors=True)"
     !tests: poetry build --output=.dist/{envname}
@@ -439,12 +431,7 @@ setenv =
 commands_pre =
 
 [testenv:docs]
-# Explicit interpreter is required because tox >=4.67 resolves base_python for every env in
-# envlist up front (even when running a single unrelated env), and an "auto"/empty-resolving
-# fallback (e.g. a {env:DOC_PYTHON_VERSION:python} substitution that tox fails to expand) can
-# leave base_python empty, aborting the run before docs/doctests ever execute. This must stay
-# in sync with the python-version used in .github/workflows/test-docs.yml and .readthedocs.yml.
-basepython = python3.11
+basepython = {env:DOC_PYTHON_VERSION}
 deps =
     -rdocs/requirements.txt
 commands_pre =
@@ -454,7 +441,7 @@ commands =
     mkdocs --verbose build --site-dir .results_{envname}
 
 [testenv:doctests]
-basepython = python3.11
+basepython = {env:DOC_PYTHON_VERSION}
 deps =
     -rdocs/requirements.txt
     -rtests/requirements.txt
@@ -465,7 +452,6 @@ commands =
 
 [testenv:export-reqs]
 commands =
-    poetry export --without-hashes --without-urls --all-extras --with=dev,docs,tests --output=requirements-dev.txt
     poetry export --without-hashes --without-urls --all-extras --only=docs --output=docs/requirements.txt
     poetry export --without-hashes --without-urls --all-extras --only=tests --output=tests/requirements.txt
     - pre-commit run -a requirements-txt-fixer

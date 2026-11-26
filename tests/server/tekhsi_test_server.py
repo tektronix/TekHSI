@@ -723,7 +723,7 @@ def periodic_data_creation():
         try:
             mutex.acquire()
             try:
-                acq_id = acq_id + 1
+                acq_id += 1
                 connect_server._channels = make_new_data()
                 connect_server._new_data = True
             finally:
