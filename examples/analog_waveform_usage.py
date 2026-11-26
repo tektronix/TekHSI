@@ -2,9 +2,8 @@
 
 import matplotlib.pyplot as plt
 
-from tm_data_types import AnalogWaveform
-
 from tekhsi import TekHSIConnect
+from tm_data_types import AnalogWaveform
 
 with TekHSIConnect("192.168.0.1:5000") as connection:
     # Get one data set to setup plot

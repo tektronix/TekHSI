@@ -11,11 +11,11 @@ dependencies = [
   "cryptography>=42.0.0",
   "grpcio-tools~=1.66",
   "grpcio~=1.66",
-  "numpy~=1.24; python_version >= '3.10' and python_version < '3.13'",
-  "numpy~=2.1; python_version >= '3.13'",
+  "numpy~=2.0",
   "protobuf~=7.35",
   "python-dateutil~=2.8",
-  "tm_data_types~=0.5.0",
+  "scipy~=1.13",
+  "tm_data_types~=0.6.0",
   "typing_extensions~=4.12",
   "tzlocal~=5.2",
 ]
@@ -31,7 +31,7 @@ maintainers = [
 ]
 name = "TekHSI"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"  # This is the main Python version requirement
+requires-python = ">=3.11.5,<3.16"  # This is the main Python version requirement; 3.11.5+ required to allow soupsieve>=3.0.2 (CVE fixes)
 
 [project.urls]
 "Bug Tracker" = "https://github.com/tektronix/TekHSI/issues"
@@ -81,20 +81,14 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
-version = "1.2.0"
+version = "1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 docutils-stubs = "^0.0.22"
 matplotlib = "^3.8"
 nodeenv = "^1.9.1"
-numpy = [
-  # Duplicated in "main" and "dev" groups so the correct version resolves in both
-  {python = ">=3.10,<3.13", version = "^1.24"},
-  {python = ">=3.13", version = "^2.1"},
-]
 pip = "^26.0"
 poetry = "^2.3.0"
-poetry-audit-plugin = "^1.0.0"
 poetry-plugin-export = "^1.7.1"
 poetry-pre-commit-plugin = "^0.2.2"
 pre-commit = "^4.2"
@@ -102,7 +96,6 @@ pylint = "4.0.9"
 pyright = {extras = ["nodejs"], version = "1.1.414"}
 pyroma = "^5.0"
 pyvisa = "^1.14.1"
-safety = "~3.7.0"  # TODO: Remove this version pin once the issue with safety is resolved
 tm_devices = "^3.2.0"
 tox = "^4.0"
 tox-gh-actions = "^3.1.0"
@@ -111,6 +104,7 @@ types-python-dateutil = "^2.9"
 types-pyyaml = "^6.0"
 types-requests = "^2.31"
 wheel = "^0.48.0"
+zeroconf = ">=0.149.16"
 
 [tool.poetry.group.docs.dependencies]
 black = "^26.3.1"
@@ -127,7 +121,7 @@ mkdocs-section-index = "^0.3.10"
 mkdocs-spellcheck = "^1.2.0"
 mkdocstrings = "^1.0.2"
 mkdocstrings-python = "^2.0.1"
-nodeenv = "^1.9.1"
+nodeenv = "^1.12.0"
 packaging = "^26.2"
 pydantic = "^2.7.4"
 pygments = "^2.17.2"
@@ -169,7 +163,7 @@ ignore-patterns = [
   "^_tek_highspeed_server_pb2_grpc\\.py",
   "^temp_.*\\..*",
 ]
-jobs = 0
+jobs = 1
 load-plugins = """
 pylint.extensions.check_elif,
 pylint.extensions.code_style,
@@ -188,7 +182,7 @@ pylint.extensions.set_membership,
 pylint.extensions.typing,
 pylint.extensions.while_used
 """
-py-version = "3.10"  # PYTHON VERSION MARKER
+py-version = "3.11"  # PYTHON VERSION MARKER
 recursive = true
 
 [tool.pylint.messages_control]
@@ -243,7 +237,7 @@ ignore = [
   "temp_*.py",
 ]
 pythonPlatform = "All"
-pythonVersion = "3.10"  # PYTHON VERSION MARKER
+pythonVersion = "3.11"  # PYTHON VERSION MARKER
 reportCallInDefaultInitializer = "error"
 reportImplicitOverride = "error"
 reportImplicitStringConcatenation = "error"
@@ -283,7 +277,7 @@ line-length = 100
 namespace-packages = ["docs/**", "examples/**", "scripts/**", "tests/**"]
 output-format = "concise"
 src = ["docs", "examples", "scripts", "src", "tests"]
-target-version = "py310"  # always generate Python 3.10 compatible code  # PYTHON VERSION MARKER
+target-version = "py311"  # always generate Python 3.11 compatible code  # PYTHON VERSION MARKER
 
 [tool.ruff.lint]
 allowed-confusables = []
@@ -391,18 +385,19 @@ legacy_tox_ini = """
 [tox]
 requires = tox>4
 isolated_build = True
-envlist = py310,py311,py312,py313,tests,docs,doctests  # PYTHON VERSION MARKER
+envlist = py311,py312,py313,py314,py315,tests,docs,doctests  # PYTHON VERSION MARKER
 skip_missing_interpreters = True
 labels =
-  basic = py310,py311,py312,py313,tests  # PYTHON VERSION MARKER
+  basic = py311,py312,py313,py314,py315,tests  # PYTHON VERSION MARKER
   documentation = docs,doctests
 
 [gh-actions]
 python =  # PYTHON VERSION MARKER
-    3.10: py310
     3.11: py311
     3.12: py312
     3.13: py313
+    3.14: py314
+    3.15: py315
 
 [testenv]
 package = wheel

@@ -124,16 +124,6 @@ repos:
         pass_filenames: false
         always_run: true
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
-      - id: poetry-audit
-        name: poetry-audit
-        entry: poetry audit
-        language: system
-        pass_filenames: false
-        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
-        always_run: true
-        # Remove the nltk ignore once the patched release tracked in
-        # https://github.com/nltk/nltk/pull/3826 is available.
-        args: [--json, --ignore-package=nltk]
       - id: poetry-check
         name: poetry-check
         entry: poetry check
@@ -141,6 +131,11 @@ repos:
         pass_filenames: false
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
         args: [--strict]
+  - repo: https://github.com/google/osv-scanner
+    rev: bfe2f84abd2f09fe0b83ba7f6dad40d296762f40  # frozen: v2.7.0
+    hooks:
+      - id: osv-scanner
+        args: [scan, source, --lockfile=poetry.lock]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: aab412d509121cb5f7533134b7e67f9fab59c682  # frozen: v0.16.4
     hooks:
